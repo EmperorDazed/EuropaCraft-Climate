@@ -7,435 +7,1767 @@
     <title>EuropaCraft Climate System</title>
 
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            max-width: 900px;
-            margin: 40px auto;
-            padding: 0 20px;
-            background: #f4f6f8;
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f3f5f7;
+            color: #1f2933;
         }
 
-        h1 {
-            margin-bottom: 5px;
-        }
-
-        .subtitle {
-            margin-top: 0;
-            color: #555;
-        }
-
-        .panel {
+        header {
             background: white;
-            padding: 24px;
-            border-radius: 8px;
-            margin-top: 20px;
+            border-bottom: 1px solid #d7dde3;
+            padding: 20px 28px;
         }
 
-        .control {
+        header h1 {
+            margin: 0 0 4px 0;
+            font-size: 26px;
+        }
+
+        header p {
+            margin: 0;
+            color: #5f6b76;
+        }
+
+        .status-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 18px;
+            padding: 12px 28px;
+            background: #e9edf1;
+            border-bottom: 1px solid #d1d7dd;
+            font-size: 14px;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 340px;
+            gap: 18px;
+            padding: 18px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .map-panel,
+        .sidebar {
+            background: white;
+            border: 1px solid #d8dde3;
+            border-radius: 8px;
+        }
+
+        .map-panel {
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .map-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 12px 14px;
+            border-bottom: 1px solid #dde2e7;
+        }
+
+        .map-toolbar strong {
+            font-size: 15px;
+        }
+
+        .zoom-controls {
+            display: flex;
+            gap: 6px;
+        }
+
+        button {
+            border: 1px solid #b8c0c8;
+            background: #ffffff;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #f0f2f4;
+        }
+
+        button.primary {
+            background: #1f2933;
+            color: white;
+            border-color: #1f2933;
+        }
+
+        button.primary:hover {
+            background: #37424c;
+        }
+
+        button.danger {
+            color: #9d2020;
+        }
+
+        .map-scroll {
+            overflow: auto;
+            max-height: 720px;
+            background: #dfe3e7;
+        }
+
+        #gridStage {
+            position: relative;
+            width: 780px;
+            height: 440px;
+        }
+
+        #climateCanvas {
+            display: block;
+            width: 780px;
+            height: 440px;
+            image-rendering: pixelated;
+            cursor: crosshair;
+        }
+
+        #selectionBox {
+            display: none;
+            position: absolute;
+            pointer-events: none;
+            border: 2px solid white;
+            box-shadow: 0 0 0 1px black;
+            z-index: 5;
+        }
+
+        .map-footer {
+            padding: 10px 14px;
+            border-top: 1px solid #dde2e7;
+            color: #5f6b76;
+            font-size: 13px;
+        }
+
+        .sidebar {
+            padding: 18px;
+            align-self: start;
+        }
+
+        .sidebar h2 {
+            margin-top: 0;
+            margin-bottom: 6px;
+            font-size: 20px;
+        }
+
+        .sidebar .hint {
+            color: #66727e;
+            font-size: 14px;
             margin-bottom: 18px;
         }
 
-        label {
+        .coordinate-box {
+            padding: 14px;
+            background: #f0f3f5;
+            border-radius: 6px;
+            margin-bottom: 18px;
+        }
+
+        .coordinate-main {
+            font-size: 21px;
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+
+        .coordinate-sub {
+            font-size: 13px;
+            color: #5f6b76;
+            line-height: 1.5;
+        }
+
+        .field {
+            margin-bottom: 15px;
+        }
+
+        .field label {
             display: block;
             font-weight: bold;
+            font-size: 14px;
             margin-bottom: 6px;
         }
 
         input,
         select {
-            padding: 8px;
+            width: 100%;
+            min-height: 40px;
+            padding: 8px 10px;
+            border: 1px solid #bfc7cf;
+            border-radius: 5px;
+            background: white;
             font-size: 16px;
-            min-width: 180px;
         }
 
-        .result {
-            font-family: monospace;
-            font-size: 26px;
+        .weather-state {
+            margin: 18px 0;
+            padding: 14px;
+            background: #f0f3f5;
+            border-radius: 6px;
+        }
+
+        .weather-state .label {
+            font-size: 12px;
+            color: #66727e;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        #stateOutput {
+            font-family: Consolas, "Courier New", monospace;
             font-weight: bold;
-            margin-top: 10px;
+            font-size: 18px;
+            word-break: break-all;
         }
 
-        .weather-details {
-            margin-top: 20px;
+        .details {
+            border-top: 1px solid #e0e4e8;
+            margin-top: 15px;
+            padding-top: 15px;
+            font-size: 14px;
             line-height: 1.8;
         }
 
-        .warning {
-            margin-top: 20px;
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .detail-row span:first-child {
+            color: #66727e;
+        }
+
+        .detail-row span:last-child {
+            text-align: right;
             font-weight: bold;
         }
 
-        .small {
-            color: #666;
-            font-size: 14px;
+        .warning {
+            margin-top: 12px;
+            color: #a03a19;
+            font-size: 13px;
+            line-height: 1.4;
+            min-height: 18px;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 18px;
+        }
+
+        .button-row button {
+            flex: 1;
+        }
+
+        .legend {
+            margin-top: 18px;
+            border-top: 1px solid #e0e4e8;
+            padding-top: 15px;
+        }
+
+        .legend-title {
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .temperature-gradient {
+            height: 14px;
+            border-radius: 4px;
+            background:
+                linear-gradient(
+                    to right,
+                    hsl(220, 70%, 50%),
+                    hsl(180, 70%, 50%),
+                    hsl(100, 65%, 50%),
+                    hsl(45, 80%, 55%),
+                    hsl(0, 75%, 52%)
+                );
+        }
+
+        .legend-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 4px;
+            color: #66727e;
+            font-size: 11px;
+        }
+
+        .unset-note {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #66727e;
+        }
+
+        @media (max-width: 900px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                order: -1;
+            }
+
+            .map-scroll {
+                max-height: 520px;
+            }
         }
     </style>
 </head>
 
 <body>
 
+<header>
     <h1>EuropaCraft Climate System</h1>
-    <p class="subtitle">Weather state development system</p>
+    <p>Geographical weather grid development system</p>
+</header>
 
-    <div class="panel">
+<div class="status-bar">
+    <span><strong>Scale:</strong> 1:116</span>
+    <span><strong>Map scale:</strong> 960 blocks / degree</span>
+    <span><strong>Grid:</strong> 780 × 440</span>
+    <span><strong>Cells:</strong> 343,200</span>
+    <span><strong>Cell:</strong> 0.1° × 0.1°</span>
+    <span><strong>Cell size:</strong> 96 × 96 blocks</span>
+    <span><strong>Snow boundary:</strong> 1.5°C</span>
+</div>
 
-        <div class="control">
-            <label for="temperature">Air temperature at reference level (°C)</label>
-            <input
-                type="number"
-                id="temperature"
-                value="2.2"
-                step="0.1"
-            >
-        </div>
+<div class="layout">
 
-        <div class="control">
-            <label for="snowBoundary">Snow boundary (°C)</label>
-            <input
-                type="number"
-                id="snowBoundary"
-                value="1.5"
-                step="0.1"
-            >
-            <div class="small">
-                Temporary development value. This can be changed while testing.
-            </div>
-        </div>
+    <section class="map-panel">
 
-        <div class="control">
-            <label for="precipitation">Precipitation</label>
-            <select id="precipitation">
-                <option value="d">Dry</option>
-                <option value="w">Wet</option>
-            </select>
-        </div>
+        <div class="map-toolbar">
 
-        <div class="control">
-            <label for="sky">Sky</label>
-            <select id="sky">
-                <option value="c">Clear</option>
-                <option value="o">Overcast</option>
-            </select>
-        </div>
+            <strong>Europe Climate Grid — 26°W to 52°E / 30°N to 74°N</strong>
 
-        <div class="control">
-            <label for="thunder">Thunder</label>
-            <select id="thunder">
-                <option value="">No</option>
-                <option value="t">Yes</option>
-            </select>
-        </div>
-
-    </div>
-
-    <div class="panel">
-
-        <h2>EuropaCraft Weather State</h2>
-
-        <div id="weatherState" class="result">
-            europacraft:2.2dc
-        </div>
-
-        <div class="weather-details">
-
-            <div>
-                <strong>Temperature:</strong>
-                <span id="temperatureOutput"></span>
-            </div>
-
-            <div>
-                <strong>Precipitation:</strong>
-                <span id="precipitationOutput"></span>
-            </div>
-
-            <div>
-                <strong>Precipitation type:</strong>
-                <span id="precipitationType"></span>
-            </div>
-
-            <div>
-                <strong>Sky:</strong>
-                <span id="skyOutput"></span>
-            </div>
-
-            <div>
-                <strong>Thunder:</strong>
-                <span id="thunderOutput"></span>
+            <div class="zoom-controls">
+                <button type="button" data-zoom="1">1×</button>
+                <button type="button" data-zoom="2">2×</button>
+                <button type="button" data-zoom="4">4×</button>
+                <button type="button" data-zoom="8">8×</button>
             </div>
 
         </div>
 
-        <div id="warning" class="warning"></div>
+        <div class="map-scroll" id="mapScroll">
 
-    </div>
+            <div id="gridStage">
+
+                <canvas
+                    id="climateCanvas"
+                    width="780"
+                    height="440">
+                </canvas>
+
+                <div id="selectionBox"></div>
+
+            </div>
+
+        </div>
+
+        <div class="map-footer">
+            Each pixel at 1× zoom represents one 0.1° climate cell.
+            Major lines are shown every 5°. Click anywhere on the grid to select a cell.
+        </div>
+
+    </section>
+
+
+    <aside class="sidebar">
+
+        <h2>Selected Climate Cell</h2>
+
+        <div class="hint" id="selectionHint">
+            Click a cell on the climate grid.
+        </div>
+
+        <div id="editor" style="display:none;">
+
+            <div class="coordinate-box">
+
+                <div class="coordinate-main" id="coordinateMain">
+                    —
+                </div>
+
+                <div class="coordinate-sub" id="coordinateBounds">
+                    —
+                </div>
+
+            </div>
+
+
+            <div class="field">
+                <label for="temperatureInput">
+                    Air temperature at reference level
+                </label>
+
+                <input
+                    id="temperatureInput"
+                    type="number"
+                    min="-60"
+                    max="60"
+                    step="0.1"
+                    value="2.2">
+            </div>
+
+
+            <div class="field">
+                <label for="precipitationInput">
+                    Precipitation
+                </label>
+
+                <select id="precipitationInput">
+                    <option value="0">Dry</option>
+                    <option value="1">Wet</option>
+                </select>
+            </div>
+
+
+            <div class="field">
+                <label for="skyInput">
+                    Sky
+                </label>
+
+                <select id="skyInput">
+                    <option value="0">Clear</option>
+                    <option value="1">Overcast</option>
+                </select>
+            </div>
+
+
+            <div class="field">
+                <label for="thunderInput">
+                    Thunder
+                </label>
+
+                <select id="thunderInput">
+                    <option value="0">No</option>
+                    <option value="1">Yes</option>
+                </select>
+            </div>
+
+
+            <div class="weather-state">
+
+                <div class="label">
+                    EuropaCraft weather state
+                </div>
+
+                <div id="stateOutput">
+                    europacraft:2.2dc
+                </div>
+
+            </div>
+
+
+            <div class="details">
+
+                <div class="detail-row">
+                    <span>Real temperature</span>
+                    <span id="realTemperatureOutput">—</span>
+                </div>
+
+                <div class="detail-row">
+                    <span>Minecraft temperature</span>
+                    <span id="minecraftTemperatureOutput">—</span>
+                </div>
+
+                <div class="detail-row">
+                    <span>Precipitation type</span>
+                    <span id="precipitationTypeOutput">—</span>
+                </div>
+
+                <div class="detail-row">
+                    <span>Cell size</span>
+                    <span>96 × 96 blocks</span>
+                </div>
+
+                <div class="detail-row">
+                    <span>Chunk coverage</span>
+                    <span>6 × 6 chunks</span>
+                </div>
+
+                <div class="detail-row">
+                    <span>Grid index</span>
+                    <span id="gridIndexOutput">—</span>
+                </div>
+
+            </div>
+
+
+            <div class="warning" id="warningOutput"></div>
+
+
+            <div class="button-row">
+
+                <button
+                    type="button"
+                    class="primary"
+                    id="applyButton">
+                    Apply to Cell
+                </button>
+
+                <button
+                    type="button"
+                    class="danger"
+                    id="clearButton">
+                    Clear
+                </button>
+
+            </div>
+
+
+            <div class="legend">
+
+                <div class="legend-title">
+                    Temperature
+                </div>
+
+                <div class="temperature-gradient"></div>
+
+                <div class="legend-labels">
+                    <span>−40°C</span>
+                    <span>0°C</span>
+                    <span>20°C</span>
+                    <span>50°C</span>
+                </div>
+
+                <div class="unset-note">
+                    Grey cells have not yet been assigned climate data.
+                </div>
+
+            </div>
+
+        </div>
+
+    </aside>
+
+</div>
+
 
 <script>
 
-const temperatureInput =
-    document.getElementById("temperature");
+(() => {
 
-const snowBoundaryInput =
-    document.getElementById("snowBoundary");
+    /*
+        ============================================================
+        EUROPACRAFT GEOGRAPHICAL CONSTANTS
+        ============================================================
+    */
 
-const precipitationInput =
-    document.getElementById("precipitation");
+    const MIN_LONGITUDE = -26;
+    const MAX_LONGITUDE = 52;
 
-const skyInput =
-    document.getElementById("sky");
+    const MIN_LATITUDE = 30;
+    const MAX_LATITUDE = 74;
 
-const thunderInput =
-    document.getElementById("thunder");
+    const CELL_DEGREES = 0.1;
 
+    const BLOCKS_PER_DEGREE = 960;
+    const BLOCKS_PER_CELL = 96;
 
-function updateWeather() {
+    const GRID_WIDTH = 780;
+    const GRID_HEIGHT = 440;
 
-    let temperature =
-        parseFloat(temperatureInput.value);
+    const TOTAL_CELLS =
+        GRID_WIDTH * GRID_HEIGHT;
 
-    let snowBoundary =
-        parseFloat(snowBoundaryInput.value);
-
-    let precipitation =
-        precipitationInput.value;
-
-    let sky =
-        skyInput.value;
-
-    let thunder =
-        thunderInput.value;
-
-    let warningText = "";
+    const SNOW_BOUNDARY = 1.5;
 
 
     /*
-        THUNDER RULE
+        ============================================================
+        CLIMATE DATA
 
-        Thunderstorms automatically require:
-        - wet weather
-        - overcast sky
+        Temperature = NaN means that the cell is currently unset.
+        ============================================================
     */
 
-    if (thunder === "t") {
+    const temperatures =
+        new Float32Array(TOTAL_CELLS);
 
-        precipitation = "w";
-        sky = "o";
+    temperatures.fill(NaN);
 
-        precipitationInput.value = "w";
-        skyInput.value = "o";
-    }
+    const precipitation =
+        new Uint8Array(TOTAL_CELLS);
+
+    const sky =
+        new Uint8Array(TOTAL_CELLS);
+
+    const thunder =
+        new Uint8Array(TOTAL_CELLS);
 
 
     /*
-        PRECIPITATION RULE
-
-        Any precipitation requires an overcast sky.
+        ============================================================
+        ELEMENTS
+        ============================================================
     */
 
-    if (precipitation === "w") {
+    const canvas =
+        document.getElementById("climateCanvas");
 
-        sky = "o";
-        skyInput.value = "o";
-    }
+    const ctx =
+        canvas.getContext("2d");
+
+    const gridStage =
+        document.getElementById("gridStage");
+
+    const selectionBox =
+        document.getElementById("selectionBox");
+
+    const selectionHint =
+        document.getElementById("selectionHint");
+
+    const editor =
+        document.getElementById("editor");
+
+    const temperatureInput =
+        document.getElementById("temperatureInput");
+
+    const precipitationInput =
+        document.getElementById("precipitationInput");
+
+    const skyInput =
+        document.getElementById("skyInput");
+
+    const thunderInput =
+        document.getElementById("thunderInput");
+
+    const coordinateMain =
+        document.getElementById("coordinateMain");
+
+    const coordinateBounds =
+        document.getElementById("coordinateBounds");
+
+    const stateOutput =
+        document.getElementById("stateOutput");
+
+    const realTemperatureOutput =
+        document.getElementById("realTemperatureOutput");
+
+    const minecraftTemperatureOutput =
+        document.getElementById("minecraftTemperatureOutput");
+
+    const precipitationTypeOutput =
+        document.getElementById("precipitationTypeOutput");
+
+    const gridIndexOutput =
+        document.getElementById("gridIndexOutput");
+
+    const warningOutput =
+        document.getElementById("warningOutput");
+
+    const applyButton =
+        document.getElementById("applyButton");
+
+    const clearButton =
+        document.getElementById("clearButton");
 
 
     /*
-        MINECRAFT THUNDERSNOW LIMITATION
-
-        If precipitation is snow at the selected
-        temperature, thunder is disabled.
+        ============================================================
+        CURRENT SELECTION
+        ============================================================
     */
 
-    if (
-        thunder === "t" &&
-        temperature <= snowBoundary
-    ) {
+    let selectedColumn = null;
+    let selectedRow = null;
 
-        thunder = "";
-        thunderInput.value = "";
-
-        warningText =
-            "Thunder disabled: Minecraft does not produce normal lightning in snow conditions.";
-    }
+    let zoom = 1;
 
 
     /*
-        DETERMINE PRECIPITATION TYPE
+        ============================================================
+        TEMPERATURE -> MINECRAFT TEMPERATURE
 
-        For now this is deliberately simple.
+        Locked anchors:
 
-        Later we can add the full EuropaCraft
-        decimal sleet range.
+        0.0°C = 0.120
+        1.2°C = 0.145
+        1.5°C = 0.150
+        2.0°C = 0.160
+        3.0°C = 0.180
+        4.0°C = 0.200
+        5.0°C = 0.300
+
+        Continuous interpolation is used between anchors.
+        ============================================================
     */
 
-    let precipitationType = "None";
+    function minecraftTemperature(realTemperature) {
 
-    if (precipitation === "w") {
+        const t = realTemperature;
 
-        if (temperature <= snowBoundary) {
+        if (t <= 0) {
 
-            precipitationType = "Snow";
+            return 0.12 + (0.01 * t);
 
         }
 
-        else if (
-            temperature <= snowBoundary + 1.5
+        if (t <= 1.2) {
+
+            return (
+                0.12 +
+                ((0.145 - 0.12) / 1.2) * t
+            );
+
+        }
+
+        if (t <= 1.5) {
+
+            return (
+                0.145 +
+                ((0.150 - 0.145) / 0.3) *
+                (t - 1.2)
+            );
+
+        }
+
+        if (t <= 4) {
+
+            return (
+                0.150 +
+                0.02 * (t - 1.5)
+            );
+
+        }
+
+        if (t <= 5) {
+
+            return (
+                0.200 +
+                0.10 * (t - 4)
+            );
+
+        }
+
+        return (
+            0.300 +
+            0.03 * (t - 5)
+        );
+    }
+
+
+    /*
+        ============================================================
+        PRECIPITATION DESCRIPTION
+        ============================================================
+    */
+
+    function precipitationType(
+        temperature,
+        isWet
+    ) {
+
+        if (!isWet) {
+            return "None";
+        }
+
+        if (temperature <= 0) {
+            return "Snow";
+        }
+
+        if (temperature <= 1.2) {
+            return "Wet snow";
+        }
+
+        if (temperature <= 1.5) {
+            return "Snow / sleet mix";
+        }
+
+        if (temperature <= 2.0) {
+            return "Rain with a few wet flakes";
+        }
+
+        if (temperature < 5.0) {
+            return "Rain — hill snow possible";
+        }
+
+        return "Rain";
+    }
+
+
+    /*
+        ============================================================
+        WEATHER STATE ID
+        ============================================================
+    */
+
+    function formatTemperatureForId(value) {
+
+        const rounded =
+            Math.round(value * 10) / 10;
+
+        if (
+            Math.abs(
+                rounded - Math.round(rounded)
+            ) < 0.00001
+        ) {
+            return String(
+                Math.round(rounded)
+            );
+        }
+
+        return rounded.toFixed(1);
+    }
+
+
+    function buildWeatherState(
+        temperature,
+        isWet,
+        isOvercast,
+        hasThunder
+    ) {
+
+        let state =
+            "europacraft:" +
+            formatTemperatureForId(
+                temperature
+            );
+
+        state +=
+            isWet ? "w" : "d";
+
+        state +=
+            isOvercast ? "o" : "c";
+
+        if (hasThunder) {
+            state += "t";
+        }
+
+        return state;
+    }
+
+
+    /*
+        ============================================================
+        COORDINATE FORMATTING
+        ============================================================
+    */
+
+    function roundCoordinate(value) {
+        return Math.round(value * 100) / 100;
+    }
+
+
+    function formatLatitude(value) {
+
+        value = roundCoordinate(value);
+
+        return (
+            Math.abs(value).toFixed(2) +
+            "°" +
+            (value >= 0 ? "N" : "S")
+        );
+    }
+
+
+    function formatLongitude(value) {
+
+        value = roundCoordinate(value);
+
+        if (Math.abs(value) < 0.00001) {
+            return "0.00°";
+        }
+
+        return (
+            Math.abs(value).toFixed(2) +
+            "°" +
+            (value >= 0 ? "E" : "W")
+        );
+    }
+
+
+    function getCellCoordinates(
+        column,
+        row
+    ) {
+
+        const longitudeWest =
+            MIN_LONGITUDE +
+            column * CELL_DEGREES;
+
+        const longitudeEast =
+            longitudeWest +
+            CELL_DEGREES;
+
+        const latitudeNorth =
+            MAX_LATITUDE -
+            row * CELL_DEGREES;
+
+        const latitudeSouth =
+            latitudeNorth -
+            CELL_DEGREES;
+
+        const longitudeCentre =
+            longitudeWest +
+            CELL_DEGREES / 2;
+
+        const latitudeCentre =
+            latitudeNorth -
+            CELL_DEGREES / 2;
+
+        return {
+
+            longitudeWest,
+            longitudeEast,
+
+            latitudeNorth,
+            latitudeSouth,
+
+            longitudeCentre,
+            latitudeCentre
+        };
+    }
+
+
+    /*
+        ============================================================
+        CELL INDEX
+        ============================================================
+    */
+
+    function cellIndex(
+        column,
+        row
+    ) {
+
+        return (
+            row * GRID_WIDTH +
+            column
+        );
+    }
+
+
+    /*
+        ============================================================
+        TEMPERATURE COLOUR SYSTEM
+        ============================================================
+    */
+
+    function hslToRgb(
+        h,
+        s,
+        l
+    ) {
+
+        s /= 100;
+        l /= 100;
+
+        const c =
+            (1 - Math.abs(2 * l - 1)) *
+            s;
+
+        const x =
+            c *
+            (
+                1 -
+                Math.abs(
+                    ((h / 60) % 2) - 1
+                )
+            );
+
+        const m =
+            l - c / 2;
+
+        let r = 0;
+        let g = 0;
+        let b = 0;
+
+        if (h < 60) {
+            r = c;
+            g = x;
+        }
+
+        else if (h < 120) {
+            r = x;
+            g = c;
+        }
+
+        else if (h < 180) {
+            g = c;
+            b = x;
+        }
+
+        else if (h < 240) {
+            g = x;
+            b = c;
+        }
+
+        else if (h < 300) {
+            r = x;
+            b = c;
+        }
+
+        else {
+            r = c;
+            b = x;
+        }
+
+        return [
+            Math.round((r + m) * 255),
+            Math.round((g + m) * 255),
+            Math.round((b + m) * 255)
+        ];
+    }
+
+
+    const colourPalette = [];
+
+    for (
+        let i = 0;
+        i <= 1200;
+        i++
+    ) {
+
+        const temperature =
+            -60 + i / 10;
+
+        const normalised =
+            Math.max(
+                0,
+                Math.min(
+                    1,
+                    (temperature + 40) / 90
+                )
+            );
+
+        const hue =
+            220 -
+            normalised * 220;
+
+        colourPalette.push(
+            hslToRgb(
+                hue,
+                68,
+                52
+            )
+        );
+    }
+
+
+    function getTemperatureColour(
+        temperature
+    ) {
+
+        const index =
+            Math.max(
+                0,
+                Math.min(
+                    1200,
+                    Math.round(
+                        (temperature + 60) * 10
+                    )
+                )
+            );
+
+        return colourPalette[index];
+    }
+
+
+    /*
+        ============================================================
+        GRID RENDERING
+        ============================================================
+    */
+
+    const image =
+        ctx.createImageData(
+            GRID_WIDTH,
+            GRID_HEIGHT
+        );
+
+
+    function renderGrid() {
+
+        const pixels =
+            image.data;
+
+        for (
+            let i = 0;
+            i < TOTAL_CELLS;
+            i++
         ) {
 
-            precipitationType = "Marginal rain / sleet";
+            const pixel =
+                i * 4;
+
+            const temperature =
+                temperatures[i];
+
+            if (
+                Number.isNaN(
+                    temperature
+                )
+            ) {
+
+                pixels[pixel] = 218;
+                pixels[pixel + 1] = 222;
+                pixels[pixel + 2] = 226;
+                pixels[pixel + 3] = 255;
+
+                continue;
+            }
+
+            const colour =
+                getTemperatureColour(
+                    temperature
+                );
+
+            pixels[pixel] =
+                colour[0];
+
+            pixels[pixel + 1] =
+                colour[1];
+
+            pixels[pixel + 2] =
+                colour[2];
+
+            pixels[pixel + 3] =
+                255;
+        }
+
+        ctx.putImageData(
+            image,
+            0,
+            0
+        );
+
+
+        /*
+            Major geographical lines:
+            every 5 degrees.
+        */
+
+        ctx.save();
+
+        ctx.strokeStyle =
+            "rgba(40, 48, 55, 0.45)";
+
+        ctx.lineWidth = 1;
+
+
+        /*
+            Longitude lines.
+        */
+
+        for (
+            let longitude = -25;
+            longitude <= 50;
+            longitude += 5
+        ) {
+
+            const column =
+                (
+                    longitude -
+                    MIN_LONGITUDE
+                ) /
+                CELL_DEGREES;
+
+            ctx.beginPath();
+
+            ctx.moveTo(
+                column + 0.5,
+                0
+            );
+
+            ctx.lineTo(
+                column + 0.5,
+                GRID_HEIGHT
+            );
+
+            ctx.stroke();
+        }
+
+
+        /*
+            Latitude lines.
+        */
+
+        for (
+            let latitude = 30;
+            latitude <= 70;
+            latitude += 5
+        ) {
+
+            const row =
+                (
+                    MAX_LATITUDE -
+                    latitude
+                ) /
+                CELL_DEGREES;
+
+            ctx.beginPath();
+
+            ctx.moveTo(
+                0,
+                row + 0.5
+            );
+
+            ctx.lineTo(
+                GRID_WIDTH,
+                row + 0.5
+            );
+
+            ctx.stroke();
+        }
+
+        ctx.restore();
+    }
+
+
+    /*
+        ============================================================
+        ZOOM
+        ============================================================
+    */
+
+    function setZoom(newZoom) {
+
+        zoom = newZoom;
+
+        const width =
+            GRID_WIDTH * zoom;
+
+        const height =
+            GRID_HEIGHT * zoom;
+
+        canvas.style.width =
+            width + "px";
+
+        canvas.style.height =
+            height + "px";
+
+        gridStage.style.width =
+            width + "px";
+
+        gridStage.style.height =
+            height + "px";
+
+        updateSelectionBox();
+    }
+
+
+    document
+        .querySelectorAll(
+            "[data-zoom]"
+        )
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    setZoom(
+                        Number(
+                            button.dataset.zoom
+                        )
+                    );
+                }
+            );
+        });
+
+
+    /*
+        ============================================================
+        CELL SELECTION
+        ============================================================
+    */
+
+    canvas.addEventListener(
+        "click",
+        event => {
+
+            const rect =
+                canvas.getBoundingClientRect();
+
+            const canvasX =
+                (
+                    event.clientX -
+                    rect.left
+                ) *
+                (
+                    GRID_WIDTH /
+                    rect.width
+                );
+
+            const canvasY =
+                (
+                    event.clientY -
+                    rect.top
+                ) *
+                (
+                    GRID_HEIGHT /
+                    rect.height
+                );
+
+            selectedColumn =
+                Math.max(
+                    0,
+                    Math.min(
+                        GRID_WIDTH - 1,
+                        Math.floor(
+                            canvasX
+                        )
+                    )
+                );
+
+            selectedRow =
+                Math.max(
+                    0,
+                    Math.min(
+                        GRID_HEIGHT - 1,
+                        Math.floor(
+                            canvasY
+                        )
+                    )
+                );
+
+            updateSelectionBox();
+
+            loadSelectedCell();
+        }
+    );
+
+
+    function updateSelectionBox() {
+
+        if (
+            selectedColumn === null ||
+            selectedRow === null
+        ) {
+
+            selectionBox.style.display =
+                "none";
+
+            return;
+        }
+
+        selectionBox.style.display =
+            "block";
+
+        selectionBox.style.left =
+            selectedColumn *
+            zoom +
+            "px";
+
+        selectionBox.style.top =
+            selectedRow *
+            zoom +
+            "px";
+
+        selectionBox.style.width =
+            Math.max(
+                zoom,
+                1
+            ) +
+            "px";
+
+        selectionBox.style.height =
+            Math.max(
+                zoom,
+                1
+            ) +
+            "px";
+    }
+
+
+    /*
+        ============================================================
+        LOAD SELECTED CELL INTO SIDEBAR
+        ============================================================
+    */
+
+    function loadSelectedCell() {
+
+        const index =
+            cellIndex(
+                selectedColumn,
+                selectedRow
+            );
+
+        const coordinates =
+            getCellCoordinates(
+                selectedColumn,
+                selectedRow
+            );
+
+        selectionHint.style.display =
+            "none";
+
+        editor.style.display =
+            "block";
+
+
+        coordinateMain.innerText =
+            formatLatitude(
+                coordinates.latitudeCentre
+            ) +
+            ", " +
+            formatLongitude(
+                coordinates.longitudeCentre
+            );
+
+
+        coordinateBounds.innerHTML =
+
+            "Latitude: " +
+            formatLatitude(
+                coordinates.latitudeNorth
+            ) +
+            " → " +
+            formatLatitude(
+                coordinates.latitudeSouth
+            ) +
+            "<br>" +
+
+            "Longitude: " +
+            formatLongitude(
+                coordinates.longitudeWest
+            ) +
+            " → " +
+            formatLongitude(
+                coordinates.longitudeEast
+            );
+
+
+        gridIndexOutput.innerText =
+            selectedColumn +
+            ", " +
+            selectedRow;
+
+
+        if (
+            Number.isNaN(
+                temperatures[index]
+            )
+        ) {
+
+            temperatureInput.value =
+                "2.2";
+
+            precipitationInput.value =
+                "0";
+
+            skyInput.value =
+                "0";
+
+            thunderInput.value =
+                "0";
 
         }
 
         else {
 
-            precipitationType = "Rain";
+            temperatureInput.value =
+                temperatures[index]
+                    .toFixed(1);
 
+            precipitationInput.value =
+                precipitation[index];
+
+            skyInput.value =
+                sky[index];
+
+            thunderInput.value =
+                thunder[index];
         }
+
+        updatePreview();
     }
 
 
     /*
-        BUILD WEATHER STATE ID
+        ============================================================
+        INPUT VALIDATION / WEATHER RULES
+        ============================================================
     */
 
-    let weatherState =
-        "europacraft:" +
-        temperature +
-        precipitation +
-        sky +
-        thunder;
+    function getFormWeather() {
+
+        let temperature =
+            parseFloat(
+                temperatureInput.value
+            );
+
+        if (
+            !Number.isFinite(
+                temperature
+            )
+        ) {
+
+            temperature = 0;
+        }
+
+        temperature =
+            Math.max(
+                -60,
+                Math.min(
+                    60,
+                    temperature
+                )
+            );
+
+        temperature =
+            Math.round(
+                temperature * 10
+            ) / 10;
+
+
+        let isWet =
+            precipitationInput.value ===
+            "1";
+
+        let isOvercast =
+            skyInput.value ===
+            "1";
+
+        let hasThunder =
+            thunderInput.value ===
+            "1";
+
+        let warning = "";
+
+
+        /*
+            Thunder forces:
+            - Wet
+            - Overcast
+        */
+
+        if (hasThunder) {
+
+            isWet = true;
+            isOvercast = true;
+        }
+
+
+        /*
+            Any wet weather is overcast.
+        */
+
+        if (isWet) {
+
+            isOvercast = true;
+        }
+
+
+        /*
+            Minecraft snow does not support
+            normal thunder/lightning.
+
+            1.5°C is the locked EuropaCraft
+            snow boundary.
+        */
+
+        if (
+            hasThunder &&
+            temperature <=
+            SNOW_BOUNDARY
+        ) {
+
+            hasThunder = false;
+
+            warning =
+                "Thunder removed because this temperature is at or below the 1.5°C snow boundary.";
+        }
+
+
+        precipitationInput.value =
+            isWet ? "1" : "0";
+
+        skyInput.value =
+            isOvercast ? "1" : "0";
+
+        thunderInput.value =
+            hasThunder ? "1" : "0";
+
+
+        return {
+
+            temperature,
+            isWet,
+            isOvercast,
+            hasThunder,
+            warning
+        };
+    }
 
 
     /*
-        DISPLAY RESULTS
+        ============================================================
+        LIVE SIDEBAR PREVIEW
+        ============================================================
     */
 
-    document.getElementById("weatherState")
-        .innerText = weatherState;
+    function updatePreview() {
+
+        if (
+            selectedColumn === null ||
+            selectedRow === null
+        ) {
+            return;
+        }
+
+        const weather =
+            getFormWeather();
+
+        const minecraftTemp =
+            minecraftTemperature(
+                weather.temperature
+            );
+
+        stateOutput.innerText =
+            buildWeatherState(
+                weather.temperature,
+                weather.isWet,
+                weather.isOvercast,
+                weather.hasThunder
+            );
+
+        realTemperatureOutput.innerText =
+            weather.temperature
+                .toFixed(1) +
+            "°C";
+
+        minecraftTemperatureOutput.innerText =
+            minecraftTemp
+                .toFixed(3);
+
+        precipitationTypeOutput.innerText =
+            precipitationType(
+                weather.temperature,
+                weather.isWet
+            );
+
+        warningOutput.innerText =
+            weather.warning;
+    }
 
 
-    document.getElementById("temperatureOutput")
-        .innerText =
-        temperature.toFixed(1) + "°C";
-
-
-    document.getElementById("precipitationOutput")
-        .innerText =
-        precipitation === "w"
-        ? "Wet"
-        : "Dry";
-
-
-    document.getElementById("precipitationType")
-        .innerText =
-        precipitationType;
-
-
-    document.getElementById("skyOutput")
-        .innerText =
-        sky === "o"
-        ? "Overcast"
-        : "Clear";
-
-
-    document.getElementById("thunderOutput")
-        .innerText =
-        thunder === "t"
-        ? "Yes"
-        : "No";
-
-
-    document.getElementById("warning")
-        .innerText =
-        warningText;
-}
-
-
-/*
-    UPDATE AUTOMATICALLY
-
-    No Generate button is required anymore.
-*/
-
-temperatureInput.addEventListener(
-    "input",
-    updateWeather
-);
-
-snowBoundaryInput.addEventListener(
-    "input",
-    updateWeather
-);
-
-precipitationInput.addEventListener(
-    "change",
-    updateWeather
-);
-
-skyInput.addEventListener(
-    "change",
-    updateWeather
-);
-
-thunderInput.addEventListener(
-    "change",
-    updateWeather
-);
-
-
-/*
-    RUN ON PAGE LOAD
-*/
-
-updateWeather();
-
-</script>
-
-</body>
-</html>
-<h2 id="result">europacraft:1.5do</h2>
-
-<script>
-function generateWeather() {
-    let temperature = parseFloat(
-        document.getElementById("temperature").value
+    temperatureInput.addEventListener(
+        "input",
+        updatePreview
     );
 
-    let precipitation =
-        document.getElementById("precipitation").value;
+    precipitationInput.addEventListener(
+        "change",
+        updatePreview
+    );
 
-    let sky =
-        document.getElementById("sky").value;
+    skyInput.addEventListener(
+        "change",
+        updatePreview
+    );
 
-    let thunder =
-        document.getElementById("thunder").value;
+    thunderInput.addEventListener(
+        "change",
+        updatePreview
+    );
 
-    // Wet weather must be overcast
-    if (precipitation === "w") {
-        sky = "o";
-        document.getElementById("sky").value = "o";
-    }
 
-    // Thunderstorms must be wet and overcast
-    if (thunder === "t") {
-        precipitation = "w";
-        sky = "o";
+    /*
+        ============================================================
+        APPLY WEATHER TO CELL
+        ============================================================
+    */
 
-        document.getElementById("precipitation").value = "w";
-        document.getElementById("sky").value = "o";
-    }
+    applyButton.addEventListener(
+        "click",
+        () => {
 
-    let weatherState =
-        "europacraft:" +
-        temperature +
-        precipitation +
-        sky;
+            if (
+                selectedColumn === null ||
+                selectedRow === null
+            ) {
+                return;
+            }
 
-    if (thunder === "t") {
-        weatherState += "t";
-    }
+            const weather =
+                getFormWeather();
 
-    document.getElementById("result").innerText = weatherState;
-}
+            const index =
+                cellIndex(
+                    selectedColumn,
+                    selectedRow
+                );
+
+            temperatures[index] =
+                weather.temperature;
+
+            precipitation[index] =
+                weather.isWet ? 1 : 0;
+
+            sky[index] =
+                weather.isOvercast ? 1 : 0;
+
+            thunder[index] =
+                weather.hasThunder ? 1 : 0;
+
+            renderGrid();
+
+            updatePreview();
+        }
+    );
+
+
+    /*
+        ============================================================
+        CLEAR CELL
+        ============================================================
+    */
+
+    clearButton.addEventListener(
+        "click",
+        () => {
+
+            if (
+                selectedColumn === null ||
+                selectedRow === null
+            ) {
+                return;
+            }
+
+            const index =
+                cellIndex(
+                    selectedColumn,
+                    selectedRow
+                );
+
+            temperatures[index] =
+                NaN;
+
+            precipitation[index] = 0;
+            sky[index] = 0;
+            thunder[index] = 0;
+
+            renderGrid();
+
+            loadSelectedCell();
+        }
+    );
+
+
+    /*
+        ============================================================
+        INITIALISE
+        ============================================================
+    */
+
+    renderGrid();
+
+    setZoom(1);
+
+})();
 </script>
 
 </body>
