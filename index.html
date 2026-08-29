@@ -1,46 +1,397 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>EuropaCraft Climate</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>EuropaCraft Climate System</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 20px;
+            background: #f4f6f8;
+        }
+
+        h1 {
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            margin-top: 0;
+            color: #555;
+        }
+
+        .panel {
+            background: white;
+            padding: 24px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .control {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+
+        input,
+        select {
+            padding: 8px;
+            font-size: 16px;
+            min-width: 180px;
+        }
+
+        .result {
+            font-family: monospace;
+            font-size: 26px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .weather-details {
+            margin-top: 20px;
+            line-height: 1.8;
+        }
+
+        .warning {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+
+        .small {
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
 </head>
 
 <body>
 
-<h1>EuropaCraft Climate System</h1>
+    <h1>EuropaCraft Climate System</h1>
+    <p class="subtitle">Weather state development system</p>
 
-<p>The climate system is online.</p>
+    <div class="panel">
 
-<label>Temperature:</label>
-<input type="number" id="temperature" value="1.5" step="0.1">
+        <div class="control">
+            <label for="temperature">Air temperature at reference level (°C)</label>
+            <input
+                type="number"
+                id="temperature"
+                value="2.2"
+                step="0.1"
+            >
+        </div>
 
-<br><br>
+        <div class="control">
+            <label for="snowBoundary">Snow boundary (°C)</label>
+            <input
+                type="number"
+                id="snowBoundary"
+                value="1.5"
+                step="0.1"
+            >
+            <div class="small">
+                Temporary development value. This can be changed while testing.
+            </div>
+        </div>
 
-<label>Precipitation:</label>
-<select id="precipitation">
-    <option value="d">Dry</option>
-    <option value="w">Wet</option>
-</select>
+        <div class="control">
+            <label for="precipitation">Precipitation</label>
+            <select id="precipitation">
+                <option value="d">Dry</option>
+                <option value="w">Wet</option>
+            </select>
+        </div>
 
-<br><br>
+        <div class="control">
+            <label for="sky">Sky</label>
+            <select id="sky">
+                <option value="c">Clear</option>
+                <option value="o">Overcast</option>
+            </select>
+        </div>
 
-<label>Sky:</label>
-<select id="sky">
-    <option value="c">Clear</option>
-    <option value="o">Overcast</option>
-</select>
+        <div class="control">
+            <label for="thunder">Thunder</label>
+            <select id="thunder">
+                <option value="">No</option>
+                <option value="t">Yes</option>
+            </select>
+        </div>
 
-<br><br>
+    </div>
 
-<label>Thunder:</label>
-<select id="thunder">
-    <option value="">No</option>
-    <option value="t">Yes</option>
-</select>
+    <div class="panel">
 
-<br><br>
+        <h2>EuropaCraft Weather State</h2>
 
-<button onclick="generateWeather()">Generate Weather State</button>
+        <div id="weatherState" class="result">
+            europacraft:2.2dc
+        </div>
 
+        <div class="weather-details">
+
+            <div>
+                <strong>Temperature:</strong>
+                <span id="temperatureOutput"></span>
+            </div>
+
+            <div>
+                <strong>Precipitation:</strong>
+                <span id="precipitationOutput"></span>
+            </div>
+
+            <div>
+                <strong>Precipitation type:</strong>
+                <span id="precipitationType"></span>
+            </div>
+
+            <div>
+                <strong>Sky:</strong>
+                <span id="skyOutput"></span>
+            </div>
+
+            <div>
+                <strong>Thunder:</strong>
+                <span id="thunderOutput"></span>
+            </div>
+
+        </div>
+
+        <div id="warning" class="warning"></div>
+
+    </div>
+
+<script>
+
+const temperatureInput =
+    document.getElementById("temperature");
+
+const snowBoundaryInput =
+    document.getElementById("snowBoundary");
+
+const precipitationInput =
+    document.getElementById("precipitation");
+
+const skyInput =
+    document.getElementById("sky");
+
+const thunderInput =
+    document.getElementById("thunder");
+
+
+function updateWeather() {
+
+    let temperature =
+        parseFloat(temperatureInput.value);
+
+    let snowBoundary =
+        parseFloat(snowBoundaryInput.value);
+
+    let precipitation =
+        precipitationInput.value;
+
+    let sky =
+        skyInput.value;
+
+    let thunder =
+        thunderInput.value;
+
+    let warningText = "";
+
+
+    /*
+        THUNDER RULE
+
+        Thunderstorms automatically require:
+        - wet weather
+        - overcast sky
+    */
+
+    if (thunder === "t") {
+
+        precipitation = "w";
+        sky = "o";
+
+        precipitationInput.value = "w";
+        skyInput.value = "o";
+    }
+
+
+    /*
+        PRECIPITATION RULE
+
+        Any precipitation requires an overcast sky.
+    */
+
+    if (precipitation === "w") {
+
+        sky = "o";
+        skyInput.value = "o";
+    }
+
+
+    /*
+        MINECRAFT THUNDERSNOW LIMITATION
+
+        If precipitation is snow at the selected
+        temperature, thunder is disabled.
+    */
+
+    if (
+        thunder === "t" &&
+        temperature <= snowBoundary
+    ) {
+
+        thunder = "";
+        thunderInput.value = "";
+
+        warningText =
+            "Thunder disabled: Minecraft does not produce normal lightning in snow conditions.";
+    }
+
+
+    /*
+        DETERMINE PRECIPITATION TYPE
+
+        For now this is deliberately simple.
+
+        Later we can add the full EuropaCraft
+        decimal sleet range.
+    */
+
+    let precipitationType = "None";
+
+    if (precipitation === "w") {
+
+        if (temperature <= snowBoundary) {
+
+            precipitationType = "Snow";
+
+        }
+
+        else if (
+            temperature <= snowBoundary + 1.5
+        ) {
+
+            precipitationType = "Marginal rain / sleet";
+
+        }
+
+        else {
+
+            precipitationType = "Rain";
+
+        }
+    }
+
+
+    /*
+        BUILD WEATHER STATE ID
+    */
+
+    let weatherState =
+        "europacraft:" +
+        temperature +
+        precipitation +
+        sky +
+        thunder;
+
+
+    /*
+        DISPLAY RESULTS
+    */
+
+    document.getElementById("weatherState")
+        .innerText = weatherState;
+
+
+    document.getElementById("temperatureOutput")
+        .innerText =
+        temperature.toFixed(1) + "°C";
+
+
+    document.getElementById("precipitationOutput")
+        .innerText =
+        precipitation === "w"
+        ? "Wet"
+        : "Dry";
+
+
+    document.getElementById("precipitationType")
+        .innerText =
+        precipitationType;
+
+
+    document.getElementById("skyOutput")
+        .innerText =
+        sky === "o"
+        ? "Overcast"
+        : "Clear";
+
+
+    document.getElementById("thunderOutput")
+        .innerText =
+        thunder === "t"
+        ? "Yes"
+        : "No";
+
+
+    document.getElementById("warning")
+        .innerText =
+        warningText;
+}
+
+
+/*
+    UPDATE AUTOMATICALLY
+
+    No Generate button is required anymore.
+*/
+
+temperatureInput.addEventListener(
+    "input",
+    updateWeather
+);
+
+snowBoundaryInput.addEventListener(
+    "input",
+    updateWeather
+);
+
+precipitationInput.addEventListener(
+    "change",
+    updateWeather
+);
+
+skyInput.addEventListener(
+    "change",
+    updateWeather
+);
+
+thunderInput.addEventListener(
+    "change",
+    updateWeather
+);
+
+
+/*
+    RUN ON PAGE LOAD
+*/
+
+updateWeather();
+
+</script>
+
+</body>
+</html>
 <h2 id="result">europacraft:1.5do</h2>
 
 <script>
