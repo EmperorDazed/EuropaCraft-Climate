@@ -5,13 +5,61 @@
 </head>
 
 <body>
-    <h1>EuropaCraft Climate System</h1>
-    <p>The climate system is online.</p>
 
-    <button onclick="document.getElementById('test').innerText='1.5°C — Wet Snow'">
-        Test Weather
-    </button>
+<h1>EuropaCraft Climate System</h1>
 
-    <p id="test">Weather test ready.</p>
+<p>The climate system is online.</p>
+
+<label>Temperature:</label>
+<input type="number" id="temperature" value="1.5" step="0.1">
+
+<br><br>
+
+<label>Precipitation:</label>
+<select id="precipitation">
+    <option value="d">Dry</option>
+    <option value="w">Wet</option>
+</select>
+
+<br><br>
+
+<label>Sky:</label>
+<select id="sky">
+    <option value="c">Clear</option>
+    <option value="o">Overcast</option>
+</select>
+
+<br><br>
+
+<label>Thunder:</label>
+<select id="thunder">
+    <option value="">No</option>
+    <option value="t">Yes</option>
+</select>
+
+<br><br>
+
+<button onclick="generateWeather()">Generate Weather State</button>
+
+<h2 id="result">europacraft:1.5wo</h2>
+
+<script>
+function generateWeather() {
+    let temperature = document.getElementById("temperature").value;
+    let precipitation = document.getElementById("precipitation").value;
+    let sky = document.getElementById("sky").value;
+    let thunder = document.getElementById("thunder").value;
+
+    let weatherState =
+        "europacraft:" +
+        temperature +
+        precipitation +
+        sky +
+        thunder;
+
+    document.getElementById("result").innerText = weatherState;
+}
+</script>
+
 </body>
 </html>
