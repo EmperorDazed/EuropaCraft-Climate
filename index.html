@@ -46,10 +46,10 @@
 
         .layout {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) 340px;
+            grid-template-columns: minmax(0, 1fr) 350px;
             gap: 18px;
             padding: 18px;
-            max-width: 1600px;
+            max-width: 1650px;
             margin: 0 auto;
         }
 
@@ -145,6 +145,7 @@
             border-top: 1px solid #dde2e7;
             color: #5f6b76;
             font-size: 13px;
+            line-height: 1.5;
         }
 
         .sidebar {
@@ -181,6 +182,30 @@
             font-size: 13px;
             color: #5f6b76;
             line-height: 1.5;
+        }
+
+        .surface-box {
+            margin-bottom: 18px;
+            padding: 14px;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 20px;
+        }
+
+        .surface-land {
+            background: #ddd5bb;
+            color: #343229;
+        }
+
+        .surface-sea {
+            background: #c5deeb;
+            color: #1d4054;
+        }
+
+        .surface-unknown {
+            background: #e7eaed;
+            color: #66727e;
         }
 
         .field {
@@ -267,7 +292,7 @@
             flex: 1;
         }
 
-        .legend {
+        .surface-legend {
             margin-top: 18px;
             border-top: 1px solid #e0e4e8;
             padding-top: 15px;
@@ -276,35 +301,40 @@
         .legend-title {
             font-size: 13px;
             font-weight: bold;
-            margin-bottom: 8px;
+            margin-bottom: 9px;
         }
 
-        .temperature-gradient {
-            height: 14px;
-            border-radius: 4px;
-            background:
-                linear-gradient(
-                    to right,
-                    hsl(220, 70%, 50%),
-                    hsl(180, 70%, 50%),
-                    hsl(100, 65%, 50%),
-                    hsl(45, 80%, 55%),
-                    hsl(0, 75%, 52%)
-                );
-        }
-
-        .legend-labels {
+        .legend-item {
             display: flex;
-            justify-content: space-between;
-            margin-top: 4px;
-            color: #66727e;
-            font-size: 11px;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 7px;
+            font-size: 13px;
         }
 
-        .unset-note {
-            margin-top: 10px;
+        .legend-square {
+            width: 18px;
+            height: 18px;
+            border: 1px solid rgba(0,0,0,0.15);
+            border-radius: 2px;
+        }
+
+        .land-square {
+            background: rgb(207, 199, 170);
+        }
+
+        .sea-square {
+            background: rgb(145, 187, 211);
+        }
+
+        .data-status {
+            margin-top: 12px;
+            padding: 10px;
+            border-radius: 5px;
+            background: #f2f4f6;
+            color: #58636d;
             font-size: 12px;
-            color: #66727e;
+            line-height: 1.5;
         }
 
         @media (max-width: 900px) {
@@ -332,12 +362,16 @@
 
 <div class="status-bar">
     <span><strong>Scale:</strong> 1:116</span>
-    <span><strong>Map scale:</strong> 960 blocks / degree</span>
+    <span><strong>Map:</strong> 960 blocks / degree</span>
     <span><strong>Grid:</strong> 780 × 440</span>
     <span><strong>Cells:</strong> 343,200</span>
     <span><strong>Cell:</strong> 0.1° × 0.1°</span>
-    <span><strong>Cell size:</strong> 96 × 96 blocks</span>
+    <span><strong>Physical cell:</strong> 96 × 96 blocks</span>
     <span><strong>Snow boundary:</strong> 1.5°C</span>
+    <span>
+        <strong>Surface mask:</strong>
+        <span id="surfaceStatusTop">Loading...</span>
+    </span>
 </div>
 
 <div class="layout">
@@ -346,7 +380,9 @@
 
         <div class="map-toolbar">
 
-            <strong>Europe Climate Grid — 26°W to 52°E / 30°N to 74°N</strong>
+            <strong>
+                Europe Climate Grid — 26°W to 52°E / 30°N to 74°N
+            </strong>
 
             <div class="zoom-controls">
                 <button type="button" data-zoom="1">1×</button>
@@ -375,7 +411,9 @@
 
         <div class="map-footer">
             Each pixel at 1× zoom represents one 0.1° climate cell.
-            Major lines are shown every 5°. Click anywhere on the grid to select a cell.
+            Land and sea are automatically determined from geographical
+            data using the centre of each climate cell.
+            Major grid lines are shown every 5°.
         </div>
 
     </section>
@@ -389,18 +427,30 @@
             Click a cell on the climate grid.
         </div>
 
+
         <div id="editor" style="display:none;">
 
             <div class="coordinate-box">
 
-                <div class="coordinate-main" id="coordinateMain">
+                <div
+                    class="coordinate-main"
+                    id="coordinateMain">
                     —
                 </div>
 
-                <div class="coordinate-sub" id="coordinateBounds">
+                <div
+                    class="coordinate-sub"
+                    id="coordinateBounds">
                     —
                 </div>
 
+            </div>
+
+
+            <div
+                id="surfaceBox"
+                class="surface-box surface-unknown">
+                SURFACE LOADING
             </div>
 
 
@@ -471,6 +521,11 @@
             <div class="details">
 
                 <div class="detail-row">
+                    <span>Surface</span>
+                    <span id="surfaceOutput">—</span>
+                </div>
+
+                <div class="detail-row">
                     <span>Real temperature</span>
                     <span id="realTemperatureOutput">—</span>
                 </div>
@@ -486,7 +541,12 @@
                 </div>
 
                 <div class="detail-row">
-                    <span>Cell size</span>
+                    <span>Cell geographical size</span>
+                    <span>0.1° × 0.1°</span>
+                </div>
+
+                <div class="detail-row">
+                    <span>Cell Minecraft size</span>
                     <span>96 × 96 blocks</span>
                 </div>
 
@@ -503,7 +563,10 @@
             </div>
 
 
-            <div class="warning" id="warningOutput"></div>
+            <div
+                class="warning"
+                id="warningOutput">
+            </div>
 
 
             <div class="button-row">
@@ -525,23 +588,26 @@
             </div>
 
 
-            <div class="legend">
+            <div class="surface-legend">
 
                 <div class="legend-title">
-                    Temperature
+                    Surface classification
                 </div>
 
-                <div class="temperature-gradient"></div>
-
-                <div class="legend-labels">
-                    <span>−40°C</span>
-                    <span>0°C</span>
-                    <span>20°C</span>
-                    <span>50°C</span>
+                <div class="legend-item">
+                    <div class="legend-square land-square"></div>
+                    <span>Land</span>
                 </div>
 
-                <div class="unset-note">
-                    Grey cells have not yet been assigned climate data.
+                <div class="legend-item">
+                    <div class="legend-square sea-square"></div>
+                    <span>Sea / water</span>
+                </div>
+
+                <div
+                    class="data-status"
+                    id="surfaceStatusDetail">
+                    Loading Natural Earth geographical data...
                 </div>
 
             </div>
@@ -559,7 +625,7 @@
 
     /*
         ============================================================
-        EUROPACRAFT GEOGRAPHICAL CONSTANTS
+        EUROPACRAFT MAP CONSTANTS
         ============================================================
     */
 
@@ -584,10 +650,41 @@
 
 
     /*
-        ============================================================
-        CLIMATE DATA
+        Surface classification:
 
-        Temperature = NaN means that the cell is currently unset.
+        0 = unknown
+        1 = sea
+        2 = land
+    */
+
+    const SURFACE_UNKNOWN = 0;
+    const SURFACE_SEA = 1;
+    const SURFACE_LAND = 2;
+
+
+    /*
+        We rasterise geographical data at five times
+        climate-cell resolution.
+
+        One climate cell = 5 × 5 surface pixels.
+
+        Sampling the central surface pixel gives us
+        the geographical state at the centre of the
+        0.1° climate cell.
+    */
+
+    const SURFACE_RESOLUTION = 5;
+
+    const SURFACE_WIDTH =
+        GRID_WIDTH * SURFACE_RESOLUTION;
+
+    const SURFACE_HEIGHT =
+        GRID_HEIGHT * SURFACE_RESOLUTION;
+
+
+    /*
+        ============================================================
+        CLIMATE ARRAYS
         ============================================================
     */
 
@@ -605,10 +702,13 @@
     const thunder =
         new Uint8Array(TOTAL_CELLS);
 
+    const surface =
+        new Uint8Array(TOTAL_CELLS);
+
 
     /*
         ============================================================
-        ELEMENTS
+        PAGE ELEMENTS
         ============================================================
     */
 
@@ -617,6 +717,9 @@
 
     const ctx =
         canvas.getContext("2d");
+
+    ctx.imageSmoothingEnabled = false;
+
 
     const gridStage =
         document.getElementById("gridStage");
@@ -630,6 +733,7 @@
     const editor =
         document.getElementById("editor");
 
+
     const temperatureInput =
         document.getElementById("temperatureInput");
 
@@ -642,11 +746,18 @@
     const thunderInput =
         document.getElementById("thunderInput");
 
+
     const coordinateMain =
         document.getElementById("coordinateMain");
 
     const coordinateBounds =
         document.getElementById("coordinateBounds");
+
+    const surfaceBox =
+        document.getElementById("surfaceBox");
+
+    const surfaceOutput =
+        document.getElementById("surfaceOutput");
 
     const stateOutput =
         document.getElementById("stateOutput");
@@ -666,6 +777,13 @@
     const warningOutput =
         document.getElementById("warningOutput");
 
+    const surfaceStatusTop =
+        document.getElementById("surfaceStatusTop");
+
+    const surfaceStatusDetail =
+        document.getElementById("surfaceStatusDetail");
+
+
     const applyButton =
         document.getElementById("applyButton");
 
@@ -675,7 +793,7 @@
 
     /*
         ============================================================
-        CURRENT SELECTION
+        SELECTION
         ============================================================
     */
 
@@ -684,12 +802,15 @@
 
     let zoom = 1;
 
+    let surfaceReady = false;
+
 
     /*
         ============================================================
-        TEMPERATURE -> MINECRAFT TEMPERATURE
+        TEMPERATURE CONVERSION
+        ============================================================
 
-        Locked anchors:
+        Locked EuropaCraft anchors:
 
         0.0°C = 0.120
         1.2°C = 0.145
@@ -699,7 +820,7 @@
         4.0°C = 0.200
         5.0°C = 0.300
 
-        Continuous interpolation is used between anchors.
+        Interpolation remains continuous.
         ============================================================
     */
 
@@ -709,18 +830,21 @@
 
         if (t <= 0) {
 
-            return 0.12 + (0.01 * t);
+            return 0.12 + 0.01 * t;
 
         }
+
 
         if (t <= 1.2) {
 
             return (
                 0.12 +
-                ((0.145 - 0.12) / 1.2) * t
+                ((0.145 - 0.12) / 1.2) *
+                t
             );
 
         }
+
 
         if (t <= 1.5) {
 
@@ -732,27 +856,33 @@
 
         }
 
+
         if (t <= 4) {
 
             return (
                 0.150 +
-                0.02 * (t - 1.5)
+                0.02 *
+                (t - 1.5)
             );
 
         }
+
 
         if (t <= 5) {
 
             return (
                 0.200 +
-                0.10 * (t - 4)
+                0.10 *
+                (t - 4)
             );
 
         }
 
+
         return (
             0.300 +
-            0.03 * (t - 5)
+            0.03 *
+            (t - 5)
         );
     }
 
@@ -809,9 +939,11 @@
 
         if (
             Math.abs(
-                rounded - Math.round(rounded)
+                rounded -
+                Math.round(rounded)
             ) < 0.00001
         ) {
+
             return String(
                 Math.round(rounded)
             );
@@ -850,18 +982,23 @@
 
     /*
         ============================================================
-        COORDINATE FORMATTING
+        COORDINATE FORMAT
         ============================================================
     */
 
     function roundCoordinate(value) {
-        return Math.round(value * 100) / 100;
+
+        return (
+            Math.round(value * 100) /
+            100
+        );
     }
 
 
     function formatLatitude(value) {
 
-        value = roundCoordinate(value);
+        value =
+            roundCoordinate(value);
 
         return (
             Math.abs(value).toFixed(2) +
@@ -873,9 +1010,13 @@
 
     function formatLongitude(value) {
 
-        value = roundCoordinate(value);
+        value =
+            roundCoordinate(value);
 
-        if (Math.abs(value) < 0.00001) {
+        if (
+            Math.abs(value) <
+            0.00001
+        ) {
             return "0.00°";
         }
 
@@ -894,19 +1035,23 @@
 
         const longitudeWest =
             MIN_LONGITUDE +
-            column * CELL_DEGREES;
+            column *
+            CELL_DEGREES;
 
         const longitudeEast =
             longitudeWest +
             CELL_DEGREES;
 
+
         const latitudeNorth =
             MAX_LATITUDE -
-            row * CELL_DEGREES;
+            row *
+            CELL_DEGREES;
 
         const latitudeSouth =
             latitudeNorth -
             CELL_DEGREES;
+
 
         const longitudeCentre =
             longitudeWest +
@@ -915,6 +1060,7 @@
         const latitudeCentre =
             latitudeNorth -
             CELL_DEGREES / 2;
+
 
         return {
 
@@ -942,7 +1088,8 @@
     ) {
 
         return (
-            row * GRID_WIDTH +
+            row *
+            GRID_WIDTH +
             column
         );
     }
@@ -950,7 +1097,32 @@
 
     /*
         ============================================================
-        TEMPERATURE COLOUR SYSTEM
+        SURFACE COLOURS
+        ============================================================
+    */
+
+    const LAND_COLOUR = [
+        207,
+        199,
+        170
+    ];
+
+    const SEA_COLOUR = [
+        145,
+        187,
+        211
+    ];
+
+    const UNKNOWN_COLOUR = [
+        218,
+        222,
+        226
+    ];
+
+
+    /*
+        ============================================================
+        TEMPERATURE COLOUR
         ============================================================
     */
 
@@ -979,49 +1151,73 @@
         const m =
             l - c / 2;
 
+
         let r = 0;
         let g = 0;
         let b = 0;
 
+
         if (h < 60) {
+
             r = c;
             g = x;
+
         }
 
         else if (h < 120) {
+
             r = x;
             g = c;
+
         }
 
         else if (h < 180) {
+
             g = c;
             b = x;
+
         }
 
         else if (h < 240) {
+
             g = x;
             b = c;
+
         }
 
         else if (h < 300) {
+
             r = x;
             b = c;
+
         }
 
         else {
+
             r = c;
             b = x;
         }
 
+
         return [
-            Math.round((r + m) * 255),
-            Math.round((g + m) * 255),
-            Math.round((b + m) * 255)
+
+            Math.round(
+                (r + m) * 255
+            ),
+
+            Math.round(
+                (g + m) * 255
+            ),
+
+            Math.round(
+                (b + m) * 255
+            )
         ];
     }
 
 
     const colourPalette = [];
+
 
     for (
         let i = 0;
@@ -1037,7 +1233,8 @@
                 0,
                 Math.min(
                     1,
-                    (temperature + 40) / 90
+                    (temperature + 40) /
+                    90
                 )
             );
 
@@ -1046,6 +1243,7 @@
             normalised * 220;
 
         colourPalette.push(
+
             hslToRgb(
                 hue,
                 68,
@@ -1065,7 +1263,8 @@
                 Math.min(
                     1200,
                     Math.round(
-                        (temperature + 60) * 10
+                        (temperature + 60) *
+                        10
                     )
                 )
             );
@@ -1076,7 +1275,7 @@
 
     /*
         ============================================================
-        GRID RENDERING
+        MAIN GRID RENDER
         ============================================================
     */
 
@@ -1092,6 +1291,7 @@
         const pixels =
             image.data;
 
+
         for (
             let i = 0;
             i < TOTAL_CELLS;
@@ -1101,27 +1301,58 @@
             const pixel =
                 i * 4;
 
-            const temperature =
-                temperatures[i];
+            let colour;
+
+
+            /*
+                If climate temperature has been
+                manually assigned, show the
+                temperature colour.
+            */
 
             if (
-                Number.isNaN(
-                    temperature
+                !Number.isNaN(
+                    temperatures[i]
                 )
             ) {
 
-                pixels[pixel] = 218;
-                pixels[pixel + 1] = 222;
-                pixels[pixel + 2] = 226;
-                pixels[pixel + 3] = 255;
+                colour =
+                    getTemperatureColour(
+                        temperatures[i]
+                    );
 
-                continue;
             }
 
-            const colour =
-                getTemperatureColour(
-                    temperature
-                );
+            /*
+                Otherwise show land/sea.
+            */
+
+            else if (
+                surface[i] ===
+                SURFACE_LAND
+            ) {
+
+                colour =
+                    LAND_COLOUR;
+
+            }
+
+            else if (
+                surface[i] ===
+                SURFACE_SEA
+            ) {
+
+                colour =
+                    SEA_COLOUR;
+
+            }
+
+            else {
+
+                colour =
+                    UNKNOWN_COLOUR;
+            }
+
 
             pixels[pixel] =
                 colour[0];
@@ -1136,6 +1367,7 @@
                 255;
         }
 
+
         ctx.putImageData(
             image,
             0,
@@ -1144,21 +1376,16 @@
 
 
         /*
-            Major geographical lines:
-            every 5 degrees.
+            Draw 5-degree geographical lines.
         */
 
         ctx.save();
 
         ctx.strokeStyle =
-            "rgba(40, 48, 55, 0.45)";
+            "rgba(30, 38, 45, 0.40)";
 
         ctx.lineWidth = 1;
 
-
-        /*
-            Longitude lines.
-        */
 
         for (
             let longitude = -25;
@@ -1189,10 +1416,6 @@
         }
 
 
-        /*
-            Latitude lines.
-        */
-
         for (
             let latitude = 30;
             latitude <= 70;
@@ -1221,6 +1444,7 @@
             ctx.stroke();
         }
 
+
         ctx.restore();
     }
 
@@ -1233,13 +1457,17 @@
 
     function setZoom(newZoom) {
 
-        zoom = newZoom;
+        zoom =
+            newZoom;
 
         const width =
-            GRID_WIDTH * zoom;
+            GRID_WIDTH *
+            zoom;
 
         const height =
-            GRID_HEIGHT * zoom;
+            GRID_HEIGHT *
+            zoom;
+
 
         canvas.style.width =
             width + "px";
@@ -1252,6 +1480,7 @@
 
         gridStage.style.height =
             height + "px";
+
 
         updateSelectionBox();
     }
@@ -1290,6 +1519,7 @@
             const rect =
                 canvas.getBoundingClientRect();
 
+
             const canvasX =
                 (
                     event.clientX -
@@ -1300,6 +1530,7 @@
                     rect.width
                 );
 
+
             const canvasY =
                 (
                     event.clientY -
@@ -1309,6 +1540,7 @@
                     GRID_HEIGHT /
                     rect.height
                 );
+
 
             selectedColumn =
                 Math.max(
@@ -1321,6 +1553,7 @@
                     )
                 );
 
+
             selectedRow =
                 Math.max(
                     0,
@@ -1331,6 +1564,7 @@
                         )
                     )
                 );
+
 
             updateSelectionBox();
 
@@ -1352,18 +1586,22 @@
             return;
         }
 
+
         selectionBox.style.display =
             "block";
+
 
         selectionBox.style.left =
             selectedColumn *
             zoom +
             "px";
 
+
         selectionBox.style.top =
             selectedRow *
             zoom +
             "px";
+
 
         selectionBox.style.width =
             Math.max(
@@ -1371,6 +1609,7 @@
                 1
             ) +
             "px";
+
 
         selectionBox.style.height =
             Math.max(
@@ -1383,7 +1622,75 @@
 
     /*
         ============================================================
-        LOAD SELECTED CELL INTO SIDEBAR
+        SURFACE DISPLAY
+        ============================================================
+    */
+
+    function updateSurfaceDisplay(index) {
+
+        const type =
+            surface[index];
+
+
+        surfaceBox.classList.remove(
+            "surface-land",
+            "surface-sea",
+            "surface-unknown"
+        );
+
+
+        if (
+            type ===
+            SURFACE_LAND
+        ) {
+
+            surfaceBox.classList.add(
+                "surface-land"
+            );
+
+            surfaceBox.innerText =
+                "LAND";
+
+            surfaceOutput.innerText =
+                "Land";
+
+        }
+
+        else if (
+            type ===
+            SURFACE_SEA
+        ) {
+
+            surfaceBox.classList.add(
+                "surface-sea"
+            );
+
+            surfaceBox.innerText =
+                "SEA";
+
+            surfaceOutput.innerText =
+                "Sea / water";
+
+        }
+
+        else {
+
+            surfaceBox.classList.add(
+                "surface-unknown"
+            );
+
+            surfaceBox.innerText =
+                "SURFACE LOADING";
+
+            surfaceOutput.innerText =
+                "Loading...";
+        }
+    }
+
+
+    /*
+        ============================================================
+        LOAD SELECTED CELL
         ============================================================
     */
 
@@ -1395,11 +1702,13 @@
                 selectedRow
             );
 
+
         const coordinates =
             getCellCoordinates(
                 selectedColumn,
                 selectedRow
             );
+
 
         selectionHint.style.display =
             "none";
@@ -1421,20 +1730,27 @@
         coordinateBounds.innerHTML =
 
             "Latitude: " +
+
             formatLatitude(
                 coordinates.latitudeNorth
             ) +
+
             " → " +
+
             formatLatitude(
                 coordinates.latitudeSouth
             ) +
+
             "<br>" +
 
             "Longitude: " +
+
             formatLongitude(
                 coordinates.longitudeWest
             ) +
+
             " → " +
+
             formatLongitude(
                 coordinates.longitudeEast
             );
@@ -1444,6 +1760,11 @@
             selectedColumn +
             ", " +
             selectedRow;
+
+
+        updateSurfaceDisplay(
+            index
+        );
 
 
         if (
@@ -1482,13 +1803,14 @@
                 thunder[index];
         }
 
+
         updatePreview();
     }
 
 
     /*
         ============================================================
-        INPUT VALIDATION / WEATHER RULES
+        WEATHER RULES
         ============================================================
     */
 
@@ -1499,6 +1821,7 @@
                 temperatureInput.value
             );
 
+
         if (
             !Number.isFinite(
                 temperature
@@ -1508,6 +1831,7 @@
             temperature = 0;
         }
 
+
         temperature =
             Math.max(
                 -60,
@@ -1516,6 +1840,7 @@
                     temperature
                 )
             );
+
 
         temperature =
             Math.round(
@@ -1527,21 +1852,23 @@
             precipitationInput.value ===
             "1";
 
+
         let isOvercast =
             skyInput.value ===
             "1";
+
 
         let hasThunder =
             thunderInput.value ===
             "1";
 
+
         let warning = "";
 
 
         /*
-            Thunder forces:
-            - Wet
-            - Overcast
+            Thunder forces precipitation
+            and overcast conditions.
         */
 
         if (hasThunder) {
@@ -1552,7 +1879,7 @@
 
 
         /*
-            Any wet weather is overcast.
+            Wet weather forces overcast.
         */
 
         if (isWet) {
@@ -1562,11 +1889,11 @@
 
 
         /*
-            Minecraft snow does not support
-            normal thunder/lightning.
+            1.5°C is the fixed EuropaCraft
+            snowfall boundary.
 
-            1.5°C is the locked EuropaCraft
-            snow boundary.
+            Minecraft does not give us
+            normal thundersnow.
         */
 
         if (
@@ -1578,7 +1905,7 @@
             hasThunder = false;
 
             warning =
-                "Thunder removed because this temperature is at or below the 1.5°C snow boundary.";
+                "Thunder removed: this cell is at or below the fixed 1.5°C snowfall boundary.";
         }
 
 
@@ -1605,7 +1932,7 @@
 
     /*
         ============================================================
-        LIVE SIDEBAR PREVIEW
+        SIDEBAR PREVIEW
         ============================================================
     */
 
@@ -1618,13 +1945,16 @@
             return;
         }
 
+
         const weather =
             getFormWeather();
+
 
         const minecraftTemp =
             minecraftTemperature(
                 weather.temperature
             );
+
 
         stateOutput.innerText =
             buildWeatherState(
@@ -1634,20 +1964,24 @@
                 weather.hasThunder
             );
 
+
         realTemperatureOutput.innerText =
             weather.temperature
                 .toFixed(1) +
             "°C";
 
+
         minecraftTemperatureOutput.innerText =
             minecraftTemp
                 .toFixed(3);
+
 
         precipitationTypeOutput.innerText =
             precipitationType(
                 weather.temperature,
                 weather.isWet
             );
+
 
         warningOutput.innerText =
             weather.warning;
@@ -1677,7 +2011,7 @@
 
     /*
         ============================================================
-        APPLY WEATHER TO CELL
+        APPLY CLIMATE STATE
         ============================================================
     */
 
@@ -1692,8 +2026,10 @@
                 return;
             }
 
+
             const weather =
                 getFormWeather();
+
 
             const index =
                 cellIndex(
@@ -1701,17 +2037,28 @@
                     selectedRow
                 );
 
+
             temperatures[index] =
                 weather.temperature;
 
+
             precipitation[index] =
-                weather.isWet ? 1 : 0;
+                weather.isWet ?
+                1 :
+                0;
+
 
             sky[index] =
-                weather.isOvercast ? 1 : 0;
+                weather.isOvercast ?
+                1 :
+                0;
+
 
             thunder[index] =
-                weather.hasThunder ? 1 : 0;
+                weather.hasThunder ?
+                1 :
+                0;
+
 
             renderGrid();
 
@@ -1722,7 +2069,7 @@
 
     /*
         ============================================================
-        CLEAR CELL
+        CLEAR CLIMATE STATE
         ============================================================
     */
 
@@ -1737,11 +2084,13 @@
                 return;
             }
 
+
             const index =
                 cellIndex(
                     selectedColumn,
                     selectedRow
                 );
+
 
             temperatures[index] =
                 NaN;
@@ -1750,11 +2099,618 @@
             sky[index] = 0;
             thunder[index] = 0;
 
+
             renderGrid();
 
             loadSelectedCell();
         }
     );
+
+
+    /*
+        ============================================================
+        NATURAL EARTH DATA
+        ============================================================
+
+        The URL is assembled from components
+        rather than being hard-coded as one
+        large visible address.
+
+        Data version is pinned to one Natural
+        Earth repository commit so future
+        upstream changes cannot silently change
+        EuropaCraft's coastline.
+        ============================================================
+    */
+
+    const dataBase = [
+
+        "https:",
+        "",
+        "cdn.jsdelivr.net",
+        "gh",
+        "nvkelso",
+        "natural-earth-vector@ca96624a56bd078437bca8184e78163e5039ad19",
+        "geojson"
+
+    ].join("/");
+
+
+    async function downloadGeoJSON(
+        filename
+    ) {
+
+        const response =
+            await fetch(
+                dataBase +
+                "/" +
+                filename
+            );
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Failed to download " +
+                filename
+            );
+        }
+
+
+        return await response.json();
+    }
+
+
+    /*
+        ============================================================
+        GEOGRAPHICAL PROJECTION
+
+        Equirectangular projection matching
+        EuropaCraft itself.
+        ============================================================
+    */
+
+    function geographicX(
+        longitude
+    ) {
+
+        return (
+            (
+                longitude -
+                MIN_LONGITUDE
+            ) /
+            (
+                MAX_LONGITUDE -
+                MIN_LONGITUDE
+            )
+        ) *
+        SURFACE_WIDTH;
+    }
+
+
+    function geographicY(
+        latitude
+    ) {
+
+        return (
+            (
+                MAX_LATITUDE -
+                latitude
+            ) /
+            (
+                MAX_LATITUDE -
+                MIN_LATITUDE
+            )
+        ) *
+        SURFACE_HEIGHT;
+    }
+
+
+    /*
+        ============================================================
+        DRAW A GEOJSON RING
+        ============================================================
+    */
+
+    function traceRing(
+        context,
+        ring
+    ) {
+
+        if (
+            !ring ||
+            ring.length === 0
+        ) {
+            return;
+        }
+
+
+        const first =
+            ring[0];
+
+
+        context.moveTo(
+            geographicX(
+                first[0]
+            ),
+            geographicY(
+                first[1]
+            )
+        );
+
+
+        for (
+            let i = 1;
+            i < ring.length;
+            i++
+        ) {
+
+            const point =
+                ring[i];
+
+
+            context.lineTo(
+                geographicX(
+                    point[0]
+                ),
+                geographicY(
+                    point[1]
+                )
+            );
+        }
+
+
+        context.closePath();
+    }
+
+
+    /*
+        ============================================================
+        DRAW POLYGON
+        ============================================================
+    */
+
+    function drawPolygon(
+        context,
+        polygon,
+        colour
+    ) {
+
+        context.beginPath();
+
+
+        for (
+            const ring of polygon
+        ) {
+
+            traceRing(
+                context,
+                ring
+            );
+        }
+
+
+        context.fillStyle =
+            colour;
+
+
+        context.fill(
+            "evenodd"
+        );
+    }
+
+
+    /*
+        ============================================================
+        DRAW GEOJSON GEOMETRY
+        ============================================================
+    */
+
+    function drawGeometry(
+        context,
+        geometry,
+        colour
+    ) {
+
+        if (!geometry) {
+            return;
+        }
+
+
+        if (
+            geometry.type ===
+            "Polygon"
+        ) {
+
+            drawPolygon(
+                context,
+                geometry.coordinates,
+                colour
+            );
+
+            return;
+        }
+
+
+        if (
+            geometry.type ===
+            "MultiPolygon"
+        ) {
+
+            for (
+                const polygon of
+                geometry.coordinates
+            ) {
+
+                drawPolygon(
+                    context,
+                    polygon,
+                    colour
+                );
+            }
+        }
+    }
+
+
+    /*
+        ============================================================
+        DRAW FEATURE COLLECTION
+        ============================================================
+    */
+
+    function drawFeatureCollection(
+        context,
+        geojson,
+        colour
+    ) {
+
+        if (
+            geojson.type ===
+            "FeatureCollection"
+        ) {
+
+            for (
+                const feature of
+                geojson.features
+            ) {
+
+                drawGeometry(
+                    context,
+                    feature.geometry,
+                    colour
+                );
+            }
+
+            return;
+        }
+
+
+        if (
+            geojson.type ===
+            "Feature"
+        ) {
+
+            drawGeometry(
+                context,
+                geojson.geometry,
+                colour
+            );
+
+            return;
+        }
+
+
+        drawGeometry(
+            context,
+            geojson,
+            colour
+        );
+    }
+
+
+    /*
+        ============================================================
+        BUILD LAND / SEA MASK
+        ============================================================
+    */
+
+    async function buildSurfaceMask() {
+
+        try {
+
+            surfaceStatusTop.innerText =
+                "Downloading geography...";
+
+
+            surfaceStatusDetail.innerText =
+                "Downloading Natural Earth 1:10m land, islands and lakes...";
+
+
+            /*
+                Load the three layers simultaneously.
+            */
+
+            const [
+                landData,
+                islandData,
+                lakeData
+            ] = await Promise.all([
+
+                downloadGeoJSON(
+                    "ne_10m_land.geojson"
+                ),
+
+                downloadGeoJSON(
+                    "ne_10m_minor_islands.geojson"
+                ),
+
+                downloadGeoJSON(
+                    "ne_10m_lakes.geojson"
+                )
+            ]);
+
+
+            surfaceStatusTop.innerText =
+                "Building...";
+
+
+            surfaceStatusDetail.innerText =
+                "Building 343,200-cell EuropaCraft land/sea mask...";
+
+
+            /*
+                Hidden high-resolution raster.
+
+                Black = sea
+                White = land
+
+                Lakes are painted black over land.
+            */
+
+            const surfaceCanvas =
+                document.createElement(
+                    "canvas"
+                );
+
+
+            surfaceCanvas.width =
+                SURFACE_WIDTH;
+
+            surfaceCanvas.height =
+                SURFACE_HEIGHT;
+
+
+            const surfaceContext =
+                surfaceCanvas.getContext(
+                    "2d",
+                    {
+                        willReadFrequently: true
+                    }
+                );
+
+
+            surfaceContext.imageSmoothingEnabled =
+                false;
+
+
+            /*
+                Start with ocean everywhere.
+            */
+
+            surfaceContext.fillStyle =
+                "rgb(0,0,0)";
+
+
+            surfaceContext.fillRect(
+                0,
+                0,
+                SURFACE_WIDTH,
+                SURFACE_HEIGHT
+            );
+
+
+            /*
+                Continents and major islands.
+            */
+
+            drawFeatureCollection(
+                surfaceContext,
+                landData,
+                "rgb(255,255,255)"
+            );
+
+
+            /*
+                Additional small islands.
+            */
+
+            drawFeatureCollection(
+                surfaceContext,
+                islandData,
+                "rgb(255,255,255)"
+            );
+
+
+            /*
+                Inland lakes become water again.
+            */
+
+            drawFeatureCollection(
+                surfaceContext,
+                lakeData,
+                "rgb(0,0,0)"
+            );
+
+
+            /*
+                Read completed geographical raster.
+            */
+
+            const raster =
+                surfaceContext.getImageData(
+                    0,
+                    0,
+                    SURFACE_WIDTH,
+                    SURFACE_HEIGHT
+                ).data;
+
+
+            let landCount = 0;
+            let seaCount = 0;
+
+
+            /*
+                Each climate cell is represented
+                by a 5 × 5 group on the hidden
+                geographical raster.
+
+                We sample the central pixel:
+                +2,+2.
+
+                Its pixel centre corresponds
+                exactly to the centre of the
+                0.1° climate cell.
+            */
+
+            for (
+                let row = 0;
+                row < GRID_HEIGHT;
+                row++
+            ) {
+
+                const sampleY =
+                    row *
+                    SURFACE_RESOLUTION +
+                    2;
+
+
+                for (
+                    let column = 0;
+                    column < GRID_WIDTH;
+                    column++
+                ) {
+
+                    const sampleX =
+                        column *
+                        SURFACE_RESOLUTION +
+                        2;
+
+
+                    const rasterIndex =
+                        (
+                            sampleY *
+                            SURFACE_WIDTH +
+                            sampleX
+                        ) *
+                        4;
+
+
+                    const brightness =
+                        raster[
+                            rasterIndex
+                        ];
+
+
+                    const index =
+                        cellIndex(
+                            column,
+                            row
+                        );
+
+
+                    if (
+                        brightness >=
+                        128
+                    ) {
+
+                        surface[index] =
+                            SURFACE_LAND;
+
+                        landCount++;
+
+                    }
+
+                    else {
+
+                        surface[index] =
+                            SURFACE_SEA;
+
+                        seaCount++;
+                    }
+                }
+            }
+
+
+            surfaceReady = true;
+
+
+            surfaceStatusTop.innerText =
+                "Ready";
+
+
+            surfaceStatusDetail.innerText =
+
+                "Surface mask ready. " +
+
+                landCount.toLocaleString() +
+
+                " land cells and " +
+
+                seaCount.toLocaleString() +
+
+                " sea/water cells classified.";
+
+
+            /*
+                Redraw map with actual geography.
+            */
+
+            renderGrid();
+
+
+            /*
+                Refresh selected cell if user
+                clicked while geography loaded.
+            */
+
+            if (
+                selectedColumn !== null &&
+                selectedRow !== null
+            ) {
+
+                const selectedIndex =
+                    cellIndex(
+                        selectedColumn,
+                        selectedRow
+                    );
+
+
+                updateSurfaceDisplay(
+                    selectedIndex
+                );
+            }
+
+        }
+
+        catch (error) {
+
+            console.error(
+                error
+            );
+
+
+            surfaceStatusTop.innerText =
+                "FAILED";
+
+
+            surfaceStatusDetail.innerText =
+                "Surface data failed to load. Refresh the page to retry. The climate grid itself remains operational.";
+
+
+            warningOutput.innerText =
+                "Natural Earth surface data could not be loaded.";
+        }
+    }
 
 
     /*
@@ -1766,6 +2722,8 @@
     renderGrid();
 
     setZoom(1);
+
+    buildSurfaceMask();
 
 })();
 </script>
