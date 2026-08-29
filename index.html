@@ -41,21 +41,47 @@
 
 <button onclick="generateWeather()">Generate Weather State</button>
 
-<h2 id="result">europacraft:1.5wo</h2>
+<h2 id="result">europacraft:1.5do</h2>
 
 <script>
 function generateWeather() {
-    let temperature = document.getElementById("temperature").value;
-    let precipitation = document.getElementById("precipitation").value;
-    let sky = document.getElementById("sky").value;
-    let thunder = document.getElementById("thunder").value;
+    let temperature = parseFloat(
+        document.getElementById("temperature").value
+    );
+
+    let precipitation =
+        document.getElementById("precipitation").value;
+
+    let sky =
+        document.getElementById("sky").value;
+
+    let thunder =
+        document.getElementById("thunder").value;
+
+    // Wet weather must be overcast
+    if (precipitation === "w") {
+        sky = "o";
+        document.getElementById("sky").value = "o";
+    }
+
+    // Thunderstorms must be wet and overcast
+    if (thunder === "t") {
+        precipitation = "w";
+        sky = "o";
+
+        document.getElementById("precipitation").value = "w";
+        document.getElementById("sky").value = "o";
+    }
 
     let weatherState =
         "europacraft:" +
         temperature +
         precipitation +
-        sky +
-        thunder;
+        sky;
+
+    if (thunder === "t") {
+        weatherState += "t";
+    }
 
     document.getElementById("result").innerText = weatherState;
 }
