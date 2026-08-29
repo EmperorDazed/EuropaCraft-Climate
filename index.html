@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>EuropaCraft Climate System</title>
 
 <style>
@@ -46,9 +45,9 @@ header p {
 
 .layout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 380px;
+    grid-template-columns: minmax(0, 1fr) 400px;
     gap: 18px;
-    max-width: 1700px;
+    max-width: 1750px;
     margin: 0 auto;
     padding: 18px;
 }
@@ -84,7 +83,6 @@ header p {
 .toolbar-label {
     color: #66717b;
     font-size: 12px;
-    margin-right: 2px;
 }
 
 button {
@@ -212,6 +210,14 @@ select {
     font-size: 15px;
 }
 
+.editor-panel {
+    display: none;
+}
+
+.editor-panel.active {
+    display: block;
+}
+
 .brush-preview {
     display: flex;
     align-items: center;
@@ -239,19 +245,15 @@ select {
     margin-top: 2px;
     color: #65707a;
     font-size: 12px;
+    line-height: 1.4;
 }
 
 .mask-box {
-    padding: 11px;
+    padding: 10px;
     margin-bottom: 12px;
     border: 1px solid #ccd3d9;
     border-radius: 6px;
     background: #f6f7f8;
-}
-
-.mask-box.armed {
-    border-color: #555f68;
-    background: #e9edf0;
 }
 
 .mask-box.active-mask {
@@ -266,15 +268,9 @@ select {
 }
 
 .mask-description {
-    color: #606b74;
     font-size: 12px;
+    color: #606b74;
     line-height: 1.45;
-}
-
-.mask-source {
-    margin-top: 6px;
-    font-size: 13px;
-    font-weight: bold;
 }
 
 .coordinate-box {
@@ -355,26 +351,81 @@ select {
 .palette {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 6px;
+    gap: 5px;
     margin-top: 10px;
 }
 
 .palette-item {
     display: flex;
     align-items: center;
-    gap: 7px;
+    gap: 6px;
     border: 1px solid #d5dadd;
     border-radius: 5px;
-    padding: 7px;
+    padding: 6px;
     font-size: 11px;
 }
 
 .palette-colour {
-    width: 16px;
-    height: 16px;
+    width: 15px;
+    height: 15px;
     border-radius: 2px;
     border: 1px solid rgba(0,0,0,0.15);
     flex: 0 0 auto;
+}
+
+.region-summary {
+    margin-top: 12px;
+}
+
+.region-row {
+    margin-bottom: 7px;
+}
+
+.region-row-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 12px;
+    margin-bottom: 2px;
+}
+
+.region-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.region-value {
+    font-weight: bold;
+}
+
+.region-track {
+    height: 7px;
+    background: #e3e6e8;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.region-fill {
+    height: 100%;
+}
+
+.region-total {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    padding: 9px;
+    border-top: 2px solid #303941;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.region-dominant {
+    padding: 10px;
+    border-radius: 6px;
+    background: #f0f3f5;
+    margin-bottom: 10px;
+    font-size: 13px;
 }
 
 .weather-state {
@@ -406,28 +457,15 @@ select {
     line-height: 1.4;
 }
 
-.no-influence {
-    padding: 10px;
-    border-radius: 5px;
-    background: #f1f3f5;
-    color: #59646d;
-    font-size: 12px;
-    line-height: 1.5;
-}
-
 kbd {
     display: inline-block;
-    min-width: 27px;
     padding: 2px 5px;
     border: 1px solid #aeb6bd;
     border-bottom-width: 2px;
     border-radius: 4px;
     background: white;
-    color: #303841;
-    font-family: Arial, sans-serif;
     font-size: 11px;
     font-weight: bold;
-    text-align: center;
 }
 
 @media (max-width: 900px) {
@@ -450,172 +488,97 @@ kbd {
 
 <header>
     <h1>EuropaCraft Climate System</h1>
-    <p>Physical surface and weather development editor</p>
+    <p>Physical surface, regional influence and weather editor</p>
 </header>
 
 <div class="status-bar">
 
-    <span>
-        <strong>Scale:</strong>
-        1:116
-    </span>
-
-    <span>
-        <strong>Map:</strong>
-        960 blocks / degree
-    </span>
-
-    <span>
-        <strong>Grid:</strong>
-        780 × 440
-    </span>
-
-    <span>
-        <strong>Cells:</strong>
-        343,200
-    </span>
-
-    <span>
-        <strong>Cell:</strong>
-        0.1°
-    </span>
-
-    <span>
-        <strong>Minecraft cell:</strong>
-        96 × 96 blocks
-    </span>
-
-    <span>
-        <strong>Snow boundary:</strong>
-        1.5°C
-    </span>
-
-    <span>
-        <strong>Mask:</strong>
-        <span id="topMaskStatus">
-            Ctrl = source lock
-        </span>
-    </span>
-
-    <span>
-        <strong>Storage:</strong>
-        <span id="topSaveStatus">
-            Starting...
-        </span>
-    </span>
+    <span><strong>Scale:</strong> 1:116</span>
+    <span><strong>Grid:</strong> 780 × 440</span>
+    <span><strong>Cells:</strong> 343,200</span>
+    <span><strong>Cell:</strong> 0.1°</span>
+    <span><strong>Cell size:</strong> 96 × 96 blocks</span>
+    <span><strong>Regional precision:</strong> 0.1%</span>
+    <span><strong>Regional total:</strong> exactly 100.0%</span>
+    <span><strong>Storage:</strong> <span id="topSaveStatus">Starting...</span></span>
 
 </div>
-
 
 <div class="layout">
 
 <section class="map-panel">
 
-    <div class="map-toolbar">
+<div class="map-toolbar">
 
-        <div class="toolbar-group">
+    <div class="toolbar-group">
+        <span class="toolbar-label">Mode</span>
 
-            <span class="toolbar-label">
-                Mode
-            </span>
+        <button type="button" id="inspectButton" class="active">
+            Inspect
+        </button>
 
-            <button
-                type="button"
-                id="inspectButton"
-                class="active">
-                Inspect
-            </button>
+        <button type="button" id="paintSurfaceButton">
+            Paint Surface
+        </button>
 
-            <button
-                type="button"
-                id="paintButton">
-                Paint Surface
-            </button>
-
-        </div>
-
-
-        <div class="toolbar-group">
-
-            <span class="toolbar-label">
-                View
-            </span>
-
-            <button
-                type="button"
-                id="surfaceViewButton"
-                class="active">
-                Surface
-            </button>
-
-            <button
-                type="button"
-                id="temperatureViewButton">
-                Temperature
-            </button>
-
-        </div>
-
-
-        <div class="toolbar-group">
-
-            <span class="toolbar-label">
-                Zoom
-            </span>
-
-            <button type="button" data-zoom="1">
-                1×
-            </button>
-
-            <button type="button" data-zoom="2">
-                2×
-            </button>
-
-            <button type="button" data-zoom="4">
-                4×
-            </button>
-
-            <button type="button" data-zoom="8">
-                8×
-            </button>
-
-        </div>
-
+        <button type="button" id="paintRegionButton">
+            Paint Regional
+        </button>
     </div>
 
 
-    <div class="map-scroll">
+    <div class="toolbar-group">
+        <span class="toolbar-label">View</span>
 
-        <div id="gridStage">
+        <button type="button" id="surfaceViewButton" class="active">
+            Surface
+        </button>
 
-            <canvas
-                id="climateCanvas"
-                width="780"
-                height="440">
-            </canvas>
+        <button type="button" id="regionViewButton">
+            Regional
+        </button>
 
-            <div id="selectionBox"></div>
-
-        </div>
-
+        <button type="button" id="temperatureViewButton">
+            Temperature
+        </button>
     </div>
 
 
-    <div class="map-footer">
+    <div class="toolbar-group">
+        <span class="toolbar-label">Zoom</span>
 
-        <strong>Normal drag:</strong>
-        paints every cell touched by the brush.
+        <button type="button" data-zoom="1">1×</button>
+        <button type="button" data-zoom="2">2×</button>
+        <button type="button" data-zoom="4">4×</button>
+        <button type="button" data-zoom="8">8×</button>
+    </div>
 
-        <br>
+</div>
 
-        <strong>Ctrl + left-drag:</strong>
-        locks the brush to the surface type underneath the cell where
-        the stroke started.
 
-        Example: start on Land while holding Ctrl and only Land cells
-        can be changed during that stroke.
+<div class="map-scroll">
+
+    <div id="gridStage">
+
+        <canvas
+            id="climateCanvas"
+            width="780"
+            height="440">
+        </canvas>
+
+        <div id="selectionBox"></div>
 
     </div>
+
+</div>
+
+
+<div class="map-footer" id="mapFooter">
+
+    <strong>Inspect:</strong>
+    click any cell to see its physical surface and complete regional mixture.
+
+</div>
 
 </section>
 
@@ -625,132 +588,213 @@ kbd {
 
 <div class="section">
 
-    <h2>Surface Editor</h2>
+    <h2>Map Editor</h2>
 
     <div class="hint">
 
-        Select a surface and click
-        <strong>Paint Surface</strong>.
-
-        Hold the left mouse button and drag to paint.
+        Physical surface and regional influence are completely separate layers.
 
     </div>
 
 
-    <div
-        class="mask-box"
-        id="maskBox">
+    <!-- SURFACE EDITOR -->
+
+    <div id="surfaceEditor" class="editor-panel">
+
+        <h3>Physical Surface</h3>
+
+        <div class="field">
+
+            <label for="surfaceBrush">
+                Surface
+            </label>
+
+            <select id="surfaceBrush">
+
+                <option value="1">Ocean</option>
+                <option value="2">Coastal / Shallow Sea</option>
+                <option value="3">Lake</option>
+                <option value="4" selected>Land</option>
+                <option value="5">Dry / Arid Land</option>
+
+            </select>
+
+        </div>
+
+
+        <div class="field">
+
+            <label for="surfaceBrushSize">
+                Brush size
+            </label>
+
+            <select id="surfaceBrushSize">
+
+                <option value="1">1 cell — 0.1°</option>
+                <option value="3">3 cells — 0.3°</option>
+                <option value="5">5 cells — 0.5°</option>
+                <option value="9">9 cells — 0.9°</option>
+                <option value="15">15 cells — 1.5°</option>
+                <option value="25">25 cells — 2.5°</option>
+                <option value="41">41 cells — 4.1°</option>
+
+            </select>
+
+        </div>
+
+
+        <div class="brush-preview">
+
+            <div
+                class="brush-colour"
+                id="surfaceBrushColour">
+            </div>
+
+            <div>
+
+                <div
+                    class="brush-name"
+                    id="surfaceBrushName">
+                </div>
+
+                <div
+                    class="brush-description"
+                    id="surfaceBrushDescription">
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- REGIONAL EDITOR -->
+
+    <div id="regionEditor" class="editor-panel">
+
+        <h3>Regional Influence</h3>
+
+        <div class="hint">
+
+            Paint the selected influence toward a target percentage.
+            Every cell always remains exactly 100.0%.
+
+        </div>
+
+
+        <div class="field">
+
+            <label for="regionBrush">
+                Influence
+            </label>
+
+            <select id="regionBrush"></select>
+
+        </div>
+
+
+        <div class="field">
+
+            <label for="regionTarget">
+                Target percentage
+            </label>
+
+            <input
+                id="regionTarget"
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                value="100.0">
+
+        </div>
+
+
+        <div class="field">
+
+            <label for="regionBrushSize">
+                Brush size
+            </label>
+
+            <select id="regionBrushSize">
+
+                <option value="1">1 cell — 0.1°</option>
+                <option value="3">3 cells — 0.3°</option>
+                <option value="5">5 cells — 0.5°</option>
+                <option value="9">9 cells — 0.9°</option>
+                <option value="15">15 cells — 1.5°</option>
+                <option value="25">25 cells — 2.5°</option>
+                <option value="41">41 cells — 4.1°</option>
+
+            </select>
+
+        </div>
+
+
+        <div class="field">
+
+            <label for="regionHardness">
+                Brush edge
+            </label>
+
+            <select id="regionHardness">
+
+                <option value="hard" selected>
+                    Hard
+                </option>
+
+                <option value="medium">
+                    Medium
+                </option>
+
+                <option value="soft">
+                    Soft
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <div class="brush-preview">
+
+            <div
+                class="brush-colour"
+                id="regionBrushColour">
+            </div>
+
+            <div>
+
+                <div
+                    class="brush-name"
+                    id="regionBrushName">
+                </div>
+
+                <div
+                    class="brush-description"
+                    id="regionBrushDescription">
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="mask-box" id="maskBox">
 
         <div class="mask-title">
-            Ctrl Surface Mask
+            Ctrl Mask
         </div>
 
         <div
             class="mask-description"
             id="maskDescription">
 
-            Hold <kbd>Ctrl</kbd> before starting a drag to paint
-            only the same surface type as the first cell.
-
-        </div>
-
-        <div
-            class="mask-source"
-            id="maskSource">
-            No mask active
-        </div>
-
-    </div>
-
-
-    <div class="field">
-
-        <label for="surfaceBrush">
-            Surface brush
-        </label>
-
-        <select id="surfaceBrush">
-
-            <option value="1">
-                Ocean
-            </option>
-
-            <option value="2">
-                Coastal / Shallow Sea
-            </option>
-
-            <option value="3">
-                Lake
-            </option>
-
-            <option value="4" selected>
-                Land
-            </option>
-
-            <option value="5">
-                Dry / Arid Land
-            </option>
-
-        </select>
-
-    </div>
-
-
-    <div class="field">
-
-        <label for="brushSize">
-            Brush size
-        </label>
-
-        <select id="brushSize">
-
-            <option value="1">
-                1 cell — 0.1°
-            </option>
-
-            <option value="3">
-                3 cells — 0.3°
-            </option>
-
-            <option value="5">
-                5 cells — 0.5°
-            </option>
-
-            <option value="9">
-                9 cells — 0.9°
-            </option>
-
-            <option value="15">
-                15 cells — 1.5°
-            </option>
-
-            <option value="25">
-                25 cells — 2.5°
-            </option>
-
-        </select>
-
-    </div>
-
-
-    <div class="brush-preview">
-
-        <div
-            class="brush-colour"
-            id="brushColour">
-        </div>
-
-        <div>
-
-            <div
-                class="brush-name"
-                id="brushName">
-            </div>
-
-            <div
-                class="brush-description"
-                id="brushDescription">
-            </div>
+            Hold <kbd>Ctrl</kbd> before beginning a drag to lock the stroke
+            to the type underneath the starting cell.
 
         </div>
 
@@ -759,43 +803,28 @@ kbd {
 
     <div class="button-grid">
 
-        <button
-            type="button"
-            id="undoButton"
-            disabled>
+        <button type="button" id="undoButton" disabled>
             Undo
         </button>
 
-        <button
-            type="button"
-            id="redoButton"
-            disabled>
+        <button type="button" id="redoButton" disabled>
             Redo
         </button>
 
-        <button
-            type="button"
-            id="saveButton">
+        <button type="button" id="saveButton">
             Save Now
         </button>
 
-        <button
-            type="button"
-            id="exportButton">
+        <button type="button" id="exportButton">
             Export Map
         </button>
 
-        <button
-            type="button"
-            id="importButton">
+        <button type="button" id="importButton">
             Import Map
         </button>
 
-        <button
-            type="button"
-            id="rebuildButton"
-            class="danger">
-            Rebuild Base
+        <button type="button" id="rebuildButton" class="danger">
+            Rebuild Surface
         </button>
 
     </div>
@@ -817,11 +846,14 @@ kbd {
 
     <div
         class="palette"
-        id="surfacePalette">
+        id="activePalette">
     </div>
 
 </div>
 
+
+
+<!-- SELECTED CELL -->
 
 <div class="section">
 
@@ -880,18 +912,8 @@ kbd {
             </div>
 
             <div class="detail-row">
-                <span>Cell size</span>
-                <span>0.1° × 0.1°</span>
-            </div>
-
-            <div class="detail-row">
-                <span>Minecraft size</span>
-                <span>96 × 96 blocks</span>
-            </div>
-
-            <div class="detail-row">
-                <span>Chunks</span>
-                <span>6 × 6</span>
+                <span>Cell</span>
+                <span>0.1° / 96 blocks</span>
             </div>
 
         </div>
@@ -900,6 +922,43 @@ kbd {
 
 </div>
 
+
+
+<!-- REGIONAL INSPECT -->
+
+<div
+    class="section"
+    id="regionalInspectSection"
+    style="display:none;">
+
+    <h3>Regional Mixture</h3>
+
+    <div
+        class="region-dominant"
+        id="regionDominant">
+        —
+    </div>
+
+    <div
+        class="region-summary"
+        id="regionSummary">
+    </div>
+
+    <div class="region-total">
+
+        <span>Total</span>
+
+        <span id="regionTotal">
+            100.0%
+        </span>
+
+    </div>
+
+</div>
+
+
+
+<!-- WEATHER -->
 
 <div
     class="section"
@@ -934,13 +993,8 @@ kbd {
 
         <select id="precipitationInput">
 
-            <option value="0">
-                Dry
-            </option>
-
-            <option value="1">
-                Wet
-            </option>
+            <option value="0">Dry</option>
+            <option value="1">Wet</option>
 
         </select>
 
@@ -955,13 +1009,8 @@ kbd {
 
         <select id="skyInput">
 
-            <option value="0">
-                Clear
-            </option>
-
-            <option value="1">
-                Overcast
-            </option>
+            <option value="0">Clear</option>
+            <option value="1">Overcast</option>
 
         </select>
 
@@ -976,13 +1025,8 @@ kbd {
 
         <select id="thunderInput">
 
-            <option value="0">
-                No
-            </option>
-
-            <option value="1">
-                Yes
-            </option>
+            <option value="0">No</option>
+            <option value="1">Yes</option>
 
         </select>
 
@@ -1015,7 +1059,7 @@ kbd {
         </div>
 
         <div class="detail-row">
-            <span>Precipitation type</span>
+            <span>Precipitation</span>
             <span id="precipitationTypeOutput">—</span>
         </div>
 
@@ -1047,23 +1091,7 @@ kbd {
 
 </div>
 
-
-<div class="section">
-
-    <h3>Regional Influence</h3>
-
-    <div class="no-influence">
-
-        Not implemented yet.
-
-        Physical surfaces are being completed first.
-
-    </div>
-
-</div>
-
 </aside>
-
 </div>
 
 
@@ -1073,12 +1101,9 @@ kbd {
 
 "use strict";
 
-
-/*
-============================================================
-GRID
-============================================================
-*/
+/* ==========================================================
+   GRID
+========================================================== */
 
 const MIN_LONGITUDE = -26;
 const MAX_LONGITUDE = 52;
@@ -1087,489 +1112,518 @@ const MIN_LATITUDE = 30;
 const MAX_LATITUDE = 74;
 
 const CELL_DEGREES = 0.1;
-
 const BLOCKS_PER_DEGREE = 960;
 
 const GRID_WIDTH = 780;
 const GRID_HEIGHT = 440;
-
-const TOTAL_CELLS =
-    GRID_WIDTH * GRID_HEIGHT;
+const TOTAL_CELLS = GRID_WIDTH * GRID_HEIGHT;
 
 const SNOW_BOUNDARY = 1.5;
 
 
-/*
-============================================================
-SURFACE TYPES
-============================================================
-*/
+/* ==========================================================
+   PHYSICAL SURFACE
+========================================================== */
 
 const SURFACE_TYPES = {
 
     0: {
         name: "Unknown",
         description: "Not classified",
-        colour: [215, 219, 223]
+        colour: [215,219,223]
     },
 
     1: {
         name: "Ocean",
-        description: "Very slow heating and cooling",
-        colour: [92, 148, 184]
+        description: "Very slow thermal response",
+        colour: [92,148,184]
     },
 
     2: {
         name: "Coastal / Shallow Sea",
-        description: "Slow, but more responsive than open ocean",
-        colour: [126, 184, 208]
+        description: "Responsive regional, shelf or enclosed sea",
+        colour: [126,184,208]
     },
 
     3: {
         name: "Lake",
-        description: "More responsive than sea, but slower than land",
-        colour: [158, 205, 220]
+        description: "Inland water with moderate thermal inertia",
+        colour: [158,205,220]
     },
 
     4: {
         name: "Land",
-        description: "Responsive terrestrial surface",
-        colour: [197, 190, 154]
+        description: "Normal terrestrial thermal response",
+        colour: [197,190,154]
     },
 
     5: {
         name: "Dry / Arid Land",
-        description: "Very responsive dry terrestrial surface",
-        colour: [218, 184, 108]
+        description: "Fast heating and cooling dry terrestrial surface",
+        colour: [218,184,108]
     }
 
 };
 
 
-/*
-============================================================
-DATA
-============================================================
-*/
+/* ==========================================================
+   REGIONAL INFLUENCES
 
-const surface =
-    new Uint8Array(
-        TOTAL_CELLS
+   ID 0 is special:
+   Unassigned exists while constructing the climatology.
+
+   All values stored as 0–1000:
+   1 unit = 0.1%
+   total per cell = exactly 1000
+========================================================== */
+
+const REGION_TYPES = [
+
+    {
+        id: 0,
+        key: "unassigned",
+        name: "Unassigned",
+        description: "Regional climatology not painted yet",
+        colour: [145,150,155]
+    },
+
+    {
+        id: 1,
+        key: "atlantic",
+        name: "Atlantic",
+        description: "Temperate North Atlantic maritime influence",
+        colour: [53,105,170]
+    },
+
+    {
+        id: 2,
+        key: "polar_maritime",
+        name: "Polar Maritime",
+        description: "Cold maritime influence from Iceland, Greenland and the subpolar Atlantic",
+        colour: [80,135,185]
+    },
+
+    {
+        id: 3,
+        key: "arctic_maritime",
+        name: "Arctic Maritime",
+        description: "Direct Arctic Ocean, Barents and high-latitude maritime influence",
+        colour: [132,205,225]
+    },
+
+    {
+        id: 4,
+        key: "north_sea",
+        name: "North Sea",
+        description: "North Sea regional maritime modification",
+        colour: [76,162,190]
+    },
+
+    {
+        id: 5,
+        key: "baltic_maritime",
+        name: "Baltic Maritime",
+        description: "Baltic Sea seasonal maritime influence",
+        colour: [74,190,176]
+    },
+
+    {
+        id: 6,
+        key: "mediterranean",
+        name: "Mediterranean",
+        description: "Mediterranean maritime and warm-sector influence",
+        colour: [221,145,71]
+    },
+
+    {
+        id: 7,
+        key: "black_sea",
+        name: "Black Sea",
+        description: "Black Sea regional maritime influence",
+        colour: [75,119,156]
+    },
+
+    {
+        id: 8,
+        key: "caspian_maritime",
+        name: "Caspian Maritime",
+        description: "Caspian thermal and moisture influence",
+        colour: [79,155,143]
+    },
+
+    {
+        id: 9,
+        key: "north_african",
+        name: "North African",
+        description: "Hot, dry North African and Saharan source influence",
+        colour: [216,171,69]
+    },
+
+    {
+        id: 10,
+        key: "eurasian_continental",
+        name: "Eurasian Continental",
+        description: "Continental air from eastern Europe and Eurasia",
+        colour: [164,98,83]
+    },
+
+    {
+        id: 11,
+        key: "british_landmass",
+        name: "British Landmass",
+        description: "Air modified by passage over Britain",
+        colour: [111,150,86]
+    },
+
+    {
+        id: 12,
+        key: "iberian_interior",
+        name: "Iberian Interior",
+        description: "Air modified over inland Iberia",
+        colour: [190,124,72]
+    },
+
+    {
+        id: 13,
+        key: "west_central_european",
+        name: "West-Central European",
+        description: "France, Benelux and western central-European landmass modification",
+        colour: [128,151,81]
+    },
+
+    {
+        id: 14,
+        key: "central_eastern_european",
+        name: "Central / Eastern European",
+        description: "Central and eastern European landmass modification",
+        colour: [151,130,77]
+    },
+
+    {
+        id: 15,
+        key: "scandinavian_interior",
+        name: "Scandinavian Interior",
+        description: "Air modified over the Scandinavian landmass",
+        colour: [116,161,128]
+    },
+
+    {
+        id: 16,
+        key: "balkan_modified",
+        name: "Balkan Modified",
+        description: "Regional Balkan landmass modification",
+        colour: [169,105,120]
+    }
+
+];
+
+const REGION_COUNT = REGION_TYPES.length;
+const REGION_TOTAL_UNITS = 1000;
+
+
+/* ==========================================================
+   DATA
+========================================================== */
+
+const surface = new Uint8Array(TOTAL_CELLS);
+
+const regional =
+    new Uint16Array(
+        TOTAL_CELLS * REGION_COUNT
     );
-
 
 const temperatures =
-    new Float32Array(
-        TOTAL_CELLS
-    );
+    new Float32Array(TOTAL_CELLS);
 
-temperatures.fill(
-    NaN
-);
-
+temperatures.fill(NaN);
 
 const precipitation =
-    new Uint8Array(
-        TOTAL_CELLS
-    );
-
+    new Uint8Array(TOTAL_CELLS);
 
 const sky =
-    new Uint8Array(
-        TOTAL_CELLS
-    );
-
+    new Uint8Array(TOTAL_CELLS);
 
 const thunder =
-    new Uint8Array(
-        TOTAL_CELLS
-    );
+    new Uint8Array(TOTAL_CELLS);
 
 
-/*
-============================================================
-ELEMENTS
-============================================================
-*/
+/* ==========================================================
+   DOM
+========================================================== */
 
 const canvas =
-    document.getElementById(
-        "climateCanvas"
-    );
+    document.getElementById("climateCanvas");
 
 const ctx =
-    canvas.getContext(
-        "2d"
-    );
+    canvas.getContext("2d");
 
-ctx.imageSmoothingEnabled =
-    false;
-
+ctx.imageSmoothingEnabled = false;
 
 const gridStage =
-    document.getElementById(
-        "gridStage"
-    );
+    document.getElementById("gridStage");
 
 const selectionBox =
-    document.getElementById(
-        "selectionBox"
-    );
-
+    document.getElementById("selectionBox");
 
 const inspectButton =
-    document.getElementById(
-        "inspectButton"
-    );
+    document.getElementById("inspectButton");
 
-const paintButton =
-    document.getElementById(
-        "paintButton"
-    );
+const paintSurfaceButton =
+    document.getElementById("paintSurfaceButton");
 
+const paintRegionButton =
+    document.getElementById("paintRegionButton");
 
 const surfaceViewButton =
-    document.getElementById(
-        "surfaceViewButton"
-    );
+    document.getElementById("surfaceViewButton");
+
+const regionViewButton =
+    document.getElementById("regionViewButton");
 
 const temperatureViewButton =
-    document.getElementById(
-        "temperatureViewButton"
-    );
+    document.getElementById("temperatureViewButton");
 
+const surfaceEditor =
+    document.getElementById("surfaceEditor");
+
+const regionEditor =
+    document.getElementById("regionEditor");
 
 const surfaceBrush =
-    document.getElementById(
-        "surfaceBrush"
-    );
+    document.getElementById("surfaceBrush");
 
-const brushSize =
-    document.getElementById(
-        "brushSize"
-    );
+const surfaceBrushSize =
+    document.getElementById("surfaceBrushSize");
 
-const brushColour =
-    document.getElementById(
-        "brushColour"
-    );
+const surfaceBrushColour =
+    document.getElementById("surfaceBrushColour");
 
-const brushName =
-    document.getElementById(
-        "brushName"
-    );
+const surfaceBrushName =
+    document.getElementById("surfaceBrushName");
 
-const brushDescription =
-    document.getElementById(
-        "brushDescription"
-    );
+const surfaceBrushDescription =
+    document.getElementById("surfaceBrushDescription");
 
+const regionBrush =
+    document.getElementById("regionBrush");
+
+const regionTarget =
+    document.getElementById("regionTarget");
+
+const regionBrushSize =
+    document.getElementById("regionBrushSize");
+
+const regionHardness =
+    document.getElementById("regionHardness");
+
+const regionBrushColour =
+    document.getElementById("regionBrushColour");
+
+const regionBrushName =
+    document.getElementById("regionBrushName");
+
+const regionBrushDescription =
+    document.getElementById("regionBrushDescription");
 
 const maskBox =
-    document.getElementById(
-        "maskBox"
-    );
+    document.getElementById("maskBox");
 
 const maskDescription =
-    document.getElementById(
-        "maskDescription"
-    );
-
-const maskSource =
-    document.getElementById(
-        "maskSource"
-    );
-
-const topMaskStatus =
-    document.getElementById(
-        "topMaskStatus"
-    );
-
+    document.getElementById("maskDescription");
 
 const undoButton =
-    document.getElementById(
-        "undoButton"
-    );
+    document.getElementById("undoButton");
 
 const redoButton =
-    document.getElementById(
-        "redoButton"
-    );
+    document.getElementById("redoButton");
 
 const saveButton =
-    document.getElementById(
-        "saveButton"
-    );
+    document.getElementById("saveButton");
 
 const exportButton =
-    document.getElementById(
-        "exportButton"
-    );
+    document.getElementById("exportButton");
 
 const importButton =
-    document.getElementById(
-        "importButton"
-    );
+    document.getElementById("importButton");
 
 const rebuildButton =
-    document.getElementById(
-        "rebuildButton"
-    );
+    document.getElementById("rebuildButton");
 
 const importFile =
-    document.getElementById(
-        "importFile"
-    );
-
+    document.getElementById("importFile");
 
 const saveStatus =
-    document.getElementById(
-        "saveStatus"
-    );
+    document.getElementById("saveStatus");
 
 const topSaveStatus =
-    document.getElementById(
-        "topSaveStatus"
-    );
+    document.getElementById("topSaveStatus");
 
-const surfacePalette =
-    document.getElementById(
-        "surfacePalette"
-    );
+const activePalette =
+    document.getElementById("activePalette");
 
+const mapFooter =
+    document.getElementById("mapFooter");
 
 const selectionHint =
-    document.getElementById(
-        "selectionHint"
-    );
+    document.getElementById("selectionHint");
 
 const selectedCell =
-    document.getElementById(
-        "selectedCell"
-    );
-
-const weatherSection =
-    document.getElementById(
-        "weatherSection"
-    );
-
+    document.getElementById("selectedCell");
 
 const coordinateMain =
-    document.getElementById(
-        "coordinateMain"
-    );
+    document.getElementById("coordinateMain");
 
 const coordinateBounds =
-    document.getElementById(
-        "coordinateBounds"
-    );
+    document.getElementById("coordinateBounds");
 
 const surfaceBox =
-    document.getElementById(
-        "surfaceBox"
-    );
+    document.getElementById("surfaceBox");
 
 const surfaceOutput =
-    document.getElementById(
-        "surfaceOutput"
-    );
+    document.getElementById("surfaceOutput");
 
 const thermalOutput =
-    document.getElementById(
-        "thermalOutput"
-    );
+    document.getElementById("thermalOutput");
 
 const gridIndexOutput =
-    document.getElementById(
-        "gridIndexOutput"
-    );
+    document.getElementById("gridIndexOutput");
 
+const regionalInspectSection =
+    document.getElementById("regionalInspectSection");
+
+const regionDominant =
+    document.getElementById("regionDominant");
+
+const regionSummary =
+    document.getElementById("regionSummary");
+
+const regionTotal =
+    document.getElementById("regionTotal");
+
+const weatherSection =
+    document.getElementById("weatherSection");
 
 const temperatureInput =
-    document.getElementById(
-        "temperatureInput"
-    );
+    document.getElementById("temperatureInput");
 
 const precipitationInput =
-    document.getElementById(
-        "precipitationInput"
-    );
+    document.getElementById("precipitationInput");
 
 const skyInput =
-    document.getElementById(
-        "skyInput"
-    );
+    document.getElementById("skyInput");
 
 const thunderInput =
-    document.getElementById(
-        "thunderInput"
-    );
-
+    document.getElementById("thunderInput");
 
 const stateOutput =
-    document.getElementById(
-        "stateOutput"
-    );
+    document.getElementById("stateOutput");
 
 const realTemperatureOutput =
-    document.getElementById(
-        "realTemperatureOutput"
-    );
+    document.getElementById("realTemperatureOutput");
 
 const minecraftTemperatureOutput =
-    document.getElementById(
-        "minecraftTemperatureOutput"
-    );
+    document.getElementById("minecraftTemperatureOutput");
 
 const precipitationTypeOutput =
-    document.getElementById(
-        "precipitationTypeOutput"
-    );
+    document.getElementById("precipitationTypeOutput");
 
 const warningOutput =
-    document.getElementById(
-        "warningOutput"
-    );
-
+    document.getElementById("warningOutput");
 
 const applyWeatherButton =
-    document.getElementById(
-        "applyWeatherButton"
-    );
+    document.getElementById("applyWeatherButton");
 
 const clearWeatherButton =
-    document.getElementById(
-        "clearWeatherButton"
-    );
+    document.getElementById("clearWeatherButton");
 
 
-/*
-============================================================
-EDITOR STATE
-============================================================
-*/
+/* ==========================================================
+   EDITOR STATE
+========================================================== */
 
-let mode =
-    "inspect";
+let mode = "inspect";
+let viewMode = "surface";
 
-let viewMode =
-    "surface";
+let zoom = 1;
 
-let zoom =
-    1;
+let selectedColumn = null;
+let selectedRow = null;
 
-let selectedColumn =
-    null;
+let painting = false;
 
-let selectedRow =
-    null;
+let lastPaintColumn = null;
+let lastPaintRow = null;
 
+let currentStroke = null;
 
-let painting =
-    false;
+let strokeSurfaceMask = null;
+let strokeRegionMask = null;
 
-let lastPaintColumn =
-    null;
+let renderQueued = false;
 
-let lastPaintRow =
-    null;
-
-let currentStroke =
-    null;
-
-
-/*
-    null = no mask
-
-    Otherwise this stores the surface type
-    present underneath the FIRST CELL of a
-    Ctrl-drag stroke.
-*/
-
-let strokeMaskType =
-    null;
-
-
-let ctrlHeld =
-    false;
-
-let renderQueued =
-    false;
-
-let database =
-    null;
-
-let saveTimer =
-    null;
-
+let database = null;
+let saveTimer = null;
 
 const undoStack = [];
 const redoStack = [];
 
-const MAX_UNDO =
-    100;
+const MAX_UNDO = 100;
 
 
-/*
-============================================================
-CELL INDEX
-============================================================
-*/
+/* ==========================================================
+   REGIONAL INITIALISATION
+========================================================== */
 
-function cellIndex(
-    column,
-    row
-) {
+function regionalOffset(index) {
+    return index * REGION_COUNT;
+}
 
-    return (
-        row *
-        GRID_WIDTH +
-        column
-    );
+function initialiseRegionalBlank() {
+
+    regional.fill(0);
+
+    for (
+        let i = 0;
+        i < TOTAL_CELLS;
+        i++
+    ) {
+        regional[
+            regionalOffset(i)
+        ] = REGION_TOTAL_UNITS;
+    }
 }
 
 
-/*
-============================================================
-COORDINATES
-============================================================
-*/
+/* ==========================================================
+   CELL HELPERS
+========================================================== */
 
-function getCellCoordinates(
-    column,
-    row
-) {
+function cellIndex(column, row) {
+    return row * GRID_WIDTH + column;
+}
+
+function getCellCoordinates(column, row) {
 
     const longitudeWest =
         MIN_LONGITUDE +
-        column *
-        CELL_DEGREES;
-
+        column * CELL_DEGREES;
 
     const longitudeEast =
         longitudeWest +
         CELL_DEGREES;
 
-
     const latitudeNorth =
         MAX_LATITUDE -
-        row *
-        CELL_DEGREES;
-
+        row * CELL_DEGREES;
 
     const latitudeSouth =
         latitudeNorth -
         CELL_DEGREES;
 
-
     return {
-
         longitudeWest,
-
         longitudeEast,
-
         latitudeNorth,
-
         latitudeSouth,
 
         longitudeCentre:
@@ -1579,151 +1633,553 @@ function getCellCoordinates(
         latitudeCentre:
             latitudeNorth -
             CELL_DEGREES / 2
-
     };
 }
 
-
-function formatLatitude(
-    value
-) {
+function formatLatitude(value) {
 
     return (
-        Math.abs(value)
-            .toFixed(2) +
+        Math.abs(value).toFixed(2) +
         "°" +
-        (
-            value >= 0
-            ? "N"
-            : "S"
-        )
+        (value >= 0 ? "N" : "S")
     );
 }
 
+function formatLongitude(value) {
 
-function formatLongitude(
-    value
-) {
-
-    if (
-        Math.abs(value) <
-        0.000001
-    ) {
-
+    if (Math.abs(value) < 0.000001) {
         return "0.00°";
     }
 
-
     return (
-        Math.abs(value)
-            .toFixed(2) +
+        Math.abs(value).toFixed(2) +
         "°" +
-        (
-            value >= 0
-            ? "E"
-            : "W"
-        )
+        (value >= 0 ? "E" : "W")
     );
 }
 
 
-/*
-============================================================
-TEMPERATURE CONVERSION
-============================================================
-*/
+/* ==========================================================
+   REGIONAL TOTAL / DOMINANT
+========================================================== */
 
-function minecraftTemperature(
-    t
-) {
+function getRegionalTotal(index) {
 
-    if (t <= 0) {
+    const offset =
+        regionalOffset(index);
 
-        return (
-            0.12 +
-            0.01 *
-            t
-        );
+    let total = 0;
+
+    for (
+        let r = 0;
+        r < REGION_COUNT;
+        r++
+    ) {
+        total += regional[offset + r];
     }
 
+    return total;
+}
+
+function getDominantRegion(index) {
+
+    const offset =
+        regionalOffset(index);
+
+    let bestId = 0;
+    let bestValue = regional[offset];
+
+    for (
+        let r = 1;
+        r < REGION_COUNT;
+        r++
+    ) {
+
+        const value =
+            regional[offset + r];
+
+        if (value > bestValue) {
+            bestValue = value;
+            bestId = r;
+        }
+    }
+
+    return bestId;
+}
+
+
+/* ==========================================================
+   EXACT NORMALISATION TO 1000
+========================================================== */
+
+function normaliseRegionalCell(index) {
+
+    const offset =
+        regionalOffset(index);
+
+    let total = 0;
+
+    for (
+        let r = 0;
+        r < REGION_COUNT;
+        r++
+    ) {
+        total += regional[offset + r];
+    }
+
+    if (total === REGION_TOTAL_UNITS) {
+        return;
+    }
+
+    if (total <= 0) {
+
+        for (
+            let r = 0;
+            r < REGION_COUNT;
+            r++
+        ) {
+            regional[offset + r] = 0;
+        }
+
+        regional[offset] =
+            REGION_TOTAL_UNITS;
+
+        return;
+    }
+
+
+    const fractions = [];
+
+    let used = 0;
+
+    for (
+        let r = 0;
+        r < REGION_COUNT;
+        r++
+    ) {
+
+        const raw =
+            regional[offset + r] /
+            total *
+            REGION_TOTAL_UNITS;
+
+        const base =
+            Math.floor(raw);
+
+        regional[offset + r] =
+            base;
+
+        used += base;
+
+        fractions.push({
+            id: r,
+            fraction: raw - base
+        });
+    }
+
+
+    fractions.sort(
+        (a, b) =>
+            b.fraction -
+            a.fraction
+    );
+
+
+    let remainder =
+        REGION_TOTAL_UNITS -
+        used;
+
+
+    let pointer = 0;
+
+    while (remainder > 0) {
+
+        const id =
+            fractions[pointer].id;
+
+        regional[offset + id]++;
+
+        remainder--;
+
+        pointer++;
+
+        if (
+            pointer >=
+            fractions.length
+        ) {
+            pointer = 0;
+        }
+    }
+}
+
+
+function normaliseAllRegional() {
+
+    for (
+        let i = 0;
+        i < TOTAL_CELLS;
+        i++
+    ) {
+        normaliseRegionalCell(i);
+    }
+}
+
+
+/* ==========================================================
+   PROPORTIONAL REDUCTION
+========================================================== */
+
+function reduceOtherRegions(
+    index,
+    selectedRegion,
+    amount
+) {
+
+    if (amount <= 0) {
+        return;
+    }
+
+    const offset =
+        regionalOffset(index);
+
+    const candidates = [];
+
+    let available = 0;
+
+    for (
+        let r = 1;
+        r < REGION_COUNT;
+        r++
+    ) {
+
+        if (r === selectedRegion) {
+            continue;
+        }
+
+        const value =
+            regional[offset + r];
+
+        if (value > 0) {
+
+            candidates.push({
+                id: r,
+                value: value
+            });
+
+            available += value;
+        }
+    }
+
+
+    if (available <= 0) {
+        return;
+    }
+
+
+    amount =
+        Math.min(
+            amount,
+            available
+        );
+
+
+    const reductions = [];
+
+    let removed = 0;
+
+
+    for (
+        const candidate
+        of candidates
+    ) {
+
+        const raw =
+            candidate.value /
+            available *
+            amount;
+
+        const base =
+            Math.floor(raw);
+
+        reductions.push({
+            id: candidate.id,
+            amount: base,
+            fraction: raw - base
+        });
+
+        removed += base;
+    }
+
+
+    reductions.sort(
+        (a, b) =>
+            b.fraction -
+            a.fraction
+    );
+
+
+    let remainder =
+        amount -
+        removed;
+
+
+    let pointer = 0;
+
+    while (
+        remainder > 0 &&
+        reductions.length > 0
+    ) {
+
+        const reduction =
+            reductions[pointer];
+
+        const current =
+            regional[
+                offset +
+                reduction.id
+            ];
+
+        if (
+            reduction.amount <
+            current
+        ) {
+
+            reduction.amount++;
+            remainder--;
+        }
+
+        pointer++;
+
+        if (
+            pointer >=
+            reductions.length
+        ) {
+            pointer = 0;
+        }
+    }
+
+
+    for (
+        const reduction
+        of reductions
+    ) {
+
+        regional[
+            offset +
+            reduction.id
+        ] -=
+            reduction.amount;
+    }
+}
+
+
+/* ==========================================================
+   SET REGIONAL TARGET
+
+   Strategy:
+   - Increase selected influence:
+       consume Unassigned first.
+       then reduce other real influences proportionally.
+
+   - Decrease selected influence:
+       freed percentage becomes Unassigned.
+
+   Therefore total always remains exactly 1000.
+========================================================== */
+
+function setRegionalTarget(
+    index,
+    regionId,
+    targetUnits,
+    alpha
+) {
+
+    const offset =
+        regionalOffset(index);
+
+
+    if (regionId === 0) {
+
+        const current =
+            regional[offset];
+
+        const desired =
+            Math.round(
+                current +
+                (
+                    REGION_TOTAL_UNITS -
+                    current
+                ) *
+                alpha
+            );
+
+
+        const increase =
+            desired -
+            current;
+
+
+        if (increase <= 0) {
+            return;
+        }
+
+
+        reduceOtherRegions(
+            index,
+            0,
+            increase
+        );
+
+
+        regional[offset] =
+            desired;
+
+
+        normaliseRegionalCell(index);
+
+        return;
+    }
+
+
+    const current =
+        regional[
+            offset +
+            regionId
+        ];
+
+
+    let desired =
+        Math.round(
+            current +
+            (
+                targetUnits -
+                current
+            ) *
+            alpha
+        );
+
+
+    desired =
+        Math.max(
+            0,
+            Math.min(
+                REGION_TOTAL_UNITS,
+                desired
+            )
+        );
+
+
+    if (desired === current) {
+        return;
+    }
+
+
+    if (desired > current) {
+
+        let needed =
+            desired -
+            current;
+
+
+        const unassigned =
+            regional[offset];
+
+
+        const fromUnassigned =
+            Math.min(
+                needed,
+                unassigned
+            );
+
+
+        regional[offset] -=
+            fromUnassigned;
+
+
+        needed -=
+            fromUnassigned;
+
+
+        if (needed > 0) {
+
+            reduceOtherRegions(
+                index,
+                regionId,
+                needed
+            );
+        }
+
+
+        regional[
+            offset +
+            regionId
+        ] =
+            desired;
+    }
+
+
+    else {
+
+        const released =
+            current -
+            desired;
+
+
+        regional[
+            offset +
+            regionId
+        ] =
+            desired;
+
+
+        regional[offset] +=
+            released;
+    }
+
+
+    normaliseRegionalCell(index);
+}
+
+
+/* ==========================================================
+   TEMPERATURE SYSTEM
+========================================================== */
+
+function minecraftTemperature(t) {
+
+    if (t <= 0) {
+        return 0.12 + 0.01 * t;
+    }
 
     if (t <= 1.2) {
 
         return (
             0.12 +
-            (
-                (
-                    0.145 -
-                    0.12
-                ) /
-                1.2
-            ) *
+            ((0.145 - 0.12) / 1.2) *
             t
         );
     }
-
 
     if (t <= 1.5) {
 
         return (
             0.145 +
-            (
-                (
-                    0.150 -
-                    0.145
-                ) /
-                0.3
-            ) *
-            (
-                t -
-                1.2
-            )
+            ((0.150 - 0.145) / 0.3) *
+            (t - 1.2)
         );
     }
-
 
     if (t <= 4) {
-
-        return (
-            0.150 +
-            0.02 *
-            (
-                t -
-                1.5
-            )
-        );
+        return 0.150 + 0.02 * (t - 1.5);
     }
-
 
     if (t <= 5) {
-
-        return (
-            0.200 +
-            0.10 *
-            (
-                t -
-                4
-            )
-        );
+        return 0.200 + 0.10 * (t - 4);
     }
 
-
-    return (
-        0.300 +
-        0.03 *
-        (
-            t -
-            5
-        )
-    );
+    return 0.300 + 0.03 * (t - 5);
 }
 
-
-/*
-============================================================
-PRECIPITATION
-============================================================
-*/
 
 function getPrecipitationType(
     temperature,
@@ -1734,33 +2190,23 @@ function getPrecipitationType(
         return "None";
     }
 
-    if (
-        temperature <= 0
-    ) {
+    if (temperature <= 0) {
         return "Snow";
     }
 
-    if (
-        temperature <= 1.2
-    ) {
+    if (temperature <= 1.2) {
         return "Wet snow";
     }
 
-    if (
-        temperature <= 1.5
-    ) {
+    if (temperature <= 1.5) {
         return "Snow / sleet mix";
     }
 
-    if (
-        temperature <= 2
-    ) {
+    if (temperature <= 2) {
         return "Rain with wet flakes";
     }
 
-    if (
-        temperature < 5
-    ) {
+    if (temperature < 5) {
         return "Rain — hill snow possible";
     }
 
@@ -1768,44 +2214,24 @@ function getPrecipitationType(
 }
 
 
-/*
-============================================================
-WEATHER STATE
-============================================================
-*/
-
-function formatTemperatureForId(
-    value
-) {
+function formatTemperatureForId(value) {
 
     const rounded =
-        Math.round(
-            value *
-            10
-        ) /
-        10;
-
+        Math.round(value * 10) / 10;
 
     if (
         Math.abs(
             rounded -
-            Math.round(
-                rounded
-            )
+            Math.round(rounded)
         ) <
         0.00001
     ) {
-
         return String(
-            Math.round(
-                rounded
-            )
+            Math.round(rounded)
         );
     }
 
-
-    return rounded
-        .toFixed(1);
+    return rounded.toFixed(1);
 }
 
 
@@ -1822,176 +2248,94 @@ function buildWeatherState(
             temperature
         );
 
-
-    state +=
-        wet
-        ? "w"
-        : "d";
-
-
-    state +=
-        overcast
-        ? "o"
-        : "c";
-
+    state += wet ? "w" : "d";
+    state += overcast ? "o" : "c";
 
     if (hasThunder) {
-
-        state +=
-            "t";
+        state += "t";
     }
-
 
     return state;
 }
 
 
-/*
-============================================================
-TEMPERATURE COLOUR
-============================================================
-*/
+/* ==========================================================
+   TEMPERATURE COLOUR
+========================================================== */
 
-function hslToRgb(
-    h,
-    s,
-    l
-) {
+function hslToRgb(h, s, l) {
 
     s /= 100;
     l /= 100;
 
-
     const c =
-        (
-            1 -
-            Math.abs(
-                2 *
-                l -
-                1
-            )
-        ) *
+        (1 - Math.abs(2 * l - 1)) *
         s;
-
 
     const x =
         c *
         (
             1 -
             Math.abs(
-                (
-                    (
-                        h /
-                        60
-                    ) %
-                    2
-                ) -
+                ((h / 60) % 2) -
                 1
             )
         );
 
-
     const m =
-        l -
-        c /
-        2;
-
+        l - c / 2;
 
     let r = 0;
     let g = 0;
     let b = 0;
 
-
     if (h < 60) {
-
         r = c;
         g = x;
     }
-
     else if (h < 120) {
-
         r = x;
         g = c;
     }
-
     else if (h < 180) {
-
         g = c;
         b = x;
     }
-
     else if (h < 240) {
-
         g = x;
         b = c;
     }
-
     else if (h < 300) {
-
         r = x;
         b = c;
     }
-
     else {
-
         r = c;
         b = x;
     }
-
 
     return [
-
-        Math.round(
-            (
-                r +
-                m
-            ) *
-            255
-        ),
-
-        Math.round(
-            (
-                g +
-                m
-            ) *
-            255
-        ),
-
-        Math.round(
-            (
-                b +
-                m
-            ) *
-            255
-        )
-
+        Math.round((r + m) * 255),
+        Math.round((g + m) * 255),
+        Math.round((b + m) * 255)
     ];
 }
 
 
-function temperatureColour(
-    temperature
-) {
+function temperatureColour(temperature) {
 
-    const normalised =
+    const normalized =
         Math.max(
             0,
             Math.min(
                 1,
-                (
-                    temperature +
-                    40
-                ) /
-                90
+                (temperature + 40) / 90
             )
         );
 
-
     const hue =
         220 -
-        normalised *
-        220;
-
+        normalized * 220;
 
     return hslToRgb(
         hue,
@@ -2001,11 +2345,9 @@ function temperatureColour(
 }
 
 
-/*
-============================================================
-RENDER
-============================================================
-*/
+/* ==========================================================
+   RENDERING
+========================================================== */
 
 const mapImage =
     ctx.createImageData(
@@ -2020,20 +2362,48 @@ function scheduleRender() {
         return;
     }
 
-
-    renderQueued =
-        true;
-
+    renderQueued = true;
 
     requestAnimationFrame(
         () => {
 
-            renderQueued =
-                false;
-
+            renderQueued = false;
             renderGrid();
         }
     );
+}
+
+
+function blendColour(
+    base,
+    overlay,
+    amount
+) {
+
+    return [
+
+        Math.round(
+            base[0] *
+            (1 - amount) +
+            overlay[0] *
+            amount
+        ),
+
+        Math.round(
+            base[1] *
+            (1 - amount) +
+            overlay[1] *
+            amount
+        ),
+
+        Math.round(
+            base[2] *
+            (1 - amount) +
+            overlay[2] *
+            amount
+        )
+
+    ];
 }
 
 
@@ -2043,13 +2413,27 @@ function renderGrid() {
         mapImage.data;
 
 
+    const selectedRegion =
+        Number(
+            regionBrush.value || 1
+        );
+
+
     for (
         let i = 0;
         i < TOTAL_CELLS;
         i++
     ) {
 
-        let colour;
+        const surfaceType =
+            SURFACE_TYPES[
+                surface[i]
+            ] ||
+            SURFACE_TYPES[0];
+
+
+        let colour =
+            surfaceType.colour;
 
 
         if (
@@ -2066,49 +2450,53 @@ function renderGrid() {
                 );
         }
 
-        else {
 
-            const type =
-                SURFACE_TYPES[
-                    surface[i]
-                ] ||
-                SURFACE_TYPES[0];
+        else if (
+            viewMode ===
+            "region"
+        ) {
+
+            const offset =
+                regionalOffset(i);
+
+
+            const weight =
+                regional[
+                    offset +
+                    selectedRegion
+                ] /
+                REGION_TOTAL_UNITS;
+
+
+            const regionColour =
+                REGION_TYPES[
+                    selectedRegion
+                ].colour;
 
 
             colour =
-                type.colour;
+                blendColour(
+                    surfaceType.colour,
+                    regionColour,
+                    weight * 0.92
+                );
         }
 
 
-        const pixel =
-            i *
-            4;
+        const p =
+            i * 4;
 
 
-        pixels[
-            pixel
-        ] =
+        pixels[p] =
             colour[0];
 
-
-        pixels[
-            pixel +
-            1
-        ] =
+        pixels[p + 1] =
             colour[1];
 
-
-        pixels[
-            pixel +
-            2
-        ] =
+        pixels[p + 2] =
             colour[2];
 
-
-        pixels[
-            pixel +
-            3
-        ] =
+        pixels[p + 3] =
             255;
     }
 
@@ -2120,17 +2508,12 @@ function renderGrid() {
     );
 
 
-    /*
-        5-degree reference lines
-    */
-
     ctx.save();
 
     ctx.strokeStyle =
         "rgba(30,38,45,0.38)";
 
-    ctx.lineWidth =
-        1;
+    ctx.lineWidth = 1;
 
 
     for (
@@ -2146,18 +2529,15 @@ function renderGrid() {
             ) /
             CELL_DEGREES;
 
-
         ctx.beginPath();
 
         ctx.moveTo(
-            column +
-            0.5,
+            column + 0.5,
             0
         );
 
         ctx.lineTo(
-            column +
-            0.5,
+            column + 0.5,
             GRID_HEIGHT
         );
 
@@ -2178,81 +2558,57 @@ function renderGrid() {
             ) /
             CELL_DEGREES;
 
-
         ctx.beginPath();
 
         ctx.moveTo(
             0,
-            row +
-            0.5
+            row + 0.5
         );
 
         ctx.lineTo(
             GRID_WIDTH,
-            row +
-            0.5
+            row + 0.5
         );
 
         ctx.stroke();
     }
 
-
     ctx.restore();
 }
 
 
-/*
-============================================================
-ZOOM
-============================================================
-*/
+/* ==========================================================
+   ZOOM
+========================================================== */
 
-function setZoom(
-    newZoom
-) {
+function setZoom(newZoom) {
 
-    zoom =
-        newZoom;
-
+    zoom = newZoom;
 
     const width =
-        GRID_WIDTH *
-        zoom;
-
+        GRID_WIDTH * zoom;
 
     const height =
-        GRID_HEIGHT *
-        zoom;
-
+        GRID_HEIGHT * zoom;
 
     canvas.style.width =
-        width +
-        "px";
-
+        width + "px";
 
     canvas.style.height =
-        height +
-        "px";
-
+        height + "px";
 
     gridStage.style.width =
-        width +
-        "px";
-
+        width + "px";
 
     gridStage.style.height =
-        height +
-        "px";
-
+        height + "px";
 
     updateSelectionBox();
 }
 
 
 document
-    .querySelectorAll(
-        "[data-zoom]"
-    )
+    .querySelectorAll("[data-zoom]")
     .forEach(
         button => {
 
@@ -2271,140 +2627,185 @@ document
     );
 
 
-/*
-============================================================
-MODE
-============================================================
-*/
+/* ==========================================================
+   MODE / VIEW
+========================================================== */
 
-function setMode(
-    newMode
-) {
+function setMode(newMode) {
 
-    mode =
-        newMode;
-
+    mode = newMode;
 
     inspectButton
         .classList
         .toggle(
             "active",
-            mode ===
-            "inspect"
+            mode === "inspect"
         );
 
-
-    paintButton
+    paintSurfaceButton
         .classList
         .toggle(
             "active",
-            mode ===
-            "paint"
+            mode === "surface"
+        );
+
+    paintRegionButton
+        .classList
+        .toggle(
+            "active",
+            mode === "region"
+        );
+
+
+    surfaceEditor
+        .classList
+        .toggle(
+            "active",
+            mode === "surface"
+        );
+
+    regionEditor
+        .classList
+        .toggle(
+            "active",
+            mode === "region"
         );
 
 
     canvas.style.cursor =
-        mode ===
-        "paint"
-        ? "cell"
-        : "crosshair";
+        mode === "inspect"
+        ? "crosshair"
+        : "cell";
 
 
-    canvas.style.touchAction =
-        mode ===
-        "paint"
-        ? "none"
-        : "auto";
+    if (mode === "surface") {
+
+        setView("surface");
+
+        mapFooter.innerHTML =
+            "<strong>Surface painting:</strong> left-drag paints normally. " +
+            "<strong>Ctrl + drag</strong> only changes cells matching the surface under the starting cell.";
+
+        buildSurfacePalette();
+    }
+
+
+    else if (mode === "region") {
+
+        setView("region");
+
+        mapFooter.innerHTML =
+            "<strong>Regional painting:</strong> choose an influence and target percentage, then left-drag. " +
+            "<strong>Ctrl + drag</strong> restricts the stroke to cells with the same dominant regional zone as the starting cell.";
+
+        buildRegionPalette();
+    }
+
+
+    else {
+
+        mapFooter.innerHTML =
+            "<strong>Inspect:</strong> click any cell to see its physical surface and complete regional mixture.";
+    }
 }
 
 
-inspectButton.addEventListener(
-    "click",
-    () => {
+function setView(newView) {
 
-        setMode(
-            "inspect"
-        );
-    }
-);
-
-
-paintButton.addEventListener(
-    "click",
-    () => {
-
-        setMode(
-            "paint"
-        );
-    }
-);
-
-
-/*
-============================================================
-VIEW
-============================================================
-*/
-
-function setView(
-    newView
-) {
-
-    viewMode =
-        newView;
-
+    viewMode = newView;
 
     surfaceViewButton
         .classList
         .toggle(
             "active",
-            viewMode ===
-            "surface"
+            viewMode === "surface"
         );
 
+    regionViewButton
+        .classList
+        .toggle(
+            "active",
+            viewMode === "region"
+        );
 
     temperatureViewButton
         .classList
         .toggle(
             "active",
-            viewMode ===
-            "temperature"
+            viewMode === "temperature"
         );
-
 
     renderGrid();
 }
 
 
-surfaceViewButton.addEventListener(
+inspectButton.addEventListener(
     "click",
-    () => {
-
-        setView(
-            "surface"
-        );
-    }
+    () => setMode("inspect")
 );
 
+paintSurfaceButton.addEventListener(
+    "click",
+    () => setMode("surface")
+);
+
+paintRegionButton.addEventListener(
+    "click",
+    () => setMode("region")
+);
+
+surfaceViewButton.addEventListener(
+    "click",
+    () => setView("surface")
+);
+
+regionViewButton.addEventListener(
+    "click",
+    () => setView("region")
+);
 
 temperatureViewButton.addEventListener(
     "click",
-    () => {
-
-        setView(
-            "temperature"
-        );
-    }
+    () => setView("temperature")
 );
 
 
-/*
-============================================================
-BRUSH DISPLAY
-============================================================
-*/
+/* ==========================================================
+   BRUSH UI
+========================================================== */
 
-function updateBrushDisplay() {
+function populateRegionSelector() {
+
+    regionBrush.innerHTML = "";
+
+    for (
+        const region
+        of REGION_TYPES
+    ) {
+
+        const option =
+            document.createElement(
+                "option"
+            );
+
+        option.value =
+            region.id;
+
+        option.textContent =
+            region.id === 0
+            ? "Unassigned / Clear"
+            : region.name;
+
+        regionBrush.appendChild(
+            option
+        );
+    }
+
+    regionBrush.value = "1";
+}
+
+
+function updateSurfaceBrushUI() {
 
     const type =
         SURFACE_TYPES[
@@ -2413,184 +2814,156 @@ function updateBrushDisplay() {
             )
         ];
 
+    surfaceBrushColour.style.background =
+        `rgb(${type.colour.join(",")})`;
 
-    brushColour.style.background =
-        `rgb(
-            ${type.colour[0]},
-            ${type.colour[1]},
-            ${type.colour[2]}
-        )`;
-
-
-    brushName.innerText =
+    surfaceBrushName.textContent =
         type.name;
 
-
-    brushDescription.innerText =
+    surfaceBrushDescription.textContent =
         type.description;
+}
+
+
+function updateRegionBrushUI() {
+
+    const region =
+        REGION_TYPES[
+            Number(
+                regionBrush.value
+            )
+        ];
+
+    regionBrushColour.style.background =
+        `rgb(${region.colour.join(",")})`;
+
+    regionBrushName.textContent =
+        region.name;
+
+    regionBrushDescription.textContent =
+        region.description;
+
+    if (region.id === 0) {
+
+        regionTarget.value =
+            "100.0";
+
+        regionTarget.disabled =
+            true;
+    }
+
+    else {
+
+        regionTarget.disabled =
+            false;
+    }
+
+
+    if (
+        viewMode === "region"
+    ) {
+        scheduleRender();
+    }
 }
 
 
 surfaceBrush.addEventListener(
     "change",
-    updateBrushDisplay
+    updateSurfaceBrushUI
+);
+
+regionBrush.addEventListener(
+    "change",
+    updateRegionBrushUI
 );
 
 
-/*
-============================================================
-CTRL MASK DISPLAY
-============================================================
-*/
+/* ==========================================================
+   PALETTES
+========================================================== */
 
-function updateMaskDisplay() {
+function buildSurfacePalette() {
 
-    maskBox.classList.remove(
-        "armed",
-        "active-mask"
-    );
+    activePalette.innerHTML = "";
 
-
-    if (
-        painting &&
-        strokeMaskType !==
-        null
+    for (
+        let id = 1;
+        id <= 5;
+        id++
     ) {
 
         const type =
-            SURFACE_TYPES[
-                strokeMaskType
-            ];
+            SURFACE_TYPES[id];
 
-
-        maskBox.classList.add(
-            "active-mask"
+        addPaletteItem(
+            type.name,
+            type.colour
         );
-
-
-        maskSource.innerText =
-            "MASK ACTIVE: " +
-            type.name;
-
-
-        maskDescription.innerText =
-            "This entire drag can only change " +
-            type.name +
-            " cells.";
-
-
-        topMaskStatus.innerText =
-            type.name +
-            " locked";
-
-
-        return;
     }
-
-
-    if (ctrlHeld) {
-
-        maskBox.classList.add(
-            "armed"
-        );
-
-
-        maskSource.innerText =
-            "Mask armed";
-
-
-        maskDescription.innerText =
-            "Start the drag on the surface type you want to protect against all others.";
-
-
-        topMaskStatus.innerText =
-            "Armed";
-
-
-        return;
-    }
-
-
-    maskSource.innerText =
-        "No mask active";
-
-
-    maskDescription.innerHTML =
-        "Hold <kbd>Ctrl</kbd> before starting a drag to paint only the same surface type as the first cell.";
-
-
-    topMaskStatus.innerText =
-        "Ctrl = source lock";
 }
 
 
-/*
-============================================================
-CTRL KEY
-============================================================
-*/
+function buildRegionPalette() {
 
-window.addEventListener(
-    "keydown",
-    event => {
+    activePalette.innerHTML = "";
 
-        if (
-            event.key ===
-            "Control"
-        ) {
+    for (
+        const region
+        of REGION_TYPES
+    ) {
 
-            ctrlHeld =
-                true;
-
-            updateMaskDisplay();
-        }
+        addPaletteItem(
+            region.name,
+            region.colour
+        );
     }
-);
+}
 
 
-window.addEventListener(
-    "keyup",
-    event => {
-
-        if (
-            event.key ===
-            "Control"
-        ) {
-
-            ctrlHeld =
-                false;
-
-            updateMaskDisplay();
-        }
-    }
-);
-
-
-window.addEventListener(
-    "blur",
-    () => {
-
-        ctrlHeld =
-            false;
-
-        updateMaskDisplay();
-    }
-);
-
-
-/*
-============================================================
-POINTER -> CELL
-============================================================
-*/
-
-function pointerToCell(
-    event
+function addPaletteItem(
+    name,
+    colour
 ) {
+
+    const item =
+        document.createElement("div");
+
+    item.className =
+        "palette-item";
+
+
+    const swatch =
+        document.createElement("div");
+
+    swatch.className =
+        "palette-colour";
+
+    swatch.style.background =
+        `rgb(${colour.join(",")})`;
+
+
+    const text =
+        document.createElement("span");
+
+    text.textContent =
+        name;
+
+
+    item.appendChild(swatch);
+    item.appendChild(text);
+
+    activePalette.appendChild(item);
+}
+
+
+/* ==========================================================
+   POINTER
+========================================================== */
+
+function pointerToCell(event) {
 
     const rect =
         canvas.getBoundingClientRect();
-
 
     const x =
         (
@@ -2602,7 +2975,6 @@ function pointerToCell(
             rect.width
         );
 
-
     const y =
         (
             event.clientY -
@@ -2613,18 +2985,14 @@ function pointerToCell(
             rect.height
         );
 
-
     return {
 
         column:
             Math.max(
                 0,
                 Math.min(
-                    GRID_WIDTH -
-                    1,
-                    Math.floor(
-                        x
-                    )
+                    GRID_WIDTH - 1,
+                    Math.floor(x)
                 )
             ),
 
@@ -2632,38 +3000,27 @@ function pointerToCell(
             Math.max(
                 0,
                 Math.min(
-                    GRID_HEIGHT -
-                    1,
-                    Math.floor(
-                        y
-                    )
+                    GRID_HEIGHT - 1,
+                    Math.floor(y)
                 )
             )
-
     };
 }
 
 
-/*
-============================================================
-SELECTION
-============================================================
-*/
+/* ==========================================================
+   SELECTION
+========================================================== */
 
 function selectCell(
     column,
     row
 ) {
 
-    selectedColumn =
-        column;
-
-    selectedRow =
-        row;
-
+    selectedColumn = column;
+    selectedRow = row;
 
     updateSelectionBox();
-
     loadSelectedCell();
 }
 
@@ -2671,10 +3028,8 @@ function selectCell(
 function updateSelectionBox() {
 
     if (
-        selectedColumn ===
-        null ||
-        selectedRow ===
-        null
+        selectedColumn === null ||
+        selectedRow === null
     ) {
 
         selectionBox.style.display =
@@ -2683,26 +3038,18 @@ function updateSelectionBox() {
         return;
     }
 
-
     selectionBox.style.display =
         "block";
 
-
     selectionBox.style.left =
-        (
-            selectedColumn *
-            zoom
-        ) +
+        selectedColumn *
+        zoom +
         "px";
-
 
     selectionBox.style.top =
-        (
-            selectedRow *
-            zoom
-        ) +
+        selectedRow *
+        zoom +
         "px";
-
 
     selectionBox.style.width =
         Math.max(
@@ -2710,7 +3057,6 @@ function updateSelectionBox() {
             1
         ) +
         "px";
-
 
     selectionBox.style.height =
         Math.max(
@@ -2721,38 +3067,71 @@ function updateSelectionBox() {
 }
 
 
-/*
-============================================================
-PAINTING
-============================================================
-*/
+/* ==========================================================
+   STROKE RECORDING
+========================================================== */
 
-function paintAt(
-    centreColumn,
-    centreRow
-) {
+function rememberSurfaceBefore(index) {
 
-    if (!currentStroke) {
+    if (
+        !currentStroke.before.has(index)
+    ) {
+
+        currentStroke.before.set(
+            index,
+            surface[index]
+        );
+    }
+}
+
+
+function rememberRegionBefore(index) {
+
+    if (
+        currentStroke.before.has(index)
+    ) {
         return;
     }
 
+
+    const offset =
+        regionalOffset(index);
+
+
+    currentStroke.before.set(
+        index,
+        Array.from(
+            regional.subarray(
+                offset,
+                offset + REGION_COUNT
+            )
+        )
+    );
+}
+
+
+/* ==========================================================
+   SURFACE PAINTING
+========================================================== */
+
+function paintSurfaceAt(
+    centreColumn,
+    centreRow
+) {
 
     const newType =
         Number(
             surfaceBrush.value
         );
 
-
     const size =
         Number(
-            brushSize.value
+            surfaceBrushSize.value
         );
-
 
     const radius =
         Math.floor(
-            size /
-            2
+            size / 2
         );
 
 
@@ -2768,49 +3147,30 @@ function paintAt(
             dx++
         ) {
 
-            /*
-                Round brush.
-            */
-
             if (
-                radius >
-                0 &&
-                (
-                    dx *
-                    dx +
-                    dy *
-                    dy
-                ) >
-                (
-                    radius *
-                    radius +
-                    0.5
-                )
+                radius > 0 &&
+                dx * dx +
+                dy * dy >
+                radius * radius +
+                0.5
             ) {
-
                 continue;
             }
 
 
             const column =
-                centreColumn +
-                dx;
-
+                centreColumn + dx;
 
             const row =
-                centreRow +
-                dy;
+                centreRow + dy;
 
 
             if (
                 column < 0 ||
-                column >=
-                GRID_WIDTH ||
+                column >= GRID_WIDTH ||
                 row < 0 ||
-                row >=
-                GRID_HEIGHT
+                row >= GRID_HEIGHT
             ) {
-
                 continue;
             }
 
@@ -2822,23 +3182,11 @@ function paintAt(
                 );
 
 
-            /*
-                ====================================================
-                CTRL SOURCE MASK
-
-                If Ctrl was held when the stroke began,
-                ONLY cells matching the ORIGINAL surface type
-                underneath the first cell may be changed.
-                ====================================================
-            */
-
             if (
-                strokeMaskType !==
-                null &&
+                strokeSurfaceMask !== null &&
                 surface[index] !==
-                strokeMaskType
+                strokeSurfaceMask
             ) {
-
                 continue;
             }
 
@@ -2847,31 +3195,211 @@ function paintAt(
                 surface[index] ===
                 newType
             ) {
-
                 continue;
             }
 
 
-            /*
-                Save original value once
-                for Undo.
-            */
-
-            if (
-                !currentStroke.has(
-                    index
-                )
-            ) {
-
-                currentStroke.set(
-                    index,
-                    surface[index]
-                );
-            }
-
+            rememberSurfaceBefore(
+                index
+            );
 
             surface[index] =
                 newType;
+        }
+    }
+
+    scheduleRender();
+}
+
+
+/* ==========================================================
+   REGIONAL BRUSH FALLOFF
+========================================================== */
+
+function regionalBrushAlpha(
+    distance,
+    radius
+) {
+
+    if (radius <= 0) {
+        return 1;
+    }
+
+
+    const hardness =
+        regionHardness.value;
+
+
+    if (hardness === "hard") {
+        return 1;
+    }
+
+
+    const normalised =
+        Math.min(
+            1,
+            distance /
+            (radius + 0.5)
+        );
+
+
+    if (hardness === "medium") {
+
+        return Math.max(
+            0.25,
+            1 -
+            normalised *
+            0.75
+        );
+    }
+
+
+    return Math.max(
+        0.05,
+        1 -
+        normalised
+    );
+}
+
+
+/* ==========================================================
+   REGIONAL PAINTING
+========================================================== */
+
+function paintRegionAt(
+    centreColumn,
+    centreRow
+) {
+
+    const regionId =
+        Number(
+            regionBrush.value
+        );
+
+
+    let target =
+        regionId === 0
+        ? 100
+        : parseFloat(
+            regionTarget.value
+        );
+
+
+    if (
+        !Number.isFinite(target)
+    ) {
+        target = 100;
+    }
+
+
+    target =
+        Math.max(
+            0,
+            Math.min(
+                100,
+                target
+            )
+        );
+
+
+    const targetUnits =
+        Math.round(
+            target * 10
+        );
+
+
+    const size =
+        Number(
+            regionBrushSize.value
+        );
+
+
+    const radius =
+        Math.floor(
+            size / 2
+        );
+
+
+    for (
+        let dy = -radius;
+        dy <= radius;
+        dy++
+    ) {
+
+        for (
+            let dx = -radius;
+            dx <= radius;
+            dx++
+        ) {
+
+            const distance =
+                Math.sqrt(
+                    dx * dx +
+                    dy * dy
+                );
+
+
+            if (
+                radius > 0 &&
+                distance >
+                radius +
+                0.35
+            ) {
+                continue;
+            }
+
+
+            const column =
+                centreColumn + dx;
+
+            const row =
+                centreRow + dy;
+
+
+            if (
+                column < 0 ||
+                column >= GRID_WIDTH ||
+                row < 0 ||
+                row >= GRID_HEIGHT
+            ) {
+                continue;
+            }
+
+
+            const index =
+                cellIndex(
+                    column,
+                    row
+                );
+
+
+            if (
+                strokeRegionMask !== null &&
+                getDominantRegion(index) !==
+                strokeRegionMask
+            ) {
+                continue;
+            }
+
+
+            rememberRegionBefore(
+                index
+            );
+
+
+            const alpha =
+                regionalBrushAlpha(
+                    distance,
+                    radius
+                );
+
+
+            setRegionalTarget(
+                index,
+                regionId,
+                targetUnits,
+                alpha
+            );
         }
     }
 
@@ -2880,11 +3408,9 @@ function paintAt(
 }
 
 
-/*
-============================================================
-CONTINUOUS PAINT LINE
-============================================================
-*/
+/* ==========================================================
+   PAINT LINE
+========================================================== */
 
 function paintLine(
     x0,
@@ -2894,156 +3420,164 @@ function paintLine(
 ) {
 
     const dx =
-        Math.abs(
-            x1 -
-            x0
-        );
-
+        Math.abs(x1 - x0);
 
     const sx =
-        x0 <
-        x1
+        x0 < x1
         ? 1
         : -1;
-
 
     const dy =
-        -Math.abs(
-            y1 -
-            y0
-        );
-
+        -Math.abs(y1 - y0);
 
     const sy =
-        y0 <
-        y1
+        y0 < y1
         ? 1
         : -1;
 
-
     let error =
-        dx +
-        dy;
+        dx + dy;
 
 
     while (true) {
 
-        paintAt(
-            x0,
-            y0
-        );
+        if (mode === "surface") {
+
+            paintSurfaceAt(
+                x0,
+                y0
+            );
+        }
+
+        else if (
+            mode === "region"
+        ) {
+
+            paintRegionAt(
+                x0,
+                y0
+            );
+        }
 
 
         if (
-            x0 ===
-            x1 &&
-            y0 ===
-            y1
+            x0 === x1 &&
+            y0 === y1
         ) {
-
             break;
         }
 
 
         const e2 =
-            2 *
-            error;
+            2 * error;
 
 
-        if (
-            e2 >=
-            dy
-        ) {
-
-            error +=
-                dy;
-
-            x0 +=
-                sx;
+        if (e2 >= dy) {
+            error += dy;
+            x0 += sx;
         }
 
-
-        if (
-            e2 <=
-            dx
-        ) {
-
-            error +=
-                dx;
-
-            y0 +=
-                sy;
+        if (e2 <= dx) {
+            error += dx;
+            y0 += sy;
         }
     }
 }
 
 
-/*
-============================================================
-BEGIN PAINT
-============================================================
-*/
+/* ==========================================================
+   BEGIN / CONTINUE / FINISH STROKE
+========================================================== */
 
 function beginPaint(
     column,
     row,
-    useMask
+    ctrlMask
 ) {
 
-    painting =
-        true;
+    painting = true;
+
+    lastPaintColumn = column;
+    lastPaintRow = row;
 
 
-    currentStroke =
-        new Map();
+    currentStroke = {
+        kind: mode,
+        before: new Map()
+    };
 
 
-    lastPaintColumn =
-        column;
+    const index =
+        cellIndex(
+            column,
+            row
+        );
 
 
-    lastPaintRow =
-        row;
+    strokeSurfaceMask = null;
+    strokeRegionMask = null;
 
 
-    /*
-        Lock the mask to the surface type
-        beneath the FIRST cell.
-    */
+    if (ctrlMask) {
 
-    if (useMask) {
+        if (mode === "surface") {
 
-        strokeMaskType =
-            surface[
-                cellIndex(
-                    column,
-                    row
-                )
-            ];
+            strokeSurfaceMask =
+                surface[index];
+
+            maskBox.classList.add(
+                "active-mask"
+            );
+
+            maskDescription.textContent =
+                "Surface mask active: only " +
+                SURFACE_TYPES[
+                    strokeSurfaceMask
+                ].name +
+                " cells can change during this stroke.";
+        }
+
+
+        else if (
+            mode === "region"
+        ) {
+
+            strokeRegionMask =
+                getDominantRegion(index);
+
+            maskBox.classList.add(
+                "active-mask"
+            );
+
+            maskDescription.textContent =
+                "Regional mask active: only cells currently dominated by " +
+                REGION_TYPES[
+                    strokeRegionMask
+                ].name +
+                " can change during this stroke.";
+        }
     }
 
-    else {
 
-        strokeMaskType =
-            null;
+    if (mode === "surface") {
+
+        paintSurfaceAt(
+            column,
+            row
+        );
     }
 
+    else if (
+        mode === "region"
+    ) {
 
-    updateMaskDisplay();
-
-
-    paintAt(
-        column,
-        row
-    );
+        paintRegionAt(
+            column,
+            row
+        );
+    }
 }
 
-
-/*
-============================================================
-CONTINUE PAINT
-============================================================
-*/
 
 function continuePaint(
     column,
@@ -3054,7 +3588,6 @@ function continuePaint(
         return;
     }
 
-
     paintLine(
         lastPaintColumn,
         lastPaintRow,
@@ -3062,21 +3595,10 @@ function continuePaint(
         row
     );
 
-
-    lastPaintColumn =
-        column;
-
-
-    lastPaintRow =
-        row;
+    lastPaintColumn = column;
+    lastPaintRow = row;
 }
 
-
-/*
-============================================================
-FINISH PAINT
-============================================================
-*/
 
 function finishPaint() {
 
@@ -3084,86 +3606,93 @@ function finishPaint() {
         return;
     }
 
-
-    painting =
-        false;
+    painting = false;
 
 
-    const changes =
-        [];
+    const changes = [];
 
 
     for (
         const [
             index,
-            oldValue
+            before
         ]
-        of currentStroke.entries()
+        of currentStroke.before.entries()
     ) {
 
-        changes.push({
+        if (
+            currentStroke.kind ===
+            "surface"
+        ) {
 
-            index:
-
+            changes.push({
                 index,
+                before,
+                after: surface[index]
+            });
+        }
 
-            oldValue:
 
-                oldValue,
+        else {
 
-            newValue:
+            const offset =
+                regionalOffset(index);
 
-                surface[index]
-
-        });
+            changes.push({
+                index,
+                before,
+                after: Array.from(
+                    regional.subarray(
+                        offset,
+                        offset + REGION_COUNT
+                    )
+                )
+            });
+        }
     }
 
 
     if (
-        changes.length >
-        0
+        changes.length > 0
     ) {
 
-        undoStack.push(
-            changes
-        );
+        undoStack.push({
+            kind: currentStroke.kind,
+            changes: changes
+        });
 
 
         if (
             undoStack.length >
             MAX_UNDO
         ) {
-
             undoStack.shift();
         }
 
 
-        redoStack.length =
-            0;
-
+        redoStack.length = 0;
 
         updateUndoButtons();
-
         queueSave();
     }
 
 
-    currentStroke =
-        null;
+    currentStroke = null;
 
+    strokeSurfaceMask = null;
+    strokeRegionMask = null;
 
-    strokeMaskType =
-        null;
+    maskBox.classList.remove(
+        "active-mask"
+    );
 
-
-    updateMaskDisplay();
+    maskDescription.innerHTML =
+        "Hold <kbd>Ctrl</kbd> before beginning a drag to lock the stroke to the type underneath the starting cell.";
 
 
     if (
-        lastPaintColumn !==
-        null &&
-        lastPaintRow !==
-        null
+        lastPaintColumn !== null &&
+        lastPaintRow !== null
     ) {
 
         selectCell(
@@ -3174,20 +3703,16 @@ function finishPaint() {
 }
 
 
-/*
-============================================================
-POINTER EVENTS
-============================================================
-*/
+/* ==========================================================
+   POINTER EVENTS
+========================================================== */
 
 canvas.addEventListener(
     "pointerdown",
     event => {
 
         const cell =
-            pointerToCell(
-                event
-            );
+            pointerToCell(event);
 
 
         selectCell(
@@ -3197,10 +3722,8 @@ canvas.addEventListener(
 
 
         if (
-            mode !==
-            "paint"
+            mode === "inspect"
         ) {
-
             return;
         }
 
@@ -3213,24 +3736,11 @@ canvas.addEventListener(
         );
 
 
-        /*
-            Ctrl must be held when the mouse
-            button is initially pressed.
-
-            event.metaKey is also accepted for
-            compatibility with Mac.
-        */
-
-        const useMask =
-            event.ctrlKey ||
-            event.metaKey ||
-            ctrlHeld;
-
-
         beginPaint(
             cell.column,
             cell.row,
-            useMask
+            event.ctrlKey ||
+            event.metaKey
         );
     }
 );
@@ -3240,24 +3750,14 @@ canvas.addEventListener(
     "pointermove",
     event => {
 
-        if (
-            mode !==
-            "paint" ||
-            !painting
-        ) {
-
+        if (!painting) {
             return;
         }
 
-
         event.preventDefault();
 
-
         const cell =
-            pointerToCell(
-                event
-            );
-
+            pointerToCell(event);
 
         continuePaint(
             cell.column,
@@ -3272,63 +3772,93 @@ canvas.addEventListener(
     finishPaint
 );
 
-
 canvas.addEventListener(
     "pointercancel",
     finishPaint
 );
 
 
-/*
-============================================================
-UNDO / REDO
-============================================================
-*/
+/* ==========================================================
+   UNDO / REDO
+========================================================== */
 
 function updateUndoButtons() {
 
     undoButton.disabled =
-        undoStack.length ===
-        0;
-
+        undoStack.length === 0;
 
     redoButton.disabled =
-        redoStack.length ===
-        0;
+        redoStack.length === 0;
+}
+
+
+function applyHistory(
+    item,
+    useAfter
+) {
+
+    for (
+        const change
+        of item.changes
+    ) {
+
+        const value =
+            useAfter
+            ? change.after
+            : change.before;
+
+
+        if (
+            item.kind ===
+            "surface"
+        ) {
+
+            surface[
+                change.index
+            ] = value;
+        }
+
+
+        else {
+
+            const offset =
+                regionalOffset(
+                    change.index
+                );
+
+            for (
+                let r = 0;
+                r < REGION_COUNT;
+                r++
+            ) {
+
+                regional[
+                    offset + r
+                ] = value[r];
+            }
+        }
+    }
 }
 
 
 function undo() {
 
     if (
-        undoStack.length ===
-        0
+        undoStack.length === 0
     ) {
-
         return;
     }
 
 
-    const changes =
+    const item =
         undoStack.pop();
 
-
-    for (
-        const change
-        of changes
-    ) {
-
-        surface[
-            change.index
-        ] =
-            change.oldValue;
-    }
-
-
-    redoStack.push(
-        changes
+    applyHistory(
+        item,
+        false
     );
 
+    redoStack.push(item);
 
     updateUndoButtons();
 
@@ -3343,34 +3873,21 @@ function undo() {
 function redo() {
 
     if (
-        redoStack.length ===
-        0
+        redoStack.length === 0
     ) {
-
         return;
     }
 
 
-    const changes =
+    const item =
         redoStack.pop();
 
-
-    for (
-        const change
-        of changes
-    ) {
-
-        surface[
-            change.index
-        ] =
-            change.newValue;
-    }
-
-
-    undoStack.push(
-        changes
+    applyHistory(
+        item,
+        true
     );
 
+    undoStack.push(item);
 
     updateUndoButtons();
 
@@ -3387,18 +3904,15 @@ undoButton.addEventListener(
     undo
 );
 
-
 redoButton.addEventListener(
     "click",
     redo
 );
 
 
-/*
-============================================================
-CTRL+Z / CTRL+Y
-============================================================
-*/
+/* ==========================================================
+   CTRL+Z / CTRL+Y
+========================================================== */
 
 window.addEventListener(
     "keydown",
@@ -3407,17 +3921,12 @@ window.addEventListener(
         const active =
             document.activeElement;
 
+        const editing =
+            active instanceof HTMLInputElement ||
+            active instanceof HTMLTextAreaElement ||
+            active instanceof HTMLSelectElement;
 
-        const editingText =
-            active instanceof
-                HTMLInputElement ||
-            active instanceof
-                HTMLTextAreaElement ||
-            active instanceof
-                HTMLSelectElement;
-
-
-        if (editingText) {
+        if (editing) {
             return;
         }
 
@@ -3425,24 +3934,20 @@ window.addEventListener(
         if (
             event.ctrlKey &&
             !event.shiftKey &&
-            event.key.toLowerCase() ===
-            "z"
+            event.key.toLowerCase() === "z"
         ) {
 
             event.preventDefault();
-
             undo();
         }
 
 
         if (
             event.ctrlKey &&
-            event.key.toLowerCase() ===
-            "y"
+            event.key.toLowerCase() === "y"
         ) {
 
             event.preventDefault();
-
             redo();
         }
 
@@ -3450,33 +3955,195 @@ window.addEventListener(
         if (
             event.ctrlKey &&
             event.shiftKey &&
-            event.key.toLowerCase() ===
-            "z"
+            event.key.toLowerCase() === "z"
         ) {
 
             event.preventDefault();
-
             redo();
         }
     }
 );
 
 
-/*
-============================================================
-SELECTED CELL
-============================================================
-*/
+/* ==========================================================
+   INSPECT REGIONAL MIX
+========================================================== */
+
+function updateRegionalInspector(index) {
+
+    regionalInspectSection.style.display =
+        "block";
+
+
+    const dominant =
+        getDominantRegion(index);
+
+
+    const dominantValue =
+        regional[
+            regionalOffset(index) +
+            dominant
+        ] /
+        10;
+
+
+    regionDominant.textContent =
+        "Dominant: " +
+        REGION_TYPES[
+            dominant
+        ].name +
+        " — " +
+        dominantValue.toFixed(1) +
+        "%";
+
+
+    regionSummary.innerHTML = "";
+
+
+    const offset =
+        regionalOffset(index);
+
+
+    for (
+        let r = 0;
+        r < REGION_COUNT;
+        r++
+    ) {
+
+        const units =
+            regional[
+                offset + r
+            ];
+
+
+        if (
+            units === 0 &&
+            r !== 0
+        ) {
+            continue;
+        }
+
+
+        if (
+            r === 0 &&
+            units === 0
+        ) {
+            continue;
+        }
+
+
+        const percentage =
+            units / 10;
+
+
+        const row =
+            document.createElement(
+                "div"
+            );
+
+        row.className =
+            "region-row";
+
+
+        const top =
+            document.createElement(
+                "div"
+            );
+
+        top.className =
+            "region-row-top";
+
+
+        const name =
+            document.createElement(
+                "span"
+            );
+
+        name.className =
+            "region-name";
+
+        name.textContent =
+            REGION_TYPES[r].name;
+
+
+        const value =
+            document.createElement(
+                "span"
+            );
+
+        value.className =
+            "region-value";
+
+        value.textContent =
+            percentage.toFixed(1) +
+            "%";
+
+
+        top.appendChild(name);
+        top.appendChild(value);
+
+
+        const track =
+            document.createElement(
+                "div"
+            );
+
+        track.className =
+            "region-track";
+
+
+        const fill =
+            document.createElement(
+                "div"
+            );
+
+        fill.className =
+            "region-fill";
+
+        fill.style.width =
+            percentage +
+            "%";
+
+        fill.style.background =
+            `rgb(${REGION_TYPES[r].colour.join(",")})`;
+
+
+        track.appendChild(fill);
+
+        row.appendChild(top);
+        row.appendChild(track);
+
+        regionSummary.appendChild(row);
+    }
+
+
+    const total =
+        getRegionalTotal(index);
+
+
+    regionTotal.textContent =
+        (total / 10)
+            .toFixed(1) +
+        "%";
+
+
+    regionTotal.style.color =
+        total === REGION_TOTAL_UNITS
+        ? "#202830"
+        : "#a22";
+}
+
+
+/* ==========================================================
+   SELECTED CELL
+========================================================== */
 
 function loadSelectedCell() {
 
     if (
-        selectedColumn ===
-        null ||
-        selectedRow ===
-        null
+        selectedColumn === null ||
+        selectedRow === null
     ) {
-
         return;
     }
 
@@ -3484,10 +4151,8 @@ function loadSelectedCell() {
     selectionHint.style.display =
         "none";
 
-
     selectedCell.style.display =
         "block";
-
 
     weatherSection.style.display =
         "block";
@@ -3507,57 +4172,45 @@ function loadSelectedCell() {
         );
 
 
-    coordinateMain.innerText =
-
+    coordinateMain.textContent =
         formatLatitude(
             coordinates.latitudeCentre
         ) +
-
         ", " +
-
         formatLongitude(
             coordinates.longitudeCentre
         );
 
 
     coordinateBounds.innerHTML =
-
         "Latitude: " +
-
         formatLatitude(
             coordinates.latitudeNorth
         ) +
-
         " → " +
-
         formatLatitude(
             coordinates.latitudeSouth
         ) +
-
         "<br>" +
-
         "Longitude: " +
-
         formatLongitude(
             coordinates.longitudeWest
         ) +
-
         " → " +
-
         formatLongitude(
             coordinates.longitudeEast
         );
 
 
-    gridIndexOutput.innerText =
+    gridIndexOutput.textContent =
         selectedColumn +
         ", " +
         selectedRow;
 
 
-    updateSelectedSurface(
-        index
-    );
+    updateSelectedSurface(index);
+
+    updateRegionalInspector(index);
 
 
     if (
@@ -3603,28 +4256,24 @@ function loadSelectedCell() {
 function refreshSelectedCell() {
 
     if (
-        selectedColumn ===
-        null ||
-        selectedRow ===
-        null
+        selectedColumn === null ||
+        selectedRow === null
     ) {
-
         return;
     }
 
-
-    updateSelectedSurface(
+    const index =
         cellIndex(
             selectedColumn,
             selectedRow
-        )
-    );
+        );
+
+    updateSelectedSurface(index);
+    updateRegionalInspector(index);
 }
 
 
-function updateSelectedSurface(
-    index
-) {
+function updateSelectedSurface(index) {
 
     const type =
         SURFACE_TYPES[
@@ -3633,33 +4282,26 @@ function updateSelectedSurface(
         SURFACE_TYPES[0];
 
 
-    surfaceBox.innerText =
-        type.name
-            .toUpperCase();
+    surfaceBox.textContent =
+        type.name.toUpperCase();
 
 
     surfaceBox.style.background =
-        `rgb(
-            ${type.colour[0]},
-            ${type.colour[1]},
-            ${type.colour[2]}
-        )`;
+        `rgb(${type.colour.join(",")})`;
 
 
-    surfaceOutput.innerText =
+    surfaceOutput.textContent =
         type.name;
 
 
-    thermalOutput.innerText =
+    thermalOutput.textContent =
         type.description;
 }
 
 
-/*
-============================================================
-WEATHER FORM
-============================================================
-*/
+/* ==========================================================
+   WEATHER FORM
+========================================================== */
 
 function getWeatherForm() {
 
@@ -3674,9 +4316,7 @@ function getWeatherForm() {
             temperature
         )
     ) {
-
-        temperature =
-            0;
+        temperature = 0;
     }
 
 
@@ -3692,8 +4332,7 @@ function getWeatherForm() {
 
     temperature =
         Math.round(
-            temperature *
-            10
+            temperature * 10
         ) /
         10;
 
@@ -3713,24 +4352,17 @@ function getWeatherForm() {
         "1";
 
 
-    let warning =
-        "";
+    let warning = "";
 
 
     if (hasThunder) {
-
-        wet =
-            true;
-
-        overcast =
-            true;
+        wet = true;
+        overcast = true;
     }
 
 
     if (wet) {
-
-        overcast =
-            true;
+        overcast = true;
     }
 
 
@@ -3740,9 +4372,7 @@ function getWeatherForm() {
         SNOW_BOUNDARY
     ) {
 
-        hasThunder =
-            false;
-
+        hasThunder = false;
 
         warning =
             "Thunder removed because this cell is at or below the fixed 1.5°C snow boundary.";
@@ -3750,35 +4380,21 @@ function getWeatherForm() {
 
 
     precipitationInput.value =
-        wet
-        ? "1"
-        : "0";
-
+        wet ? "1" : "0";
 
     skyInput.value =
-        overcast
-        ? "1"
-        : "0";
-
+        overcast ? "1" : "0";
 
     thunderInput.value =
-        hasThunder
-        ? "1"
-        : "0";
+        hasThunder ? "1" : "0";
 
 
     return {
-
         temperature,
-
         wet,
-
         overcast,
-
         hasThunder,
-
         warning
-
     };
 }
 
@@ -3786,12 +4402,9 @@ function getWeatherForm() {
 function updateWeatherPreview() {
 
     if (
-        selectedColumn ===
-        null ||
-        selectedRow ===
-        null
+        selectedColumn === null ||
+        selectedRow === null
     ) {
-
         return;
     }
 
@@ -3800,7 +4413,7 @@ function updateWeatherPreview() {
         getWeatherForm();
 
 
-    stateOutput.innerText =
+    stateOutput.textContent =
         buildWeatherState(
             weather.temperature,
             weather.wet,
@@ -3809,26 +4422,26 @@ function updateWeatherPreview() {
         );
 
 
-    realTemperatureOutput.innerText =
+    realTemperatureOutput.textContent =
         weather.temperature
             .toFixed(1) +
         "°C";
 
 
-    minecraftTemperatureOutput.innerText =
+    minecraftTemperatureOutput.textContent =
         minecraftTemperature(
             weather.temperature
         ).toFixed(3);
 
 
-    precipitationTypeOutput.innerText =
+    precipitationTypeOutput.textContent =
         getPrecipitationType(
             weather.temperature,
             weather.wet
         );
 
 
-    warningOutput.innerText =
+    warningOutput.textContent =
         weather.warning;
 }
 
@@ -3838,18 +4451,15 @@ temperatureInput.addEventListener(
     updateWeatherPreview
 );
 
-
 precipitationInput.addEventListener(
     "change",
     updateWeatherPreview
 );
 
-
 skyInput.addEventListener(
     "change",
     updateWeatherPreview
 );
-
 
 thunderInput.addEventListener(
     "change",
@@ -3857,23 +4467,18 @@ thunderInput.addEventListener(
 );
 
 
-/*
-============================================================
-APPLY WEATHER
-============================================================
-*/
+/* ==========================================================
+   APPLY WEATHER
+========================================================== */
 
 applyWeatherButton.addEventListener(
     "click",
     () => {
 
         if (
-            selectedColumn ===
-            null ||
-            selectedRow ===
-            null
+            selectedColumn === null ||
+            selectedRow === null
         ) {
-
             return;
         }
 
@@ -3892,18 +4497,15 @@ applyWeatherButton.addEventListener(
         temperatures[index] =
             weather.temperature;
 
-
         precipitation[index] =
             weather.wet
             ? 1
             : 0;
 
-
         sky[index] =
             weather.overcast
             ? 1
             : 0;
-
 
         thunder[index] =
             weather.hasThunder
@@ -3912,31 +4514,20 @@ applyWeatherButton.addEventListener(
 
 
         scheduleRender();
-
         queueSave();
-
         updateWeatherPreview();
     }
 );
 
-
-/*
-============================================================
-CLEAR WEATHER
-============================================================
-*/
 
 clearWeatherButton.addEventListener(
     "click",
     () => {
 
         if (
-            selectedColumn ===
-            null ||
-            selectedRow ===
-            null
+            selectedColumn === null ||
+            selectedRow === null
         ) {
-
             return;
         }
 
@@ -3948,41 +4539,27 @@ clearWeatherButton.addEventListener(
             );
 
 
-        temperatures[index] =
-            NaN;
-
-        precipitation[index] =
-            0;
-
-        sky[index] =
-            0;
-
-        thunder[index] =
-            0;
+        temperatures[index] = NaN;
+        precipitation[index] = 0;
+        sky[index] = 0;
+        thunder[index] = 0;
 
 
         scheduleRender();
-
         queueSave();
-
         loadSelectedCell();
     }
 );
 
 
-/*
-============================================================
-INDEXEDDB
-============================================================
-*/
+/* ==========================================================
+   INDEXEDDB
+========================================================== */
 
 function openDatabase() {
 
     return new Promise(
-        (
-            resolve,
-            reject
-        ) => {
+        (resolve, reject) => {
 
             const request =
                 indexedDB.open(
@@ -4008,8 +4585,7 @@ function openDatabase() {
                         db.createObjectStore(
                             "climate",
                             {
-                                keyPath:
-                                    "id"
+                                keyPath: "id"
                             }
                         );
                     }
@@ -4027,52 +4603,41 @@ function openDatabase() {
 
 
             request.onerror =
-                () => {
-
-                    reject(
-                        request.error
-                    );
-                };
+                () => reject(
+                    request.error
+                );
         }
     );
 }
 
 
-/*
-============================================================
-SAVE
-============================================================
-*/
+/* ==========================================================
+   SAVE
+========================================================== */
 
 function saveState() {
 
     if (!database) {
 
-        saveStatus.innerText =
+        saveStatus.textContent =
             "Browser storage unavailable.";
 
-
-        topSaveStatus.innerText =
+        topSaveStatus.textContent =
             "Unavailable";
-
 
         return Promise.resolve();
     }
 
 
-    saveStatus.innerText =
+    saveStatus.textContent =
         "Saving...";
 
-
-    topSaveStatus.innerText =
+    topSaveStatus.textContent =
         "Saving";
 
 
     return new Promise(
-        (
-            resolve,
-            reject
-        ) => {
+        (resolve, reject) => {
 
             const transaction =
                 database.transaction(
@@ -4089,16 +4654,22 @@ function saveState() {
 
             store.put({
 
-                id:
-                    "main",
+                id: "main",
 
-                version:
-                    4,
+                version: 5,
 
                 surface:
                     surface
                         .slice()
                         .buffer,
+
+                regional:
+                    regional
+                        .slice()
+                        .buffer,
+
+                regionCount:
+                    REGION_COUNT,
 
                 temperatures:
                     temperatures
@@ -4134,12 +4705,12 @@ function saveState() {
                             .toLocaleTimeString();
 
 
-                    saveStatus.innerText =
+                    saveStatus.textContent =
                         "Automatically saved at " +
                         time;
 
 
-                    topSaveStatus.innerText =
+                    topSaveStatus.textContent =
                         "Saved";
 
 
@@ -4150,13 +4721,11 @@ function saveState() {
             transaction.onerror =
                 () => {
 
-                    saveStatus.innerText =
+                    saveStatus.textContent =
                         "Save failed.";
 
-
-                    topSaveStatus.innerText =
+                    topSaveStatus.textContent =
                         "Save error";
-
 
                     reject(
                         transaction.error
@@ -4169,23 +4738,19 @@ function saveState() {
 
 function queueSave() {
 
-    clearTimeout(
-        saveTimer
-    );
+    clearTimeout(saveTimer);
 
-
-    saveStatus.innerText =
+    saveStatus.textContent =
         "Unsaved changes...";
 
-
-    topSaveStatus.innerText =
+    topSaveStatus.textContent =
         "Unsaved";
 
 
     saveTimer =
         setTimeout(
             saveState,
-            400
+            450
         );
 }
 
@@ -4196,11 +4761,9 @@ saveButton.addEventListener(
 );
 
 
-/*
-============================================================
-OLD SURFACE MIGRATION
-============================================================
-*/
+/* ==========================================================
+   OLD SURFACE MIGRATION
+========================================================== */
 
 function migrateOldSurface(
     saved,
@@ -4223,84 +4786,40 @@ function migrateOldSurface(
             saved[i];
 
 
-        /*
-            Experimental version 2 had:
-
-            1 Ocean
-            2 Coastal
-            3 Lake
-            4 Maritime Land
-            5 Land
-            6 Transitional
-            7 Continental
-            8 Dry
-        */
-
-        if (
-            version ===
-            2
-        ) {
+        if (version === 2) {
 
             if (value === 1) {
+                migrated[i] = 1;
+            }
 
-                migrated[i] =
-                    1;
+            else if (value === 2) {
+                migrated[i] = 2;
+            }
+
+            else if (value === 3) {
+                migrated[i] = 3;
             }
 
             else if (
-                value ===
-                2
+                value >= 4 &&
+                value <= 7
             ) {
-
-                migrated[i] =
-                    2;
+                migrated[i] = 4;
             }
 
-            else if (
-                value ===
-                3
-            ) {
-
-                migrated[i] =
-                    3;
-            }
-
-            else if (
-                value >=
-                4 &&
-                value <=
-                7
-            ) {
-
-                migrated[i] =
-                    4;
-            }
-
-            else if (
-                value ===
-                8
-            ) {
-
-                migrated[i] =
-                    5;
+            else if (value === 8) {
+                migrated[i] = 5;
             }
 
             else {
-
-                migrated[i] =
-                    0;
+                migrated[i] = 0;
             }
         }
 
         else {
 
             migrated[i] =
-                (
-                    value >=
-                    0 &&
-                    value <=
-                    5
-                )
+                value <= 5
                 ? value
                 : 0;
         }
@@ -4311,27 +4830,19 @@ function migrateOldSurface(
 }
 
 
-/*
-============================================================
-LOAD
-============================================================
-*/
+/* ==========================================================
+   LOAD
+========================================================== */
 
 function loadSavedState() {
 
     if (!database) {
-
-        return Promise.resolve(
-            false
-        );
+        return Promise.resolve(false);
     }
 
 
     return new Promise(
-        (
-            resolve,
-            reject
-        ) => {
+        (resolve, reject) => {
 
             const transaction =
                 database.transaction(
@@ -4347,9 +4858,7 @@ function loadSavedState() {
 
 
             const request =
-                store.get(
-                    "main"
-                );
+                store.get("main");
 
 
             request.onsuccess =
@@ -4361,10 +4870,7 @@ function loadSavedState() {
 
                     if (!data) {
 
-                        resolve(
-                            false
-                        );
-
+                        resolve(false);
                         return;
                     }
 
@@ -4382,10 +4888,7 @@ function loadSavedState() {
                             TOTAL_CELLS
                         ) {
 
-                            resolve(
-                                false
-                            );
-
+                            resolve(false);
                             return;
                         }
 
@@ -4398,24 +4901,55 @@ function loadSavedState() {
                         );
 
 
+                        /*
+                            Old saves have no regional layer.
+                            Preserve surface, initialise regions
+                            as 100% Unassigned.
+                        */
+
+                        initialiseRegionalBlank();
+
+
                         if (
-                            data.temperatures
+                            data.regional &&
+                            data.regionCount ===
+                            REGION_COUNT
                         ) {
 
-                            const savedTemperatures =
-                                new Float32Array(
-                                    data.temperatures
+                            const savedRegional =
+                                new Uint16Array(
+                                    data.regional
                                 );
 
 
                             if (
-                                savedTemperatures.length ===
-                                TOTAL_CELLS
+                                savedRegional.length ===
+                                regional.length
                             ) {
 
-                                temperatures.set(
-                                    savedTemperatures
+                                regional.set(
+                                    savedRegional
                                 );
+
+                                normaliseAllRegional();
+                            }
+                        }
+
+
+                        if (
+                            data.temperatures
+                        ) {
+
+                            const saved =
+                                new Float32Array(
+                                    data.temperatures
+                                );
+
+                            if (
+                                saved.length ===
+                                TOTAL_CELLS
+                            ) {
+                                temperatures.set(saved);
                             }
                         }
 
@@ -4429,99 +4963,70 @@ function loadSavedState() {
                                     data.precipitation
                                 );
 
-
                             if (
                                 saved.length ===
                                 TOTAL_CELLS
                             ) {
-
-                                precipitation.set(
-                                    saved
-                                );
+                                precipitation.set(saved);
                             }
                         }
 
 
-                        if (
-                            data.sky
-                        ) {
+                        if (data.sky) {
 
                             const saved =
                                 new Uint8Array(
                                     data.sky
                                 );
 
-
                             if (
                                 saved.length ===
                                 TOTAL_CELLS
                             ) {
-
-                                sky.set(
-                                    saved
-                                );
+                                sky.set(saved);
                             }
                         }
 
 
-                        if (
-                            data.thunder
-                        ) {
+                        if (data.thunder) {
 
                             const saved =
                                 new Uint8Array(
                                     data.thunder
                                 );
 
-
                             if (
                                 saved.length ===
                                 TOTAL_CELLS
                             ) {
-
-                                thunder.set(
-                                    saved
-                                );
+                                thunder.set(saved);
                             }
                         }
 
 
-                        resolve(
-                            true
-                        );
+                        resolve(true);
                     }
 
                     catch (error) {
 
-                        console.error(
-                            error
-                        );
-
-
-                        resolve(
-                            false
-                        );
+                        console.error(error);
+                        resolve(false);
                     }
                 };
 
 
             request.onerror =
-                () => {
-
-                    reject(
-                        request.error
-                    );
-                };
+                () => reject(
+                    request.error
+                );
         }
     );
 }
 
 
-/*
-============================================================
-BASE64
-============================================================
-*/
+/* ==========================================================
+   BASE64
+========================================================== */
 
 function typedArrayToBase64(
     typedArray
@@ -4529,13 +5034,13 @@ function typedArrayToBase64(
 
     const bytes =
         new Uint8Array(
-            typedArray.buffer
+            typedArray.buffer,
+            typedArray.byteOffset,
+            typedArray.byteLength
         );
 
 
-    let binary =
-        "";
-
+    let binary = "";
 
     const chunkSize =
         32768;
@@ -4551,28 +5056,20 @@ function typedArrayToBase64(
             String.fromCharCode(
                 ...bytes.subarray(
                     i,
-                    i +
-                    chunkSize
+                    i + chunkSize
                 )
             );
     }
 
 
-    return btoa(
-        binary
-    );
+    return btoa(binary);
 }
 
 
-function base64ToBytes(
-    text
-) {
+function base64ToBytes(text) {
 
     const binary =
-        atob(
-            text
-        );
-
+        atob(text);
 
     const result =
         new Uint8Array(
@@ -4587,9 +5084,7 @@ function base64ToBytes(
     ) {
 
         result[i] =
-            binary.charCodeAt(
-                i
-            );
+            binary.charCodeAt(i);
     }
 
 
@@ -4597,15 +5092,23 @@ function base64ToBytes(
 }
 
 
-/*
-============================================================
-EXPORT
-============================================================
-*/
+/* ==========================================================
+   EXPORT
+========================================================== */
 
 exportButton.addEventListener(
     "click",
     () => {
+
+        const regionDefinitions =
+            REGION_TYPES.map(
+                region => ({
+                    id: region.id,
+                    key: region.key,
+                    name: region.name
+                })
+            );
+
 
         const data = {
 
@@ -4613,7 +5116,7 @@ exportButton.addEventListener(
                 "EuropaCraft Climate Map",
 
             version:
-                4,
+                5,
 
             grid: {
 
@@ -4634,32 +5137,26 @@ exportButton.addEventListener(
 
                 blocksPerDegree:
                     BLOCKS_PER_DEGREE
-
             },
 
-            surfaceTypes: {
+            regionalPrecisionUnits:
+                1000,
 
-                1:
-                    "ocean",
-
-                2:
-                    "coastal_sea",
-
-                3:
-                    "lake",
-
-                4:
-                    "land",
-
-                5:
-                    "dry_land"
-
-            },
+            regionDefinitions:
+                regionDefinitions,
 
             surface:
                 typedArrayToBase64(
                     surface
                 ),
+
+            regional:
+                typedArrayToBase64(
+                    regional
+                ),
+
+            regionCount:
+                REGION_COUNT,
 
             temperatures:
                 typedArrayToBase64(
@@ -4687,9 +5184,7 @@ exportButton.addEventListener(
         const blob =
             new Blob(
                 [
-                    JSON.stringify(
-                        data
-                    )
+                    JSON.stringify(data)
                 ],
                 {
                     type:
@@ -4699,53 +5194,35 @@ exportButton.addEventListener(
 
 
         const url =
-            URL.createObjectURL(
-                blob
-            );
+            URL.createObjectURL(blob);
 
 
         const link =
-            document.createElement(
-                "a"
-            );
+            document.createElement("a");
 
-
-        link.href =
-            url;
-
+        link.href = url;
 
         link.download =
-            "europacraft-climate-map.json";
-
+            "europacraft-climate-map-v5.json";
 
         link.click();
 
 
         setTimeout(
-            () => {
-
-                URL.revokeObjectURL(
-                    url
-                );
-            },
+            () => URL.revokeObjectURL(url),
             1000
         );
     }
 );
 
 
-/*
-============================================================
-IMPORT
-============================================================
-*/
+/* ==========================================================
+   IMPORT
+========================================================== */
 
 importButton.addEventListener(
     "click",
-    () => {
-
-        importFile.click();
-    }
+    () => importFile.click()
 );
 
 
@@ -4755,7 +5232,6 @@ importFile.addEventListener(
 
         const file =
             importFile.files[0];
-
 
         if (!file) {
             return;
@@ -4767,11 +5243,8 @@ importFile.addEventListener(
             const text =
                 await file.text();
 
-
             const data =
-                JSON.parse(
-                    text
-                );
+                JSON.parse(text);
 
 
             if (
@@ -4780,142 +5253,144 @@ importFile.addEventListener(
             ) {
 
                 throw new Error(
-                    "This is not a EuropaCraft climate map."
+                    "Not a EuropaCraft climate map."
                 );
             }
 
 
-            const importedSurface =
+            const surfaceBytes =
                 base64ToBytes(
                     data.surface
                 );
 
 
             if (
-                importedSurface.length !==
+                surfaceBytes.length !==
                 TOTAL_CELLS
             ) {
 
                 throw new Error(
-                    "The imported grid has the wrong size."
+                    "Incorrect surface grid size."
                 );
             }
 
 
             surface.set(
                 migrateOldSurface(
-                    importedSurface,
+                    surfaceBytes,
                     data.version
                 )
             );
 
 
+            initialiseRegionalBlank();
+
+
             if (
-                data.temperatures
+                data.regional &&
+                data.regionCount ===
+                REGION_COUNT
             ) {
 
                 const bytes =
                     base64ToBytes(
-                        data.temperatures
+                        data.regional
                     );
 
 
                 const imported =
-                    new Float32Array(
+                    new Uint16Array(
                         bytes.buffer
                     );
 
 
                 if (
                     imported.length ===
-                    TOTAL_CELLS
+                    regional.length
                 ) {
 
-                    temperatures.set(
-                        imported
-                    );
+                    regional.set(imported);
+
+                    normaliseAllRegional();
                 }
             }
 
 
-            if (
-                data.precipitation
-            ) {
+            if (data.temperatures) {
+
+                const bytes =
+                    base64ToBytes(
+                        data.temperatures
+                    );
+
+                const imported =
+                    new Float32Array(
+                        bytes.buffer
+                    );
+
+                if (
+                    imported.length ===
+                    TOTAL_CELLS
+                ) {
+                    temperatures.set(imported);
+                }
+            }
+
+
+            if (data.precipitation) {
 
                 const imported =
                     base64ToBytes(
                         data.precipitation
                     );
 
-
                 if (
                     imported.length ===
                     TOTAL_CELLS
                 ) {
-
-                    precipitation.set(
-                        imported
-                    );
+                    precipitation.set(imported);
                 }
             }
 
 
-            if (
-                data.sky
-            ) {
+            if (data.sky) {
 
                 const imported =
                     base64ToBytes(
                         data.sky
                     );
 
-
                 if (
                     imported.length ===
                     TOTAL_CELLS
                 ) {
-
-                    sky.set(
-                        imported
-                    );
+                    sky.set(imported);
                 }
             }
 
 
-            if (
-                data.thunder
-            ) {
+            if (data.thunder) {
 
                 const imported =
                     base64ToBytes(
                         data.thunder
                     );
 
-
                 if (
                     imported.length ===
                     TOTAL_CELLS
                 ) {
-
-                    thunder.set(
-                        imported
-                    );
+                    thunder.set(imported);
                 }
             }
 
 
-            undoStack.length =
-                0;
-
-
-            redoStack.length =
-                0;
-
+            undoStack.length = 0;
+            redoStack.length = 0;
 
             updateUndoButtons();
 
             renderGrid();
-
             refreshSelectedCell();
 
             await saveState();
@@ -4928,10 +5403,7 @@ importFile.addEventListener(
 
         catch (error) {
 
-            console.error(
-                error
-            );
-
+            console.error(error);
 
             alert(
                 "Import failed: " +
@@ -4940,25 +5412,20 @@ importFile.addEventListener(
         }
 
 
-        importFile.value =
-            "";
+        importFile.value = "";
     }
 );
 
 
-/*
-============================================================
-NATURAL EARTH
-============================================================
-*/
+/* ==========================================================
+   NATURAL EARTH
+========================================================== */
 
 const DATA_BASE =
     "https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@ca96624a56bd078437bca8184e78163e5039ad19/geojson/";
 
 
-async function downloadGeoJSON(
-    filename
-) {
+async function downloadGeoJSON(filename) {
 
     const response =
         await fetch(
@@ -4967,9 +5434,7 @@ async function downloadGeoJSON(
         );
 
 
-    if (
-        !response.ok
-    ) {
+    if (!response.ok) {
 
         throw new Error(
             "Could not load " +
@@ -4982,29 +5447,22 @@ async function downloadGeoJSON(
 }
 
 
-/*
-============================================================
-GEOGRAPHICAL RASTER
-============================================================
-*/
+/* ==========================================================
+   BASE MAP RASTER
+========================================================== */
 
-const MASK_SCALE =
-    3;
-
+const MASK_SCALE = 3;
 
 const MASK_WIDTH =
     GRID_WIDTH *
     MASK_SCALE;
-
 
 const MASK_HEIGHT =
     GRID_HEIGHT *
     MASK_SCALE;
 
 
-function geographicX(
-    longitude
-) {
+function geographicX(longitude) {
 
     return (
         (
@@ -5020,9 +5478,7 @@ function geographicX(
 }
 
 
-function geographicY(
-    latitude
-) {
+function geographicY(latitude) {
 
     return (
         (
@@ -5045,10 +5501,8 @@ function traceRing(
 
     if (
         !ring ||
-        ring.length ===
-        0
+        ring.length === 0
     ) {
-
         return;
     }
 
@@ -5097,7 +5551,6 @@ function drawPolygon(
         const ring
         of polygon
     ) {
-
         traceRing(
             context,
             ring
@@ -5108,10 +5561,7 @@ function drawPolygon(
     context.fillStyle =
         colour;
 
-
-    context.fill(
-        "evenodd"
-    );
+    context.fill("evenodd");
 }
 
 
@@ -5208,19 +5658,19 @@ function drawGeoJSON(
 }
 
 
-/*
-============================================================
-BUILD BASE SURFACE
-============================================================
-*/
+/* ==========================================================
+   REBUILD PHYSICAL SURFACE ONLY
+
+   IMPORTANT:
+   Regional influence is NOT touched.
+========================================================== */
 
 async function buildBaseSurface() {
 
-    saveStatus.innerText =
+    saveStatus.textContent =
         "Downloading geographical base...";
 
-
-    topSaveStatus.innerText =
+    topSaveStatus.textContent =
         "Building map";
 
 
@@ -5241,8 +5691,7 @@ async function buildBaseSurface() {
         ]);
 
 
-    let islandData =
-        null;
+    let islandData = null;
 
 
     try {
@@ -5256,7 +5705,7 @@ async function buildBaseSurface() {
     catch (error) {
 
         console.warn(
-            "Minor islands layer unavailable.",
+            "Minor islands unavailable.",
             error
         );
     }
@@ -5267,10 +5716,8 @@ async function buildBaseSurface() {
             "canvas"
         );
 
-
     landCanvas.width =
         MASK_WIDTH;
-
 
     landCanvas.height =
         MASK_HEIGHT;
@@ -5280,15 +5727,13 @@ async function buildBaseSurface() {
         landCanvas.getContext(
             "2d",
             {
-                willReadFrequently:
-                    true
+                willReadFrequently: true
             }
         );
 
 
     landContext.fillStyle =
         "black";
-
 
     landContext.fillRect(
         0,
@@ -5305,9 +5750,7 @@ async function buildBaseSurface() {
     );
 
 
-    if (
-        islandData
-    ) {
+    if (islandData) {
 
         drawGeoJSON(
             landContext,
@@ -5322,10 +5765,8 @@ async function buildBaseSurface() {
             "canvas"
         );
 
-
     lakeCanvas.width =
         MASK_WIDTH;
-
 
     lakeCanvas.height =
         MASK_HEIGHT;
@@ -5335,15 +5776,13 @@ async function buildBaseSurface() {
         lakeCanvas.getContext(
             "2d",
             {
-                willReadFrequently:
-                    true
+                willReadFrequently: true
             }
         );
 
 
     lakeContext.fillStyle =
         "black";
-
 
     lakeContext.fillRect(
         0,
@@ -5376,16 +5815,6 @@ async function buildBaseSurface() {
             MASK_WIDTH,
             MASK_HEIGHT
         ).data;
-
-
-    let oceanCount =
-        0;
-
-    let lakeCount =
-        0;
-
-    let landCount =
-        0;
 
 
     for (
@@ -5429,85 +5858,46 @@ async function buildBaseSurface() {
 
 
             if (
-                lakePixels[
-                    pixel
-                ] >
+                lakePixels[pixel] >
                 127
             ) {
 
-                surface[index] =
-                    3;
-
-                lakeCount++;
+                surface[index] = 3;
             }
 
 
             else if (
-                landPixels[
-                    pixel
-                ] >
+                landPixels[pixel] >
                 127
             ) {
 
-                surface[index] =
-                    4;
-
-                landCount++;
+                surface[index] = 4;
             }
 
 
             else {
 
-                surface[index] =
-                    1;
-
-                oceanCount++;
+                surface[index] = 1;
             }
         }
     }
 
 
-    undoStack.length =
-        0;
-
-
-    redoStack.length =
-        0;
-
+    undoStack.length = 0;
+    redoStack.length = 0;
 
     updateUndoButtons();
 
     renderGrid();
-
     refreshSelectedCell();
-
-
-    saveStatus.innerText =
-
-        "Base built: " +
-
-        landCount.toLocaleString() +
-
-        " land, " +
-
-        oceanCount.toLocaleString() +
-
-        " ocean and " +
-
-        lakeCount.toLocaleString() +
-
-        " lake cells.";
-
 
     await saveState();
 }
 
 
-/*
-============================================================
-REBUILD
-============================================================
-*/
+/* ==========================================================
+   REBUILD BUTTON
+========================================================== */
 
 rebuildButton.addEventListener(
     "click",
@@ -5515,7 +5905,7 @@ rebuildButton.addEventListener(
 
         const confirmed =
             confirm(
-                "Rebuild the physical surface map from Natural Earth?\n\nThis removes your manual surface painting. Weather values remain."
+                "Rebuild the PHYSICAL SURFACE from Natural Earth?\n\nThis removes manual surface painting but DOES NOT delete regional influence painting."
             );
 
 
@@ -5531,10 +5921,7 @@ rebuildButton.addEventListener(
 
         catch (error) {
 
-            console.error(
-                error
-            );
-
+            console.error(error);
 
             alert(
                 "The base map could not be rebuilt."
@@ -5544,104 +5931,26 @@ rebuildButton.addEventListener(
 );
 
 
-/*
-============================================================
-PALETTE
-============================================================
-*/
-
-function buildPalette() {
-
-    surfacePalette.innerHTML =
-        "";
-
-
-    for (
-        let id = 1;
-        id <= 5;
-        id++
-    ) {
-
-        const type =
-            SURFACE_TYPES[id];
-
-
-        const item =
-            document.createElement(
-                "div"
-            );
-
-
-        item.className =
-            "palette-item";
-
-
-        const colour =
-            document.createElement(
-                "div"
-            );
-
-
-        colour.className =
-            "palette-colour";
-
-
-        colour.style.background =
-            `rgb(
-                ${type.colour[0]},
-                ${type.colour[1]},
-                ${type.colour[2]}
-            )`;
-
-
-        const text =
-            document.createElement(
-                "span"
-            );
-
-
-        text.innerText =
-            type.name;
-
-
-        item.appendChild(
-            colour
-        );
-
-
-        item.appendChild(
-            text
-        );
-
-
-        surfacePalette.appendChild(
-            item
-        );
-    }
-}
-
-
-/*
-============================================================
-INITIALISE
-============================================================
-*/
+/* ==========================================================
+   INITIALISE
+========================================================== */
 
 async function initialise() {
 
-    buildPalette();
+    initialiseRegionalBlank();
 
-    updateBrushDisplay();
+    populateRegionSelector();
 
-    updateMaskDisplay();
+    updateSurfaceBrushUI();
+    updateRegionBrushUI();
+
+    buildSurfacePalette();
 
     updateUndoButtons();
 
     renderGrid();
 
-    setZoom(
-        1
-    );
+    setZoom(1);
 
 
     try {
@@ -5657,17 +5966,21 @@ async function initialise() {
 
             renderGrid();
 
+            saveStatus.textContent =
+                "Saved EuropaCraft climate map restored.";
 
-            saveStatus.innerText =
-                "Saved EuropaCraft surface map restored.";
-
-
-            topSaveStatus.innerText =
+            topSaveStatus.textContent =
                 "Saved map loaded";
 
 
+            /*
+                Migrates old save into v5
+                without destroying surface painting.
+            */
+
             queueSave();
         }
+
 
         else {
 
@@ -5677,17 +5990,13 @@ async function initialise() {
 
     catch (error) {
 
-        console.error(
-            error
-        );
+        console.error(error);
 
-
-        topSaveStatus.innerText =
+        topSaveStatus.textContent =
             "Storage error";
 
-
-        saveStatus.innerText =
-            "Browser storage failed. Building temporary base map...";
+        saveStatus.textContent =
+            "Browser storage failed. Building temporary map...";
 
 
         try {
@@ -5697,13 +6006,10 @@ async function initialise() {
 
         catch (mapError) {
 
-            console.error(
-                mapError
-            );
+            console.error(mapError);
 
-
-            saveStatus.innerText =
-                "Could not load the geographical base map.";
+            saveStatus.textContent =
+                "Could not load geographical base.";
         }
     }
 }
