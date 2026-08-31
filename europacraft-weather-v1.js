@@ -1,122 +1,33 @@
-/* ==========================================================
-   EuropaCraft Weather Engine v2
-
-   KEEP THIS FILE NAME:
-   europacraft-weather-v1.js
-
-   This replaces the old weather engine without requiring
-   any index.html changes.
-
-   SYSTEM:
-
-   climate geography
-        ↓
-   seasonal climatology
-        ↓
-   pressure field
-        ↓
-   wind
-        ↓
-   air-mass advection
-        ↓
-   moisture
-        ↓
-   clouds
-        ↓
-   fronts / lift / precipitation
-        ↓
-   snow / sleet / rain
-
-   Minecraft precipitation phase:
-
-   <= 1.5 C       SNOW
-   >1.5 to 3.0 C  SLEET
-   >3.0 C         RAIN
-========================================================== */
-
 (function (global) {
-
 "use strict";
 
+const DEG = Math.PI / 180;
 
-const DEG =
-    Math.PI /
-    180;
-
-
-const RAD =
-    Math.PI /
-    180;
-
-
-
-/* ==========================================================
-   BASIC HELPERS
-========================================================== */
-
-
-function clamp(
-    value,
-    minimum,
-    maximum
-) {
-
-    return Math.max(
-        minimum,
-        Math.min(
-            maximum,
-            value
-        )
-    );
-
+function clamp(v, a, b) {
+    return Math.max(a, Math.min(b, v));
 }
 
-
-function lerp(
-    a,
-    b,
-    amount
-) {
-
-    return (
-        a +
-        (
-            b -
-            a
-        ) *
-        amount
-    );
-
-}
-
-
-function dayNumber(
-    date
-) {
-
+function asDate(date) {
     const d =
         date instanceof Date
             ? date
             : new Date(date);
 
+    return Number.isNaN(d.getTime())
+        ? new Date()
+        : d;
+}
 
+function dayNumber(date) {
     return (
-        d.getTime() /
+        asDate(date).getTime() /
         86400000
     );
-
 }
 
-
-function dayOfYear(
-    date
-) {
-
+function dayOfYear(date) {
     const d =
-        date instanceof Date
-            ? date
-            : new Date(date);
-
+        asDate(date);
 
     const start =
         Date.UTC(
@@ -125,14 +36,12 @@ function dayOfYear(
             0
         );
 
-
     const now =
         Date.UTC(
             d.getUTCFullYear(),
             d.getUTCMonth(),
             d.getUTCDate()
         );
-
 
     return Math.floor(
         (
@@ -141,18 +50,12 @@ function dayOfYear(
         ) /
         86400000
     );
-
 }
 
 
-
 /* ==========================================================
-   PRESSURE FIELD
-
-   This produces actual moving synoptic-scale patterns
-   rather than a simple latitude gradient.
+   PRESSURE
 ========================================================== */
-
 
 function pressure(
     latitude,
@@ -161,214 +64,129 @@ function pressure(
 ) {
 
     const t =
-        dayNumber(
-            date
-        );
-
-
-    /*
-     * Planetary-scale background wave.
-     */
+        dayNumber(date);
 
     const wave1 =
-
-        7.5 *
-
+        7.2 *
         Math.sin(
-
             (
                 longitude *
                 1.35 +
-
                 t *
                 11.5 +
-
                 latitude *
                 0.25
             ) *
-
             DEG
-
         );
 
-
-    /*
-     * Secondary travelling wave.
-     */
-
     const wave2 =
-
-        5.0 *
-
+        4.8 *
         Math.cos(
-
             (
                 longitude *
                 2.0 -
-
                 t *
                 7.0 +
-
                 latitude *
                 0.75
             ) *
-
             DEG
-
         );
 
-
-    /*
-     * Smaller-scale synoptic wave.
-     */
-
     const wave3 =
-
-        3.2 *
-
+        2.8 *
         Math.sin(
-
             (
                 longitude *
                 3.4 +
-
                 latitude *
                 1.3 +
-
                 t *
-                15
+                15.0
             ) *
-
             DEG
-
         );
 
+    const dyAtlantic =
+        (
+            latitude -
+            57
+        ) /
+        11;
 
-    /*
-     * North Atlantic storm-track background.
-     */
+    const dxAtlantic =
+        (
+            longitude +
+            12
+        ) /
+        24;
 
-    const atlanticStormTrack =
-
+    const atlanticLow =
         -5.5 *
-
         Math.exp(
-
             -(
-
-                (
-                    (
-                        latitude -
-                        57
-                    ) /
-                    11
-                ) ** 2
-
-                +
-
-                (
-                    (
-                        longitude +
-                        12
-                    ) /
-                    24
-                ) ** 2
-
+                dyAtlantic *
+                dyAtlantic +
+                dxAtlantic *
+                dxAtlantic
             )
-
         );
 
+    const dyHigh =
+        (
+            latitude -
+            35
+        ) /
+        9;
 
-    /*
-     * Azores / subtropical high tendency.
-     */
+    const dxHigh =
+        (
+            longitude +
+            9
+        ) /
+        25;
 
     const subtropicalHigh =
-
         5.0 *
-
         Math.exp(
-
             -(
-
-                (
-                    (
-                        latitude -
-                        35
-                    ) /
-                    9
-                ) ** 2
-
-                +
-
-                (
-                    (
-                        longitude +
-                        9
-                    ) /
-                    25
-                ) ** 2
-
+                dyHigh *
+                dyHigh +
+                dxHigh *
+                dxHigh
             )
-
         );
 
-
-    /*
-     * Continental pressure wave.
-
-     * This helps Europe develop different pressure
-     * behaviour from the Atlantic.
-     */
-
     const continentalWave =
-
         3.0 *
-
         Math.cos(
-
             (
                 longitude *
                 1.45 -
-
                 latitude *
                 0.55 +
-
                 t *
                 3.5
             ) *
-
             DEG
-
         );
 
-
     return (
-
         1014.5 +
-
         wave1 +
-
         wave2 +
-
         wave3 +
-
-        atlanticStormTrack +
-
+        atlanticLow +
         subtropicalHigh +
-
         continentalWave
-
     );
-
 }
-
 
 
 /* ==========================================================
    PRESSURE GRADIENT
 ========================================================== */
-
 
 function pressureGradient(
     latitude,
@@ -379,7 +197,6 @@ function pressureGradient(
     const step =
         0.30;
 
-
     const north =
         pressure(
             latitude +
@@ -387,7 +204,6 @@ function pressureGradient(
             longitude,
             date
         );
-
 
     const south =
         pressure(
@@ -397,7 +213,6 @@ function pressureGradient(
             date
         );
 
-
     const east =
         pressure(
             latitude,
@@ -405,7 +220,6 @@ function pressureGradient(
             step,
             date
         );
-
 
     const west =
         pressure(
@@ -415,57 +229,41 @@ function pressureGradient(
             date
         );
 
-
     const northSouth =
-
         (
             north -
             south
         ) /
-
         (
-            step *
-            2
+            2 *
+            step
         );
 
-
     const eastWest =
-
         (
             east -
             west
         ) /
-
         (
-            step *
-            2
+            2 *
+            step
         );
 
-
     return {
-
-        northSouth:
-            northSouth,
-
-        eastWest:
-            eastWest,
-
+        northSouth,
+        eastWest,
         magnitude:
             Math.hypot(
                 northSouth,
                 eastWest
             )
-
     };
-
 }
-
 
 
 /* ==========================================================
    WIND
 ========================================================== */
-
 
 function windAt(
     latitude,
@@ -480,33 +278,7 @@ function windAt(
             date
         );
 
-
-    /*
-     * Northern Hemisphere approximation.
-
-     * Wind runs broadly parallel to isobars rather
-     * than directly from high toward low.
-     */
-
-    let u =
-
-        -gradient.northSouth *
-        2.30;
-
-
-    let v =
-
-        gradient.eastWest *
-        2.30;
-
-
-    /*
-     * Latitude correction.
-
-     * Coriolis is weaker toward southern edge.
-     */
-
-    const latitudeFactor =
+    const coriolis =
         clamp(
             (
                 latitude -
@@ -514,40 +286,26 @@ function windAt(
             ) /
             35,
             0.35,
-            1
+            1.0
         );
 
-
-    u *=
-        latitudeFactor;
-
-
-    v *=
-        latitudeFactor;
-
-
-    /*
-     * Surface friction.
-     */
-
-    u *=
+    let u =
+        -gradient.northSouth *
+        2.3 *
+        coriolis *
         0.82;
 
-
-    v *=
+    let v =
+        gradient.eastWest *
+        2.3 *
+        coriolis *
         0.82;
-
 
     let speed =
         Math.hypot(
             u,
             v
         );
-
-
-    /*
-     * Limit pathological prototype values.
-     */
 
     if (
         speed >
@@ -558,42 +316,28 @@ function windAt(
             35 /
             speed;
 
-
         u *=
             scale;
-
 
         v *=
             scale;
 
-
         speed =
             35;
-
     }
 
-
-    /*
-     * Meteorological FROM direction.
-     */
-
     const direction =
-
         (
             Math.atan2(
                 -u,
                 -v
             ) /
             DEG +
-
             360
         ) %
-
         360;
 
-
     return {
-
         uMs:
             u,
 
@@ -605,180 +349,107 @@ function windAt(
 
         directionDeg:
             direction
-
     };
-
 }
 
 
-
 /* ==========================================================
-   SOLAR GEOMETRY
+   SOLAR INFORMATION
 ========================================================== */
 
-
-function solarInformation(
+function solarInfo(
     latitude,
     longitude,
     date
 ) {
 
     const d =
-        date instanceof Date
-            ? date
-            : new Date(date);
-
+        asDate(date);
 
     const doy =
-        dayOfYear(
-            d
-        );
-
-
-    /*
-     * Approximate solar declination.
-     */
+        dayOfYear(d);
 
     const declination =
-
         23.44 *
-
         Math.sin(
-
             (
                 360 /
                 365 *
-
                 (
                     doy -
                     81
                 )
             ) *
-
             DEG
-
         );
-
 
     const latitudeRadians =
         latitude *
-        RAD;
-
+        DEG;
 
     const declinationRadians =
         declination *
-        RAD;
+        DEG;
 
-
-    let cosHourAngle =
-
-        -Math.tan(
-            latitudeRadians
-        ) *
-
-        Math.tan(
-            declinationRadians
-        );
-
-
-    cosHourAngle =
+    const cosHourAngle =
         clamp(
-            cosHourAngle,
+            -Math.tan(
+                latitudeRadians
+            ) *
+            Math.tan(
+                declinationRadians
+            ),
             -1,
             1
         );
-
 
     const hourAngle =
         Math.acos(
             cosHourAngle
         );
 
-
     const dayLength =
-
         24 /
-
         Math.PI *
-
         hourAngle;
 
-
-    /*
-     * Approximate local solar hour.
-
-     * Longitude is enough for our game map.
-     */
-
     let localHour =
-
         d.getUTCHours() +
-
         d.getUTCMinutes() /
         60 +
-
         longitude /
         15;
 
-
     localHour =
-
         (
-            localHour %
-            24 +
-
+            (
+                localHour %
+                24
+            ) +
             24
         ) %
-
         24;
 
-
-    const sunrise =
-
-        12 -
-        dayLength /
-        2;
-
-
-    const sunset =
-
-        12 +
-        dayLength /
-        2;
-
-
     return {
-
-        localHour:
-            localHour,
-
+        localHour,
+        dayLength,
         sunrise:
-            sunrise,
-
+            12 -
+            dayLength /
+            2,
         sunset:
-            sunset,
-
-        dayLength:
-            dayLength,
-
-        declination:
-            declination
-
+            12 +
+            dayLength /
+            2
     };
-
 }
 
 
-
 /* ==========================================================
-   EUROPEAN CLIMATOLOGICAL TEMPERATURE
-
-   THIS REPLACES THE OLD BROKEN LATITUDE-DOMINATED
-   TEMPERATURE CALCULATION.
+   CLIMATOLOGICAL MEAN TEMPERATURE
 ========================================================== */
 
-
-function climatologicalTemperature(
+function climatologicalMean(
     latitude,
     longitude,
     date,
@@ -787,349 +458,150 @@ function climatologicalTemperature(
 ) {
 
     const doy =
-        dayOfYear(
-            date
-        );
-
-
-    const n =
-        climate.normalized;
-
+        dayOfYear(date);
 
     const maritime =
         climate.indices.maritime;
 
-
     const continental =
         climate.indices.continental;
-
 
     const warmSource =
         climate.indices.warmSource;
 
-
     const coldSource =
         climate.indices.coldSource;
 
-
-    /*
-     * Broad annual mean.
-
-     * Examples this is designed to permit:
-
-     * Britain ~10-11 C annual mean
-     * Mediterranean Europe ~15-18 C
-     * western Russia ~5-8 C
-     * northern Scandinavia much colder
-     */
-
     let annualMean =
-
-        16.1 -
-
-        0.335 *
-
+        16.2 -
+        0.30 *
         Math.max(
             0,
             latitude -
             35
-        );
-
-
-    /*
-     * Far eastern continental Europe gets somewhat
-     * colder annual mean.
-     */
-
-    annualMean -=
-
-        0.030 *
-
+        ) -
+        0.025 *
         Math.max(
             0,
             longitude -
             15
         );
 
-
-    /*
-     * Warm Mediterranean / North African contribution.
-     */
-
     annualMean +=
-
-        2.6 *
+        2.4 *
         warmSource;
 
-
-    /*
-     * Arctic / Scandinavian contribution.
-     */
-
     annualMean -=
-
-        2.0 *
+        1.5 *
         coldSource;
 
-
-    /*
-     * Seasonal amplitude.
-
-     * This is the critical part missing from the old model.
-
-     * Atlantic locations have small annual range.
-     * Continental interiors have large annual range.
-     */
-
-    let annualAmplitude =
-
-        3.8 +
-
-        0.16 *
-
+    let amplitude =
+        5.0 +
+        0.14 *
         Math.max(
             0,
             latitude -
             35
         ) +
-
-        7.5 *
+        8.5 *
         continental -
-
-        4.7 *
+        5.5 *
         maritime;
 
-
-    annualAmplitude =
+    amplitude =
         clamp(
-            annualAmplitude,
-            4.2,
-            17
+            amplitude,
+            4.5,
+            18.0
         );
 
-
-    /*
-     * Seasonal cycle peaks around late July.
-     */
-
-    const seasonal =
-
-        annualAmplitude *
-
+    const seasonalCos =
         Math.cos(
-
             2 *
-
             Math.PI *
-
             (
                 doy -
                 205
             ) /
-
             365.2422
-
         );
 
-
-    /*
-     * Mediterranean / North African summer enhancement.
-
-     * Prevents Mediterranean summers being too weak.
-     */
-
-    const summerFactor =
-
+    const summer =
         Math.max(
-
             0,
-
-            Math.cos(
-
-                2 *
-
-                Math.PI *
-
-                (
-                    doy -
-                    205
-                ) /
-
-                365.2422
-
-            )
-
+            seasonalCos
         );
 
-
-    const summerWarmth =
-
-        2.7 *
-
-        warmSource *
-
-        summerFactor;
-
-
-    /*
-     * Continental winter penalty.
-
-     * Gives Poland / Belarus / Russia genuinely colder
-     * winters than Atlantic Europe at equal latitude.
-     */
-
-    const winterFactor =
-
+    const winter =
         Math.max(
-
             0,
-
-            -Math.cos(
-
-                2 *
-
-                Math.PI *
-
-                (
-                    doy -
-                    205
-                ) /
-
-                365.2422
-
-            )
-
+            -seasonalCos
         );
 
-
-    const continentalWinter =
-
-        -4.0 *
-
-        continental *
-
-        winterFactor;
-
-
-    /*
-     * Atlantic winter moderation.
-
-     * Particularly important for UK, Ireland, western France,
-     * western Norway etc.
-     */
-
-    const atlanticWinter =
-
-        3.3 *
-
-        maritime *
-
-        winterFactor;
-
-
-    /*
-     * Ocean / land surface modification.
-     */
-
-    const waterFraction =
-        1 -
-        landFraction;
-
-
-    const oceanAdjustment =
-
-        waterFraction *
-
-        (
-            winterFactor *
-            2.5
-
-            -
-
-            summerFactor *
-            1.7
-        );
-
-
-    return (
-
+    let mean =
         annualMean +
+        amplitude *
+        seasonalCos;
 
-        seasonal +
+    mean +=
+        2.2 *
+        warmSource *
+        summer;
 
-        summerWarmth +
+    mean -=
+        4.8 *
+        continental *
+        winter;
 
-        continentalWinter +
+    mean +=
+        4.2 *
+        maritime *
+        winter;
 
-        atlanticWinter +
+    mean +=
+        (
+            1 -
+            landFraction
+        ) *
+        (
+            2.0 *
+            winter -
+            1.5 *
+            summer
+        );
 
-        oceanAdjustment
-
-    );
-
+    return mean;
 }
 
 
-
 /* ==========================================================
-   NATURAL DIURNAL RANGE
+   DIURNAL RANGE
 ========================================================== */
-
 
 function naturalDiurnalRange(
     climate,
     landFraction
 ) {
 
-    const maritime =
-        climate.indices.maritime;
-
-
-    const continental =
-        climate.indices.continental;
-
-
-    /*
-     * Ocean:
-     * tiny daily range.
-
-     * Land:
-     * larger range.
-
-     * Continental land:
-     * largest range.
-     */
-
-    let range =
-
-        3.0 +
-
-        5.5 *
-        landFraction +
-
-        4.0 *
-        continental -
-
-        3.0 *
-        maritime;
-
-
     return clamp(
-        range,
-        2.0,
-        13.5
+        3.0 +
+        7.0 *
+        landFraction +
+        4.0 *
+        climate.indices.continental -
+        3.5 *
+        climate.indices.maritime,
+        1.5,
+        14.0
     );
-
 }
 
 
-
 /* ==========================================================
-   DIURNAL TEMPERATURE OFFSET
+   DIURNAL TEMPERATURE
 ========================================================== */
 
-
-function diurnalTemperatureOffset(
+function diurnalOffset(
     latitude,
     longitude,
     date,
@@ -1138,99 +610,52 @@ function diurnalTemperatureOffset(
 ) {
 
     const solar =
-        solarInformation(
+        solarInfo(
             latitude,
             longitude,
             date
         );
 
-
-    const hour =
-        solar.localHour;
-
-
-    /*
-     * Cloud strongly suppresses daytime heating
-     * and slightly suppresses overnight cooling.
-     */
-
-    const cloudSuppression =
-
-        1 -
-
-        0.72 *
-        cloudFraction;
-
+    const cloudFactor =
+        clamp(
+            1 -
+            0.72 *
+            cloudFraction,
+            0.20,
+            1.0
+        );
 
     const effectiveRange =
-
         range *
-
-        clamp(
-            cloudSuppression,
-            0.18,
-            1
-        );
-
-
-    /*
-     * Maximum around 14:30 local solar time.
-     *
-     * Minimum near sunrise.
-     */
+        cloudFactor;
 
     const phase =
-
         (
-            hour -
+            solar.localHour -
             14.5
         ) /
-
         24 *
-
         2 *
-
         Math.PI;
 
-
-    const cycle =
+    return (
         Math.cos(
             phase
-        );
-
-
-    /*
-     * Centre around daily mean.
-     */
-
-    return (
-
-        cycle *
-
+        ) *
         effectiveRange /
         2
-
     );
-
 }
 
 
-
 /* ==========================================================
-   UPWIND CLIMATE
-
-   Gives a crude first form of air-mass trajectory.
-
-   Later we can replace this with actual persistent
-   cell-to-cell transport.
+   UPSTREAM POSITION
 ========================================================== */
 
-
-function upstreamClimate(
+function upstream(
     latitude,
     longitude,
-    wind,
-    options
+    wind
 ) {
 
     if (
@@ -1238,327 +663,177 @@ function upstreamClimate(
         0.5
     ) {
 
-        return null;
-
+        return {
+            lat:
+                latitude,
+            lon:
+                longitude
+        };
     }
 
-
-    /*
-     * Convert direction of movement into degrees.
-
-     * u positive = eastward
-     * v positive = northward.
-     */
-
-    const distanceDegrees =
-
+    const distance =
         clamp(
             wind.speedMs /
             4,
-            1.0,
-            5.0
-        );
-
-
-    const latitudeOffset =
-
-        -wind.vMs /
-        Math.max(
             1,
-            wind.speedMs
-        ) *
-
-        distanceDegrees;
-
-
-    const longitudeOffset =
-
-        -wind.uMs /
-        Math.max(
-            1,
-            wind.speedMs
-        ) *
-
-        distanceDegrees;
-
-
-    const upstreamLatitude =
-
-        clamp(
-            latitude +
-            latitudeOffset,
-            30,
-            74
+            5
         );
 
+    return {
+        lat:
+            clamp(
+                latitude -
+                (
+                    wind.vMs /
+                    wind.speedMs
+                ) *
+                distance,
+                30,
+                74
+            ),
 
-    const upstreamLongitude =
-
-        clamp(
-            longitude +
-            longitudeOffset,
-            -26,
-            52
-        );
-
-
-    /*
-     * Unknown exact upstream land fraction.
-
-     * 0.5 allows the climate geography to remain the
-     * main determinant rather than forcing land/ocean.
-     */
-
-    return global.EuropaClimate.getIndices(
-
-        upstreamLatitude,
-
-        upstreamLongitude,
-
-        {
-            landFraction:
-                0.5
-        }
-
-    );
-
+        lon:
+            clamp(
+                longitude -
+                (
+                    wind.uMs /
+                    wind.speedMs
+                ) *
+                distance,
+                -26,
+                52
+            )
+    };
 }
-
 
 
 /* ==========================================================
    MOISTURE FIELD
-
-   This is now the main requirement for precipitation.
 ========================================================== */
-
 
 function moistureField(
     latitude,
     longitude,
     date,
     climate,
-    upstream,
+    upstreamClimate,
     wind,
-    temperature
+    temperature,
+    landFraction
 ) {
 
     const t =
-        dayNumber(
-            date
-        );
+        dayNumber(date);
 
+    const localMaritime =
+        climate.indices.maritime;
 
-    const n =
-        climate.normalized;
+    const upstreamMaritime =
+        upstreamClimate
+            ? upstreamClimate.indices.maritime
+            : localMaritime;
 
-
-    /*
-     * Local maritime moisture supply.
-     */
-
-    let maritimeSupply =
-
-        (
-
-            n["Atlantic"] +
-
-            n["Polar Maritime"] +
-
-            n["North Sea"] +
-
-            n["Baltic Maritime"] +
-
-            n["Mediterranean"] +
-
-            n["Black Sea"] +
-
-            n["Caspian Maritime"]
-
-        ) /
-
-        100;
-
-
-    maritimeSupply =
+    const warmthCapacity =
         clamp(
-            maritimeSupply,
-            0,
-            1
-        );
-
-
-    /*
-     * Upwind moisture.
-
-     * Moist air travelling from Atlantic / North Sea /
-     * Mediterranean has more precipitation potential.
-     */
-
-    let upstreamMaritime =
-        maritimeSupply;
-
-
-    if (
-        upstream
-    ) {
-
-        upstreamMaritime =
-            upstream.indices.maritime;
-
-    }
-
-
-    /*
-     * Warmer air can contain more water vapour.
-     */
-
-    const temperatureCapacity =
-
-        clamp(
-
             (
                 temperature +
                 15
             ) /
             35,
-
-            0.12,
-            1
-
+            0.10,
+            1.0
         );
 
-
-    /*
-     * Synoptic moisture waves make the moisture field
-     * non-uniform.
-
-     * This is deliberately smooth rather than random noise.
-     */
-
-    const moistureWave1 =
-
+    const waveA =
         0.5 +
-
         0.5 *
-
         Math.sin(
-
             (
                 longitude *
                 4.1 +
-
                 latitude *
                 1.7 +
-
                 t *
                 19
             ) *
-
             DEG
-
         );
 
-
-    const moistureWave2 =
-
+    const waveB =
         0.5 +
-
         0.5 *
-
         Math.sin(
-
             (
                 longitude *
                 1.8 -
-
                 latitude *
                 2.4 +
-
                 t *
                 11
             ) *
-
             DEG
-
         );
 
+    const texture =
+        0.55 +
+        0.27 *
+        waveA +
+        0.18 *
+        waveB;
 
-    const synopticVariation =
-
-        0.65 +
-
-        0.22 *
-        moistureWave1 +
-
-        0.13 *
-        moistureWave2;
-
-
-    /*
-     * Wind imports moisture more effectively.
-     */
-
-    const transportFactor =
-
+    const transport =
         clamp(
-
             wind.speedMs /
             12,
-
             0.15,
-            1
-
+            1.0
         );
 
+    const seaPickup =
+        (
+            1 -
+            landFraction
+        ) *
+        clamp(
+            (
+                temperature +
+                5
+            ) /
+            25,
+            0.15,
+            1.0
+        ) *
+        0.18;
 
     let moisture =
-
-        0.12 +
-
-        0.38 *
-        maritimeSupply +
-
+        0.10 +
         0.34 *
+        localMaritime +
+        0.32 *
         upstreamMaritime *
-        transportFactor +
-
-        0.16 *
-        temperatureCapacity;
-
+        transport +
+        0.13 *
+        warmthCapacity +
+        seaPickup;
 
     moisture *=
-        synopticVariation;
-
-
-    /*
-     * Very continental interiors are generally drier.
-     */
+        texture;
 
     moisture -=
-
-        0.16 *
-
+        0.12 *
         climate.indices.continental;
-
 
     return clamp(
         moisture,
         0.03,
-        1
+        1.0
     );
-
 }
-
 
 
 /* ==========================================================
    FRONTAL BAND
-
-   Creates narrow curved precipitation areas instead
-   of half a continent precipitating uniformly.
 ========================================================== */
-
 
 function frontalBand(
     latitude,
@@ -1567,78 +842,49 @@ function frontalBand(
 ) {
 
     const t =
-        dayNumber(
-            date
-        );
-
+        dayNumber(date);
 
     const wave =
-
         Math.sin(
-
             (
                 longitude *
                 2.5 +
-
                 latitude *
-                1.10 +
-
+                1.1 +
                 t *
                 12
             ) *
-
             DEG
-
-        )
-
-        +
-
+        ) +
         0.55 *
-
         Math.sin(
-
             (
                 longitude *
                 0.85 -
-
                 latitude *
                 1.55 +
-
                 t *
                 5.5
             ) *
-
             DEG
-
         );
 
-
-    /*
-     * High value only near the zero-crossing:
-     * narrow frontal ribbon.
-     */
+    const q =
+        wave /
+        0.32;
 
     return Math.exp(
-
         -(
-
-            wave /
-            0.32
-
-        ) ** 2
-
+            q *
+            q
+        )
     );
-
 }
-
 
 
 /* ==========================================================
    SHOWER PATCHINESS
-
-   Keeps unstable air from raining everywhere continuously.
 ========================================================== */
-
 
 function showerPatch(
     latitude,
@@ -1647,72 +893,48 @@ function showerPatch(
 ) {
 
     const t =
-        dayNumber(
-            date
-        );
-
+        dayNumber(date);
 
     const a =
-
         0.5 +
-
         0.5 *
-
         Math.sin(
-
             (
                 longitude *
-                9.0 +
-
+                9 +
                 latitude *
-                5.0 +
-
+                5 +
                 t *
                 43
             ) *
-
             DEG
-
         );
 
-
     const b =
-
         0.5 +
-
         0.5 *
-
         Math.sin(
-
             (
                 longitude *
-                6.0 -
-
+                6 -
                 latitude *
                 7.5 +
-
                 t *
                 31
             ) *
-
             DEG
-
         );
-
 
     return (
         a *
         b
     );
-
 }
 
 
-
 /* ==========================================================
-   CLOUD FIELD
+   CLOUD
 ========================================================== */
-
 
 function cloudField(
     pressureValue,
@@ -1722,182 +944,108 @@ function cloudField(
     showers
 ) {
 
-    /*
-     * Low pressure promotes ascent.
-     */
-
-    const lowPressureLift =
-
+    const lowLift =
         clamp(
-
             (
                 1017 -
                 pressureValue
             ) /
             20,
-
             0,
             1
-
         );
-
-
-    /*
-     * Strong pressure gradient supports synoptic activity.
-     */
 
     const gradientLift =
-
         clamp(
-
             gradient.magnitude /
             12,
-
             0,
             1
-
         );
 
-
-    let cloud =
-
-        0.08 +
-
-        0.52 *
+    return clamp(
+        0.06 +
+        0.48 *
         moisture +
-
-        0.28 *
-        lowPressureLift +
-
         0.22 *
+        lowLift +
+        0.28 *
         front +
-
         0.08 *
         gradientLift +
-
-        0.08 *
-        showers;
-
-
-    return clamp(
-        cloud,
+        0.06 *
+        showers,
         0.02,
-        1
+        1.0
     );
-
 }
 
 
-
 /* ==========================================================
-   AIR-MASS TEMPERATURE ADVECTION
+   ADVECTION
 ========================================================== */
 
-
-function advectionTemperature(
+function advectionCorrection(
     latitude,
     longitude,
     date,
     localClimate,
-    upstream,
+    upstreamClimate,
     wind,
-    localBaseline
+    localMean
 ) {
 
     let correction =
-        0;
-
-
-    /*
-     * Direct north/south component.
-     */
-
-    const meridional =
-
-        wind.vMs;
-
-
-    correction +=
-
-        meridional *
-        0.18;
-
-
-    /*
-     * Compare upstream climatology with local climatology.
-
-     * This is what lets easterlies/westerlies begin to
-     * transport different air rather than merely changing
-     * the wind arrow.
-     */
+        wind.vMs *
+        0.16;
 
     if (
-        upstream
+        upstreamClimate
     ) {
 
-        const upstreamBaseline =
-
-            climatologicalTemperature(
-
-                upstream.lat,
-
-                upstream.lon,
-
-                date,
-
-                upstream,
-
-                0.5
-
+        const upstreamPoint =
+            upstream(
+                latitude,
+                longitude,
+                wind
             );
 
+        const upstreamMean =
+            climatologicalMean(
+                upstreamPoint.lat,
+                upstreamPoint.lon,
+                date,
+                upstreamClimate,
+                0.5
+            );
 
-        const difference =
-
-            upstreamBaseline -
-            localBaseline;
-
-
-        const transportStrength =
-
+        const strength =
             clamp(
-
                 wind.speedMs /
                 14,
-
                 0,
-                0.80
-
+                0.8
             );
 
-
         correction +=
-
-            difference *
-            transportStrength;
-
+            (
+                upstreamMean -
+                localMean
+            ) *
+            strength;
     }
-
-
-    /*
-     * Prevent an immature prototype from producing
-     * physically absurd 20 C advection jumps.
-     */
 
     return clamp(
         correction,
         -10,
         10
     );
-
 }
-
 
 
 /* ==========================================================
    PRECIPITATION
 ========================================================== */
-
 
 function precipitationField(
     pressureValue,
@@ -1909,186 +1057,101 @@ function precipitationField(
 ) {
 
     const lowLift =
-
         clamp(
-
             (
                 1016 -
                 pressureValue
             ) /
             18,
-
             0,
             1
-
         );
-
 
     const gradientLift =
-
         clamp(
-
             gradient.magnitude /
             11,
-
             0,
             1
-
         );
 
-
-    /*
-     * Two precipitation mechanisms:
-
-     * 1. frontal
-     * 2. showers / unstable low pressure
-
-     * BOTH require moisture.
-     */
-
-    const frontalPotential =
-
+    const frontal =
         moisture *
-
         front *
-
         (
-            0.55 +
-            0.45 *
+            0.50 +
+            0.50 *
             gradientLift
         );
 
-
-    const showerPotential =
-
+    const convective =
         moisture *
-
         showers *
-
         lowLift *
-
-        0.80;
-
+        0.70;
 
     let potential =
-
         Math.max(
-            frontalPotential,
-            showerPotential
+            frontal,
+            convective
+        ) *
+        (
+            0.60 +
+            0.40 *
+            cloud
         );
-
-
-    /*
-     * Thick cloud helps but cannot create precipitation
-     * by itself.
-     */
-
-    potential *=
-
-        0.65 +
-
-        0.35 *
-        cloud;
-
-
-    /*
-     * Dry air simply cannot precipitate substantially.
-     */
 
     if (
         moisture <
-        0.30
+        0.28
     ) {
 
         potential *=
-            0.25;
-
+            0.18;
     }
 
+    const precipitating =
+        potential >
+        0.36;
 
     const chance =
         clamp(
-
             (
                 potential -
-                0.18
+                0.16
             ) /
             0.58,
-
             0,
             1
-
         );
 
-
-    /*
-     * Actual precipitation threshold.
-
-     * This creates large dry gaps.
-     */
-
-    const precipitating =
-
-        potential >
-        0.34;
-
-
-    /*
-     * Relative intensity.
-     */
-
     const intensity =
-
         precipitating
-
             ? clamp(
-
                 (
                     potential -
-                    0.34
+                    0.36
                 ) /
-                0.50,
-
+                0.45,
                 0.05,
                 1
-
             )
-
             : 0;
 
-
     return {
-
-        potential:
-            potential,
-
-        chance:
-            chance,
-
-        precipitating:
-            precipitating,
-
-        intensity:
-            intensity
-
+        potential,
+        precipitating,
+        chance,
+        intensity
     };
-
 }
-
 
 
 /* ==========================================================
    PRECIPITATION PHASE
-
-   USER-SELECTED MINECRAFT RULE:
-
-   <= 1.5 C       snow
-   1.5 - 3.0 C    sleet
-   > 3.0 C        rain
 ========================================================== */
 
-
-function precipitationType(
+function phaseForTemperature(
     temperature,
     precipitating
 ) {
@@ -2098,9 +1161,7 @@ function precipitationType(
     ) {
 
         return "dry";
-
     }
-
 
     if (
         temperature <=
@@ -2108,9 +1169,7 @@ function precipitationType(
     ) {
 
         return "snow";
-
     }
-
 
     if (
         temperature <=
@@ -2118,20 +1177,15 @@ function precipitationType(
     ) {
 
         return "sleet";
-
     }
 
-
     return "rain";
-
 }
 
 
-
 /* ==========================================================
-   MAIN WEATHER SIMULATION
+   MAIN SIMULATION
 ========================================================== */
-
 
 function simulate(
     latitude,
@@ -2141,309 +1195,190 @@ function simulate(
 ) {
 
     if (
-        !global.EuropaClimate
+        !global.EuropaClimate ||
+        typeof global.EuropaClimate.getIndices !==
+        "function"
     ) {
 
         throw new Error(
-            "EuropaClimate must be loaded before EuropaWeather."
+            "EuropaClimate v3 must load before EuropaWeather."
         );
-
     }
 
-
-    latitude =
-        Number(
-            latitude
-        );
-
-
-    longitude =
-        Number(
-            longitude
-        );
-
-
     const d =
-        date instanceof Date
-            ? date
-            : new Date(date);
-
+        asDate(date);
 
     const landFraction =
-
         Number.isFinite(
             options.landFraction
         )
-
             ? clamp(
                 options.landFraction,
                 0,
                 1
             )
-
             : 0.5;
 
-
     const climate =
-
         global.EuropaClimate.getIndices(
-
             latitude,
-
             longitude,
-
             {
-                landFraction:
-                    landFraction
+                landFraction
             }
-
         );
 
-
     const wind =
-
         windAt(
             latitude,
             longitude,
             d
         );
 
-
     const pressureValue =
-
         pressure(
             latitude,
             longitude,
             d
         );
 
-
     const gradient =
-
         pressureGradient(
             latitude,
             longitude,
             d
         );
 
-
-    const upstream =
-
-        upstreamClimate(
+    const upstreamPoint =
+        upstream(
             latitude,
             longitude,
-            wind,
-            options
+            wind
         );
 
+    const upstreamClimate =
+        global.EuropaClimate.getIndices(
+            upstreamPoint.lat,
+            upstreamPoint.lon,
+            {
+                landFraction:
+                    0.5
+            }
+        );
 
-    /*
-     * Local daily mean climatology.
-     */
-
-    const baseline =
-
-        climatologicalTemperature(
-
+    const baselineMean =
+        climatologicalMean(
             latitude,
             longitude,
             d,
             climate,
             landFraction
-
         );
-
-
-    /*
-     * Synoptic air-mass temperature modification.
-     */
 
     const advection =
-
-        advectionTemperature(
-
+        advectionCorrection(
             latitude,
             longitude,
             d,
             climate,
-            upstream,
+            upstreamClimate,
             wind,
-            baseline
-
+            baselineMean
         );
-
-
-    /*
-     * Preliminary temperature before cloud / daily cycle.
-     */
 
     const preliminaryTemperature =
-
-        baseline +
+        baselineMean +
         advection;
 
-
-    /*
-     * Moisture before clouds.
-     */
-
     const moisture =
-
         moistureField(
-
             latitude,
             longitude,
             d,
             climate,
-            upstream,
+            upstreamClimate,
             wind,
-            preliminaryTemperature
-
+            preliminaryTemperature,
+            landFraction
         );
 
-
     const front =
-
         frontalBand(
             latitude,
             longitude,
             d
         );
 
-
     const showers =
-
         showerPatch(
             latitude,
             longitude,
             d
         );
 
-
     const cloudFraction =
-
         cloudField(
-
             pressureValue,
             moisture,
             gradient,
             front,
             showers
-
         );
-
-
-    /*
-     * Actual hour-of-day temperature.
-     */
-
-    const normalRange =
-
-        naturalDiurnalRange(
-            climate,
-            landFraction
-        );
-
 
     const diurnal =
-
-        diurnalTemperatureOffset(
-
+        diurnalOffset(
             latitude,
             longitude,
             d,
-            normalRange,
+            naturalDiurnalRange(
+                climate,
+                landFraction
+            ),
             cloudFraction
-
         );
 
-
-    /*
-     * Low pressure air is weakly cooler;
-     * high pressure weakly warmer.
-     */
-
-    const pressureTemperature =
-
+    const temperature =
+        preliminaryTemperature +
+        diurnal +
         (
             pressureValue -
             1014.5
         ) *
-        0.045;
+        0.04;
 
-
-    const temperature =
-
-        preliminaryTemperature +
-
-        diurnal +
-
-        pressureTemperature;
-
-
-    /*
-     * Relative humidity.
-
-     * Moisture is now the primary driver.
-     */
-
-    let humidity =
-
-        32 +
-
-        moisture *
-        64;
-
-
-    /*
-     * Cooler air reaches saturation more easily.
-     */
-
-    humidity +=
-
+    const humidity =
         clamp(
-            (
-                10 -
-                temperature
-            ) *
-            0.8,
-            -8,
-            12
-        );
-
-
-    humidity =
-        clamp(
-            humidity,
+            30 +
+            moisture *
+            66 +
+            clamp(
+                (
+                    10 -
+                    temperature
+                ) *
+                0.8,
+                -8,
+                12
+            ),
             20,
             100
         );
 
-
-    const precip =
-
+    const precipitation =
         precipitationField(
-
             pressureValue,
             moisture,
             cloudFraction,
             gradient,
             front,
             showers
-
         );
 
-
-    const precipType =
-
-        precipitationType(
-
+    const precipitationType =
+        phaseForTemperature(
             temperature,
-
-            precip.precipitating
-
+            precipitation.precipitating
         );
-
 
     return {
 
@@ -2456,104 +1391,74 @@ function simulate(
         lon:
             longitude,
 
-
-        climate:
-            climate,
-
+        climate,
 
         pressureHpa:
             pressureValue,
 
-
         pressureGradient:
             gradient.magnitude,
 
-
-        wind:
-            wind,
-
+        wind,
 
         baselineTemperatureC:
-            baseline,
-
+            baselineMean,
 
         advectionTemperatureC:
             advection,
 
-
         diurnalTemperatureC:
             diurnal,
-
 
         temperatureC:
             temperature,
 
-
-        moisture:
-            moisture,
-
+        moisture,
 
         humidityPct:
             humidity,
 
-
-        cloudFraction:
-            cloudFraction,
-
+        cloudFraction,
 
         frontalStrength:
             front,
 
-
         showerStrength:
             showers,
 
-
         precipitationPotential:
-            precip.potential,
-
+            precipitation.potential,
 
         precipitationChance:
-            precip.chance,
-
+            precipitation.chance,
 
         precipitationIntensity:
-            precip.intensity,
+            precipitation.intensity,
 
-
-        precipitationType:
-            precipType
+        precipitationType
 
     };
-
 }
-
 
 
 /* ==========================================================
    PUBLIC API
 ========================================================== */
 
-
 global.EuropaWeather =
     Object.freeze({
 
         version:
-            "2.0-moisture",
+            "2.1-fixed",
 
-        pressure:
-            pressure,
+        pressure,
 
-        pressureGradient:
-            pressureGradient,
+        pressureGradient,
 
-        windAt:
-            windAt,
+        windAt,
 
-        simulate:
-            simulate
+        simulate
 
     });
-
 
 })(window);
