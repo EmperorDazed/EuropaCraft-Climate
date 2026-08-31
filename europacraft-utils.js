@@ -1,1661 +1,428 @@
-/* ============================================================================
-   EuropaCraft Weather Simulator
-   Shared Utility Library
-   Version 7.2
+(() => {
+  'use strict';
 
-   NEW FILE
+  const U = {};
 
-   Provides common mathematical, geographical, atmospheric and interpolation
-   functions used by the EuropaCraft climate/weather modules.
-============================================================================ */
+  U.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-(function (global) {
-"use strict";
+  U.lerp = (a, b, t) => a + (b - a) * t;
 
-
-const DEG = (
-    Math.PI /
-    180
-);
-
-
-const RAD = (
-    180 /
-    Math.PI
-);
-
-
-/* ============================================================================
-   BASIC MATH
-============================================================================ */
-
-function clamp(
-    value,
-    minimum,
-    maximum
-) {
-
-    return Math.max(
-        minimum,
-        Math.min(
-            maximum,
-            value
-        )
-    );
-}
-
-
-function lerp(
-    a,
-    b,
-    t
-) {
-
-    return (
-        a +
-        (
-            b -
-            a
-        ) *
-        t
-    );
-}
-
-
-function inverseLerp(
-    a,
-    b,
-    value
-) {
-
-    if (
-        a ===
-        b
-    ) {
-
-        return 0;
+  U.smoothstep = (a, b, x) => {
+    if (a === b) {
+      return x < a ? 0 : 1;
     }
 
+    const t = U.clamp((x - a) / (b - a), 0, 1);
 
-    return (
-        (
-            value -
-            a
-        ) /
-        (
-            b -
-            a
-        )
+    return t * t * (3 - 2 * t);
+  };
+
+  U.degToRad = d => d * Math.PI / 180;
+
+  U.radToDeg = r => r * 180 / Math.PI;
+
+  U.wrapLon = lon =>
+    ((lon + 180) % 360 + 360) % 360 - 180;
+
+  U.haversineKm = (
+    lat1,
+    lon1,
+    lat2,
+    lon2
+  ) => {
+    const R = 6371;
+
+    const p1 = U.degToRad(lat1);
+    const p2 = U.degToRad(lat2);
+
+    const dp = U.degToRad(lat2 - lat1);
+    const dl = U.degToRad(lon2 - lon1);
+
+    const a =
+      Math.sin(dp / 2) ** 2 +
+      Math.cos(p1) *
+      Math.cos(p2) *
+      Math.sin(dl / 2) ** 2;
+
+    return 2 * R *
+      Math.atan2(
+        Math.sqrt(a),
+        Math.sqrt(1 - a)
+      );
+  };
+
+  U.dayOfYear = date => {
+    const d = new Date(
+      Date.UTC(
+        date.getUTCFullYear(),
+        date.getUTCMonth(),
+        date.getUTCDate()
+      )
     );
-}
 
-
-function smoothstep(
-    edge0,
-    edge1,
-    value
-) {
-
-    const t = clamp(
-
-        inverseLerp(
-            edge0,
-            edge1,
-            value
-        ),
-
+    const y0 = new Date(
+      Date.UTC(
+        date.getUTCFullYear(),
         0,
-
-        1
-    );
-
-
-    return (
-        t *
-        t *
-        (
-            3 -
-            2 *
-            t
-        )
-    );
-}
-
-
-function smootherstep(
-    edge0,
-    edge1,
-    value
-) {
-
-    const t = clamp(
-
-        inverseLerp(
-            edge0,
-            edge1,
-            value
-        ),
-
-        0,
-
-        1
-    );
-
-
-    return (
-        t *
-        t *
-        t *
-        (
-            t *
-            (
-                t *
-                6 -
-                15
-            ) +
-            10
-        )
-    );
-}
-
-
-function mod(
-    value,
-    divisor
-) {
-
-    return (
-        (
-            value %
-            divisor
-        ) +
-        divisor
-    ) %
-    divisor;
-}
-
-
-function toRadians(
-    degrees
-) {
-
-    return (
-        degrees *
-        DEG
-    );
-}
-
-
-function toDegrees(
-    radians
-) {
-
-    return (
-        radians *
-        RAD
-    );
-}
-
-
-/* ============================================================================
-   GEOGRAPHY
-============================================================================ */
-
-function kmPerDegreeLatitude() {
-
-    return (
-        111.32
-    );
-}
-
-
-function kmPerDegreeLongitude(
-    latitude
-) {
-
-    return Math.max(
-
-        1,
-
-        111.32 *
-        Math.cos(
-            latitude *
-            DEG
-        )
-    );
-}
-
-
-function haversineKm(
-    lat1,
-    lon1,
-    lat2,
-    lon2
-) {
-
-    const earthRadiusKm = (
-        6371.0088
-    );
-
-
-    const phi1 = (
-        lat1 *
-        DEG
-    );
-
-
-    const phi2 = (
-        lat2 *
-        DEG
-    );
-
-
-    const deltaPhi = (
-
-        (
-            lat2 -
-            lat1
-        ) *
-        DEG
-    );
-
-
-    const deltaLambda = (
-
-        (
-            lon2 -
-            lon1
-        ) *
-        DEG
-    );
-
-
-    const a = (
-
-        Math.sin(
-            deltaPhi /
-            2
-        ) ** 2 +
-
-        Math.cos(
-            phi1
-        ) *
-
-        Math.cos(
-            phi2
-        ) *
-
-        Math.sin(
-            deltaLambda /
-            2
-        ) ** 2
-    );
-
-
-    const c = (
-
-        2 *
-
-        Math.atan2(
-
-            Math.sqrt(
-                a
-            ),
-
-            Math.sqrt(
-                1 -
-                a
-            )
-        )
-    );
-
-
-    return (
-        earthRadiusKm *
-        c
-    );
-}
-
-
-function bearingDeg(
-    lat1,
-    lon1,
-    lat2,
-    lon2
-) {
-
-    const phi1 = (
-        lat1 *
-        DEG
-    );
-
-
-    const phi2 = (
-        lat2 *
-        DEG
-    );
-
-
-    const lambda = (
-
-        (
-            lon2 -
-            lon1
-        ) *
-        DEG
-    );
-
-
-    const y = (
-
-        Math.sin(
-            lambda
-        ) *
-
-        Math.cos(
-            phi2
-        )
-    );
-
-
-    const x = (
-
-        Math.cos(
-            phi1
-        ) *
-
-        Math.sin(
-            phi2
-        ) -
-
-        Math.sin(
-            phi1
-        ) *
-
-        Math.cos(
-            phi2
-        ) *
-
-        Math.cos(
-            lambda
-        )
-    );
-
-
-    return mod(
-
-        Math.atan2(
-            y,
-            x
-        ) *
-        RAD,
-
-        360
-    );
-}
-
-
-function destinationPoint(
-    lat,
-    lon,
-    bearing,
-    distanceKm
-) {
-
-    const earthRadiusKm = (
-        6371.0088
-    );
-
-
-    const angularDistance = (
-
-        distanceKm /
-        earthRadiusKm
-    );
-
-
-    const theta = (
-        bearing *
-        DEG
-    );
-
-
-    const phi1 = (
-        lat *
-        DEG
-    );
-
-
-    const lambda1 = (
-        lon *
-        DEG
-    );
-
-
-    const sinPhi2 = (
-
-        Math.sin(
-            phi1
-        ) *
-
-        Math.cos(
-            angularDistance
-        ) +
-
-        Math.cos(
-            phi1
-        ) *
-
-        Math.sin(
-            angularDistance
-        ) *
-
-        Math.cos(
-            theta
-        )
-    );
-
-
-    const phi2 = Math.asin(
-        clamp(
-            sinPhi2,
-            -1,
-            1
-        )
-    );
-
-
-    const y = (
-
-        Math.sin(
-            theta
-        ) *
-
-        Math.sin(
-            angularDistance
-        ) *
-
-        Math.cos(
-            phi1
-        )
-    );
-
-
-    const x = (
-
-        Math.cos(
-            angularDistance
-        ) -
-
-        Math.sin(
-            phi1
-        ) *
-
-        Math.sin(
-            phi2
-        )
-    );
-
-
-    const lambda2 = (
-
-        lambda1 +
-
-        Math.atan2(
-            y,
-            x
-        )
-    );
-
-
-    return {
-
-        lat:
-            phi2 *
-            RAD,
-
-        lon:
-            mod(
-                lambda2 *
-                RAD +
-                180,
-                360
-            ) -
-            180
-    };
-}
-
-
-/* ============================================================================
-   POINT TO LINE SEGMENT DISTANCE
-============================================================================ */
-
-function pointSegmentDistanceKm(
-    lat,
-    lon,
-    lat1,
-    lon1,
-    lat2,
-    lon2
-) {
-
-    const meanLat = (
-
-        (
-            lat +
-            lat1 +
-            lat2
-        ) /
-        3
-    );
-
-
-    const kx = (
-        kmPerDegreeLongitude(
-            meanLat
-        )
-    );
-
-
-    const ky = (
-        kmPerDegreeLatitude()
-    );
-
-
-    const px = (
-        lon *
-        kx
-    );
-
-
-    const py = (
-        lat *
-        ky
-    );
-
-
-    const ax = (
-        lon1 *
-        kx
-    );
-
-
-    const ay = (
-        lat1 *
-        ky
-    );
-
-
-    const bx = (
-        lon2 *
-        kx
-    );
-
-
-    const by = (
-        lat2 *
-        ky
-    );
-
-
-    const abx = (
-        bx -
-        ax
-    );
-
-
-    const aby = (
-        by -
-        ay
-    );
-
-
-    const lengthSquared = (
-
-        abx *
-        abx +
-
-        aby *
-        aby
-    );
-
-
-    let t = 0;
-
-
-    if (
-        lengthSquared >
         0
-    ) {
-
-        t = (
-
-            (
-                (
-                    px -
-                    ax
-                ) *
-                abx
-            ) +
-
-            (
-                (
-                    py -
-                    ay
-                ) *
-                aby
-            )
-
-        ) /
-        lengthSquared;
-    }
-
-
-    t = clamp(
-        t,
-        0,
-        1
+      )
     );
 
+    return Math.floor(
+      (d - y0) / 86400000
+    );
+  };
 
-    const cx = (
+  U.solarDeclinationRad = date => {
+    const n = U.dayOfYear(date);
 
-        ax +
-        abx *
-        t
+    return U.degToRad(23.44) *
+      Math.sin(
+        (2 * Math.PI / 365.2422) *
+        (n - 80)
+      );
+  };
+
+  U.solarCosZenith = (
+    lat,
+    lon,
+    date
+  ) => {
+    const phi = U.degToRad(lat);
+    const dec = U.solarDeclinationRad(date);
+
+    const utcHours =
+      date.getUTCHours() +
+      date.getUTCMinutes() / 60 +
+      date.getUTCSeconds() / 3600;
+
+    const solarHour =
+      utcHours +
+      lon / 15;
+
+    const H = U.degToRad(
+      15 * (solarHour - 12)
     );
 
-
-    const cy = (
-
-        ay +
-        aby *
-        t
+    return Math.max(
+      0,
+      Math.sin(phi) *
+      Math.sin(dec) +
+      Math.cos(phi) *
+      Math.cos(dec) *
+      Math.cos(H)
     );
+  };
 
+  U.lonToX = (
+    lon,
+    width,
+    bounds = EuropaConfig.bounds
+  ) =>
+    (lon - bounds.west) /
+    (bounds.east - bounds.west) *
+    (width - 1);
 
-    return Math.hypot(
+  U.latToY = (
+    lat,
+    height,
+    bounds = EuropaConfig.bounds
+  ) =>
+    (bounds.north - lat) /
+    (bounds.north - bounds.south) *
+    (height - 1);
 
-        px -
-        cx,
+  U.xToLon = (
+    x,
+    width,
+    bounds = EuropaConfig.bounds
+  ) =>
+    bounds.west +
+    x / (width - 1) *
+    (bounds.east - bounds.west);
 
-        py -
-        cy
-    );
-}
+  U.yToLat = (
+    y,
+    height,
+    bounds = EuropaConfig.bounds
+  ) =>
+    bounds.north -
+    y / (height - 1) *
+    (bounds.north - bounds.south);
 
-
-/* ============================================================================
-   DISTRIBUTION KERNELS
-============================================================================ */
-
-function gaussian(
-    distance,
-    sigma
-) {
-
-    sigma = Math.max(
-        0.000001,
-        sigma
-    );
-
-
-    return Math.exp(
-
-        -0.5 *
-
-        (
-            distance /
-            sigma
-        ) ** 2
-    );
-}
-
-
-function gaussian2D(
+  U.index = (
     x,
     y,
-    sigmaX,
-    sigmaY
-) {
+    nx
+  ) =>
+    y * nx + x;
 
-    sigmaX = Math.max(
-        0.000001,
-        sigmaX
-    );
-
-
-    sigmaY = Math.max(
-        0.000001,
-        sigmaY
-    );
-
-
-    return Math.exp(
-
-        -0.5 *
-
-        (
-            (
-                x /
-                sigmaX
-            ) ** 2 +
-
-            (
-                y /
-                sigmaY
-            ) ** 2
-        )
-    );
-}
-
-
-function compactKernel(
-    distance,
-    radius
-) {
-
-    if (
-        radius <= 0 ||
-        distance >=
-        radius
-    ) {
-
-        return 0;
-    }
-
-
-    const t = (
-
-        1 -
-        distance /
-        radius
-    );
-
-
-    return (
-        t *
-        t *
-        (
-            3 -
-            2 *
-            t
-        )
-    );
-}
-
-
-/* ============================================================================
-   ARRAY HELPERS
-============================================================================ */
-
-function createFloat32(
-    length,
-    value = 0
-) {
-
-    const array = (
-        new Float32Array(
-            length
-        )
-    );
-
-
-    if (
-        value !==
-        0
-    ) {
-
-        array.fill(
-            value
-        );
-    }
-
-
-    return array;
-}
-
-
-function fillFloat32(
-    array,
-    value
-) {
-
-    array.fill(
-        value
-    );
-
-
-    return array;
-}
-
-
-function copyFloat32(
-    array
-) {
-
-    return (
-        new Float32Array(
-            array
-        )
-    );
-}
-
-
-/* ============================================================================
-   BILINEAR INTERPOLATION
-
-   Signature expected by parts of the new weather stack:
-
-       bilinear(field, nx, ny, x, y)
-============================================================================ */
-
-function bilinear(
-    field,
-    nx,
-    ny,
+  U.bilerpArray = (
+    arr,
     x,
-    y
-) {
-
-    if (
-        !field ||
-        nx <= 0 ||
-        ny <= 0
-    ) {
-
-        return 0;
-    }
-
-
-    x = clamp(
-        x,
-        0,
-        nx - 1
+    y,
+    nx,
+    ny
+  ) => {
+    x = U.clamp(
+      x,
+      0,
+      nx - 1.001
     );
 
-
-    y = clamp(
-        y,
-        0,
-        ny - 1
+    y = U.clamp(
+      y,
+      0,
+      ny - 1.001
     );
 
-
-    const x0 = Math.floor(
-        x
-    );
-
-
-    const y0 = Math.floor(
-        y
-    );
-
+    const x0 = Math.floor(x);
+    const y0 = Math.floor(y);
 
     const x1 = Math.min(
-        nx - 1,
-        x0 + 1
+      nx - 1,
+      x0 + 1
     );
-
 
     const y1 = Math.min(
-        ny - 1,
-        y0 + 1
+      ny - 1,
+      y0 + 1
     );
 
+    const tx = x - x0;
+    const ty = y - y0;
 
-    const tx = (
-        x -
-        x0
+    const a = U.lerp(
+      arr[y0 * nx + x0],
+      arr[y0 * nx + x1],
+      tx
     );
 
-
-    const ty = (
-        y -
-        y0
+    const b = U.lerp(
+      arr[y1 * nx + x0],
+      arr[y1 * nx + x1],
+      tx
     );
 
+    return U.lerp(
+      a,
+      b,
+      ty
+    );
+  };
 
-    const i00 = (
-        y0 *
-        nx +
-        x0
+  U.gaussian2D = (
+    lat,
+    lon,
+    cLat,
+    cLon,
+    sigmaLat,
+    sigmaLon
+  ) => {
+    const a =
+      (lat - cLat) /
+      sigmaLat;
+
+    const b =
+      (lon - cLon) /
+      sigmaLon;
+
+    return Math.exp(
+      -0.5 *
+      (a * a + b * b)
+    );
+  };
+
+  U.hashNoise = (
+    x,
+    y,
+    seed = 0
+  ) => {
+    const s =
+      Math.sin(
+        x * 12.9898 +
+        y * 78.233 +
+        seed * 37.719
+      ) *
+      43758.5453;
+
+    return (
+      s -
+      Math.floor(s)
+    ) *
+    2 -
+    1;
+  };
+
+  U.lowFrequencyNoise = (
+    x,
+    y,
+    seed = 0
+  ) => {
+    const sx = x * 0.12;
+    const sy = y * 0.12;
+
+    const x0 = Math.floor(sx);
+    const y0 = Math.floor(sy);
+
+    const tx = U.smoothstep(
+      0,
+      1,
+      sx - x0
     );
 
-
-    const i10 = (
-        y0 *
-        nx +
-        x1
+    const ty = U.smoothstep(
+      0,
+      1,
+      sy - y0
     );
 
+    const n00 =
+      U.hashNoise(
+        x0,
+        y0,
+        seed
+      );
 
-    const i01 = (
-        y1 *
-        nx +
-        x0
-    );
+    const n10 =
+      U.hashNoise(
+        x0 + 1,
+        y0,
+        seed
+      );
 
+    const n01 =
+      U.hashNoise(
+        x0,
+        y0 + 1,
+        seed
+      );
 
-    const i11 = (
-        y1 *
-        nx +
-        x1
-    );
+    const n11 =
+      U.hashNoise(
+        x0 + 1,
+        y0 + 1,
+        seed
+      );
 
-
-    const top = lerp(
-
-        field[i00],
-
-        field[i10],
-
+    return U.lerp(
+      U.lerp(
+        n00,
+        n10,
         tx
-    );
-
-
-    const bottom = lerp(
-
-        field[i01],
-
-        field[i11],
-
+      ),
+      U.lerp(
+        n01,
+        n11,
         tx
+      ),
+      ty
     );
+  };
 
+  U.saturationVaporPressureHpa =
+    tC =>
+      6.112 *
+      Math.exp(
+        (17.67 * tC) /
+        (tC + 243.5)
+      );
 
-    return lerp(
-
-        top,
-
-        bottom,
-
-        ty
-    );
-}
-
-
-/* ============================================================================
-   DATE / TIME
-============================================================================ */
-
-function dayOfYearUTC(
-    dateInput
-) {
-
-    const date = (
-
-        dateInput instanceof Date
-
-            ? dateInput
-
-            : new Date(
-                dateInput
-            )
-    );
-
-
-    const start = Date.UTC(
-
-        date.getUTCFullYear(),
-
-        0,
-
-        1
-    );
-
-
-    const current = Date.UTC(
-
-        date.getUTCFullYear(),
-
-        date.getUTCMonth(),
-
-        date.getUTCDate()
-    );
-
-
-    return (
-
-        Math.floor(
-
-            (
-                current -
-                start
-            ) /
-            86400000
-        ) +
-
-        1
-    );
-}
-
-
-function fractionalHourUTC(
-    dateInput
-) {
-
-    const date = (
-
-        dateInput instanceof Date
-
-            ? dateInput
-
-            : new Date(
-                dateInput
-            )
-    );
-
-
-    return (
-
-        date.getUTCHours() +
-
-        date.getUTCMinutes() /
-        60 +
-
-        date.getUTCSeconds() /
-        3600 +
-
-        date.getUTCMilliseconds() /
-        3600000
-    );
-}
-
-
-/* ============================================================================
-   ATMOSPHERIC THERMODYNAMICS
-============================================================================ */
-
-function saturationVaporPressureHpa(
-    temperatureC
-) {
-
-    /*
-     * Magnus-type approximation.
-     */
-
-    if (
-        temperatureC >=
-        0
-    ) {
-
-        return (
-
-            6.112 *
-
-            Math.exp(
-
-                17.67 *
-                temperatureC /
-
-                (
-                    temperatureC +
-                    243.5
-                )
-            )
-        );
-    }
-
-
-    return (
-
-        6.112 *
-
-        Math.exp(
-
-            22.46 *
-            temperatureC /
-
-            (
-                temperatureC +
-                272.62
-            )
-        )
-    );
-}
-
-
-function qsatFromTempPressure(
-    temperatureC,
+  U.saturationSpecificHumidity = (
+    tC,
     pressureHpa
-) {
-
-    pressureHpa = Math.max(
-        100,
-        pressureHpa
+  ) => {
+    const e = Math.min(
+      pressureHpa * 0.95,
+      U.saturationVaporPressureHpa(tC)
     );
-
-
-    const vaporPressure = Math.min(
-
-        saturationVaporPressureHpa(
-            temperatureC
-        ),
-
-        pressureHpa *
-        0.95
-    );
-
 
     return (
+      0.622 * e /
+      Math.max(
+        1,
+        pressureHpa -
+        0.378 * e
+      )
+    );
+  };
 
-        0.622 *
-        vaporPressure /
-
-        Math.max(
-
-            1,
-
-            pressureHpa -
-
-            0.378 *
-            vaporPressure
+  U.relativeHumidityFromQ = (
+    q,
+    tC,
+    pressureHpa
+  ) =>
+    U.clamp(
+      q /
+      Math.max(
+        1e-6,
+        U.saturationSpecificHumidity(
+          tC,
+          pressureHpa
         )
-    );
-}
-
-
-function relativeHumidity(
-    temperatureC,
-    pressureHpa,
-    specificHumidity
-) {
-
-    const saturation = (
-        qsatFromTempPressure(
-
-            temperatureC,
-
-            pressureHpa
-        )
+      ) *
+      100,
+      0,
+      100
     );
 
-
-    if (
-        saturation <=
-        0
-    ) {
-
-        return 0;
-    }
-
-
-    return clamp(
-
-        specificHumidity /
-        saturation,
-
-        0,
-
-        1.5
-    );
-}
-
-
-function dewPointFromRH(
-    temperatureC,
+  U.dewPointC = (
+    tC,
     rh
-) {
-
-    rh = clamp(
-        rh,
-        0.0001,
-        1
+  ) => {
+    rh = U.clamp(
+      rh,
+      1,
+      100
     );
 
+    const a = 17.625;
+    const b = 243.04;
 
-    const a = (
-        17.625
-    );
-
-
-    const b = (
-        243.04
-    );
-
-
-    const gamma = (
-
-        Math.log(
-            rh
-        ) +
-
-        a *
-        temperatureC /
-
-        (
-            b +
-            temperatureC
-        )
-    );
-
+    const g =
+      Math.log(
+        rh / 100
+      ) +
+      (a * tC) /
+      (b + tC);
 
     return (
-
-        b *
-        gamma /
-
-        (
-            a -
-            gamma
-        )
+      b * g /
+      (a - g)
     );
-}
+  };
 
+  U.formatUtcMinute = date =>
+    date
+      .toISOString()
+      .slice(0, 16)
+      .replace('T', ' ') +
+    ' UTC';
 
-/* ============================================================================
-   WIND VECTOR HELPERS
+  U.toDatetimeLocalValue = date =>
+    date
+      .toISOString()
+      .slice(0, 16);
 
-   Bearing convention:
-       0°   = north
-       90°  = east
-       180° = south
-       270° = west
-============================================================================ */
-
-function vectorFromBearingSpeed(
-    bearing,
-    speed
-) {
-
-    const angle = (
-        bearing *
-        DEG
-    );
-
-
-    return {
-
-        u:
-            Math.sin(
-                angle
-            ) *
-            speed,
-
-        v:
-            Math.cos(
-                angle
-            ) *
-            speed
-    };
-}
-
-
-function bearingFromVector(
-    u,
-    v
-) {
-
-    if (
-        Math.abs(
-            u
-        ) <
-        0.000001 &&
-        Math.abs(
-            v
-        ) <
-        0.000001
-    ) {
-
-        return 0;
+  U.fromDatetimeLocalAsUtc = value => {
+    if (!value) {
+      return new Date(NaN);
     }
 
-
-    return mod(
-
-        Math.atan2(
-            u,
-            v
-        ) *
-        RAD,
-
-        360
+    return new Date(
+      value.endsWith('Z')
+        ? value
+        : value + ':00Z'
     );
-}
-
-
-/* ============================================================================
-   DETERMINISTIC RANDOMNESS
-============================================================================ */
-
-function seededRandom(
-    seed = 1
-) {
-
-    let state = (
-
-        Number(
-            seed
-        ) >>>
-        0
-    );
-
-
-    if (
-        state ===
-        0
-    ) {
-
-        state = (
-            0x6d2b79f5
-        );
-    }
-
-
-    return function () {
-
-        state += (
-            0x6d2b79f5
-        );
-
-
-        let t = (
-            state
-        );
-
-
-        t = Math.imul(
-
-            t ^
-            (
-                t >>>
-                15
-            ),
-
-            t |
-            1
-        );
-
-
-        t ^= (
-
-            t +
-
-            Math.imul(
-
-                t ^
-                (
-                    t >>>
-                    7
-                ),
-
-                t |
-                61
-            )
-        );
-
-
-        return (
-
-            (
-                t ^
-                (
-                    t >>>
-                    14
-                )
-            ) >>>
-            0
-
-        ) /
-        4294967296;
-    };
-}
-
-
-/* ============================================================================
-   HASH / VALUE NOISE
-
-   Used only where deterministic geographical roughness is desired.
-
-   It should NOT be used to add arbitrary visual noise to weather fields.
-============================================================================ */
-
-function hash2D(
-    x,
-    y,
-    seed = 0
-) {
-
-    let h = (
-
-        Math.imul(
-            x | 0,
-            374761393
-        ) +
-
-        Math.imul(
-            y | 0,
-            668265263
-        ) +
-
-        Math.imul(
-            seed | 0,
-            1442695041
-        )
-    );
-
-
-    h = (
-
-        h ^
-        (
-            h >>>
-            13
-        )
-    );
-
-
-    h = Math.imul(
-
-        h,
-
-        1274126177
-    );
-
-
-    h = (
-
-        h ^
-        (
-            h >>>
-            16
-        )
-    );
-
-
-    return (
-
-        (
-            h >>>
-            0
-        ) /
-        4294967295
-    );
-}
-
-
-function valueNoise2D(
-    x,
-    y,
-    seed = 0
-) {
-
-    const x0 = Math.floor(
-        x
-    );
-
-
-    const y0 = Math.floor(
-        y
-    );
-
-
-    const x1 = (
-        x0 +
-        1
-    );
-
-
-    const y1 = (
-        y0 +
-        1
-    );
-
-
-    const tx = smoothstep(
-        0,
-        1,
-        x -
-        x0
-    );
-
-
-    const ty = smoothstep(
-        0,
-        1,
-        y -
-        y0
-    );
-
-
-    const a = (
-        hash2D(
-            x0,
-            y0,
-            seed
-        )
-    );
-
-
-    const b = (
-        hash2D(
-            x1,
-            y0,
-            seed
-        )
-    );
-
-
-    const c = (
-        hash2D(
-            x0,
-            y1,
-            seed
-        )
-    );
-
-
-    const d = (
-        hash2D(
-            x1,
-            y1,
-            seed
-        )
-    );
-
-
-    return lerp(
-
-        lerp(
-            a,
-            b,
-            tx
-        ),
-
-        lerp(
-            c,
-            d,
-            tx
-        ),
-
-        ty
-    );
-}
-
-
-/* ============================================================================
-   EXPORT
-============================================================================ */
-
-global.EuropaUtils = Object.freeze({
-
-    DEG,
-
-    RAD,
-
-
-    clamp,
-
-    lerp,
-
-    inverseLerp,
-
-    smoothstep,
-
-    smootherstep,
-
-    mod,
-
-
-    toRadians,
-
-    toDegrees,
-
-
-    kmPerDegreeLatitude,
-
-    kmPerDegreeLongitude,
-
-    haversineKm,
-
-    bearingDeg,
-
-    destinationPoint,
-
-    pointSegmentDistanceKm,
-
-
-    gaussian,
-
-    gaussian2D,
-
-    compactKernel,
-
-
-    createFloat32,
-
-    fillFloat32,
-
-    copyFloat32,
-
-    bilinear,
-
-
-    dayOfYearUTC,
-
-    fractionalHourUTC,
-
-
-    saturationVaporPressureHpa,
-
-    qsatFromTempPressure,
-
-    relativeHumidity,
-
-    dewPointFromRH,
-
-
-    vectorFromBearingSpeed,
-
-    bearingFromVector,
-
-
-    seededRandom,
-
-    hash2D,
-
-    valueNoise2D
-});
-
-})(window);
+  };
+
+  U.nextAnimationFrame =
+    () =>
+      new Promise(
+        resolve =>
+          requestAnimationFrame(resolve)
+      );
+
+  window.EuropaUtils =
+    Object.freeze(U);
+})();
