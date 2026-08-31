@@ -3,7 +3,7 @@
    Atmospheric Physics Engine
    Version 7.2
 
-   NEW FILE
+   COMPLETE CORRECTED FILE
 
    DEFAULT PHYSICS TIMESTEP:
        4 simulated minutes
@@ -63,7 +63,10 @@
 
    Only afterwards:
 
-       anomaly = actual temperature - climatological temperature
+       anomaly =
+           actual temperature
+           -
+           climatological temperature
 
    Anomaly is therefore diagnostic only.
 
@@ -84,10 +87,6 @@ const PHASE = global.EuropaPrecipPhase;
 
 /* ============================================================================
    PHYSICS CONSTANTS
-
-   Most routinely editable values remain in europacraft-config.js.
-
-   These values describe the internal numerical behaviour of the model.
 ============================================================================ */
 
 const P = Object.freeze({
@@ -96,169 +95,243 @@ const P = Object.freeze({
        PRESSURE
        ======================================================================== */
 
-    pressureTargetRelaxationPerHour: 0.34,
+    pressureTargetRelaxationPerHour:
+        0.34,
 
-    thermalPressureCouplingHpaPerCPerHour: 0.012,
+    thermalPressureCouplingHpaPerCPerHour:
+        0.012,
 
-    pressureDiffusionPerHour: 0.045,
+    pressureDiffusionPerHour:
+        0.045,
 
 
     /* ========================================================================
        WIND
        ======================================================================== */
 
-    pressureGradientWindFactor: 1.85,
+    pressureGradientWindFactor:
+        1.85,
 
-    synopticWindResponsePerHour: 1.8,
+    synopticWindResponsePerHour:
+        1.8,
 
-    steeringWindResponsePerHour: 2.4,
+    steeringWindResponsePerHour:
+        2.4,
 
-    windDiffusionPerHour: 0.040,
+    windDiffusionPerHour:
+        0.040,
 
-    backgroundWesterlyMs: 1.8,
+    backgroundWesterlyMs:
+        1.8,
 
 
     /* ========================================================================
        ADVECTION
        ======================================================================== */
 
-    maximumBacktraceCells: 4.5,
+    maximumBacktraceCells:
+        4.5,
 
 
     /* ========================================================================
        SURFACE HEAT EXCHANGE
        ======================================================================== */
 
-    landAirExchangePerHour: 0.18,
+    landAirExchangePerHour:
+        0.18,
 
-    seaAirExchangePerHour: 0.28,
+    seaAirExchangePerHour:
+        0.28,
 
-    groundResponsePerHour: 0.12,
+    groundResponsePerHour:
+        0.12,
 
-    groundAirCouplingPerHour: 0.08,
+    groundAirCouplingPerHour:
+        0.08,
 
 
     /* ========================================================================
        RADIATION
        ======================================================================== */
 
-    daylightGroundHeatingCPerHour: 1.10,
+    daylightGroundHeatingCPerHour:
+        1.10,
 
-    nighttimeGroundCoolingCPerHour: 0.62,
+    nighttimeGroundCoolingCPerHour:
+        0.62,
 
-    cloudyNightCoolingMultiplier: 0.24,
+    cloudyNightCoolingMultiplier:
+        0.24,
 
-    cloudyDayHeatingMultiplier: 0.30,
+    cloudyDayHeatingMultiplier:
+        0.30,
 
-    snowSolarReduction: 0.52,
+    snowSolarReduction:
+        0.52,
 
 
     /* ========================================================================
        MOISTURE
        ======================================================================== */
 
-    seaEvaporationPerHour: 0.00048,
+    seaEvaporationPerHour:
+        0.00048,
 
-    wetLandEvaporationPerHour: 0.00013,
+    wetLandEvaporationPerHour:
+        0.00013,
 
-    cloudEvaporationPerHour: 0.12,
+    cloudEvaporationPerHour:
+        0.12,
 
-    condensationEfficiency: 0.72,
+    condensationEfficiency:
+        0.72,
 
 
     /* ========================================================================
        CLOUD
        ======================================================================== */
 
-    cloudFormationScale: 5.0,
+    cloudFormationScale:
+        5.0,
 
-    cloudWaterDecayPerHour: 0.035,
+    cloudWaterDecayPerHour:
+        0.035,
 
-    cloudFractionDecayPerHour: 0.040,
+    cloudFractionDecayPerHour:
+        0.040,
+
+    /*
+     * CORRECTED:
+     * Previously referenced but not defined.
+     */
+
+    cloudDiffusionPerHour:
+        0.010,
 
 
     /* ========================================================================
        FRONTS / VERTICAL MOTION
        ======================================================================== */
 
-    convergenceScale: 18,
+    convergenceScale:
+        18,
 
-    temperatureGradientScale: 5.2,
+    temperatureGradientScale:
+        5.2,
 
-    frontalLiftScale: 0.95,
+    frontalLiftScale:
+        0.95,
 
-    convergenceLiftScale: 0.90,
+    convergenceLiftScale:
+        0.90,
 
-    orographicLiftScale: 0.85,
+    orographicLiftScale:
+        0.85,
 
-    thermalLiftScale: 0.24,
+    thermalLiftScale:
+        0.24,
 
-    verticalMotionDecayPerHour: 0.60,
+    verticalMotionDecayPerHour:
+        0.60,
+
+
+    /* ========================================================================
+       BOUNDARY LAYER
+
+       CORRECTED:
+       These two constants were previously referenced but missing.
+       ======================================================================== */
+
+    unstableMixingBoost:
+        1.35,
+
+    stableMixingReduction:
+        0.45,
 
 
     /* ========================================================================
        PRECIPITATION
        ======================================================================== */
 
-    cloudWaterPrecipThreshold: 0.08,
+    cloudWaterPrecipThreshold:
+        0.08,
 
-    precipEfficiency: 3.5,
+    precipEfficiency:
+        3.5,
 
-    upliftPrecipBoost: 4.2,
+    upliftPrecipBoost:
+        4.2,
 
-    maxPrecipRateMmHr: 80,
+    maxPrecipRateMmHr:
+        80,
 
 
     /* ========================================================================
        SNOW
        ======================================================================== */
 
-    snowLiquidEquivalentRatio: 10,
+    snowLiquidEquivalentRatio:
+        10,
 
-    snowCompactionPerHour: 0.003,
+    snowCompactionPerHour:
+        0.003,
 
-    baseSnowMeltCmPerHour: 0.025,
+    baseSnowMeltCmPerHour:
+        0.025,
 
-    warmSnowMeltCmPerHourPerC: 0.11,
+    warmSnowMeltCmPerHourPerC:
+        0.11,
 
-    rainSnowMeltMultiplier: 0.13,
+    rainSnowMeltMultiplier:
+        0.13,
 
 
     /* ========================================================================
        SURFACE WETNESS
        ======================================================================== */
 
-    wetnessFromRain: 0.060,
+    wetnessFromRain:
+        0.060,
 
-    wetnessFromSleet: 0.035,
+    wetnessFromSleet:
+        0.035,
 
-    wetnessDryingPerHour: 0.035,
+    wetnessDryingPerHour:
+        0.035,
 
 
     /* ========================================================================
        AIR-MASS HISTORY
        ======================================================================== */
 
-    tracerSurfaceAdjustmentPerHour: 0.020,
+    tracerSurfaceAdjustmentPerHour:
+        0.020,
 
-    tracerMixingPerHour: 0.018,
+    tracerMixingPerHour:
+        0.018,
 
-    maritimeTracerConversionPerHour: 0.055,
+    maritimeTracerConversionPerHour:
+        0.055,
 
-    landTracerConversionPerHour: 0.014,
+    landTracerConversionPerHour:
+        0.014,
 
 
     /* ========================================================================
        NUMERICAL LIMITS
        ======================================================================== */
 
-    minimumTemperatureC: -65,
+    minimumTemperatureC:
+        -65,
 
-    maximumTemperatureC: 55,
+    maximumTemperatureC:
+        55,
 
-    maximumSpecificHumidity: 0.045,
+    maximumSpecificHumidity:
+        0.045,
 
-    maximumCloudWater: 3.0
+    maximumCloudWater:
+        3.0
 });
 
 
@@ -307,16 +380,48 @@ function clampGridY(
 
 
 /* ============================================================================
+   SETTINGS HELPER
+============================================================================ */
+
+function setting(
+    group,
+    key,
+    fallback
+) {
+
+    if (
+        group &&
+        Number.isFinite(
+            Number(
+                group[key]
+            )
+        )
+    ) {
+
+        return Number(
+            group[key]
+        );
+    }
+
+
+    return fallback;
+}
+
+
+/* ============================================================================
    TIME
 ============================================================================ */
 
 function getTimestep() {
 
     const minutes = Math.max(
+
         0.1,
+
         Number(
             C.grid.physicsStepMinutes
-        ) || 4
+        ) ||
+        4
     );
 
 
@@ -344,38 +449,52 @@ function getGridSpacing(
     y
 ) {
 
+    const rowIndex = idx(
+
+        0,
+
+        U.clamp(
+            Math.round(
+                y
+            ),
+            0,
+            terrain.ny - 1
+        ),
+
+        terrain.nx
+    );
+
+
     const lat = (
         terrain.lat[
-            idx(
-                0,
-                U.clamp(
-                    y,
-                    0,
-                    terrain.ny - 1
-                ),
-                terrain.nx
-            )
+            rowIndex
         ]
     );
 
 
     const dxDegrees = (
+
         (
             C.bounds.east -
             C.bounds.west
         ) /
-        (
+
+        Math.max(
+            1,
             terrain.nx - 1
         )
     );
 
 
     const dyDegrees = (
+
         (
             C.bounds.north -
             C.bounds.south
         ) /
-        (
+
+        Math.max(
+            1,
             terrain.ny - 1
         )
     );
@@ -384,13 +503,18 @@ function getGridSpacing(
     return {
 
         dxKm:
+
             dxDegrees *
+
             U.kmPerDegreeLongitude(
                 lat
             ),
 
+
         dyKm:
+
             dyDegrees *
+
             U.kmPerDegreeLatitude()
     };
 }
@@ -407,7 +531,9 @@ function gradientX(
     terrain
 ) {
 
-    const nx = terrain.nx;
+    const nx = (
+        terrain.nx
+    );
 
 
     const center = (
@@ -422,7 +548,9 @@ function gradientX(
 
 
     const left = (
+
         x > 0
+
             ? field[
                 idx(
                     x - 1,
@@ -430,12 +558,16 @@ function gradientX(
                     nx
                 )
             ]
+
             : center
     );
 
 
     const right = (
-        x < terrain.nx - 1
+
+        x <
+        terrain.nx - 1
+
             ? field[
                 idx(
                     x + 1,
@@ -443,6 +575,7 @@ function gradientX(
                     nx
                 )
             ]
+
             : center
     );
 
@@ -456,18 +589,25 @@ function gradientX(
 
 
     const divisor = (
+
         x > 0 &&
-        x < terrain.nx - 1
-            ? spacing * 2
+        x <
+        terrain.nx - 1
+
+            ? spacing *
+              2
+
             : spacing
     );
 
 
     return (
+
         (
             right -
             left
         ) /
+
         Math.max(
             0.001,
             divisor
@@ -483,7 +623,9 @@ function gradientY(
     terrain
 ) {
 
-    const nx = terrain.nx;
+    const nx = (
+        terrain.nx
+    );
 
 
     const center = (
@@ -498,7 +640,9 @@ function gradientY(
 
 
     const north = (
+
         y > 0
+
             ? field[
                 idx(
                     x,
@@ -506,12 +650,16 @@ function gradientY(
                     nx
                 )
             ]
+
             : center
     );
 
 
     const south = (
-        y < terrain.ny - 1
+
+        y <
+        terrain.ny - 1
+
             ? field[
                 idx(
                     x,
@@ -519,6 +667,7 @@ function gradientY(
                     nx
                 )
             ]
+
             : center
     );
 
@@ -532,26 +681,155 @@ function gradientY(
 
 
     const divisor = (
+
         y > 0 &&
-        y < terrain.ny - 1
-            ? spacing * 2
+        y <
+        terrain.ny - 1
+
+            ? spacing *
+              2
+
             : spacing
     );
 
 
     /*
-     * Positive = increasing toward north.
+     * Positive result means increasing toward north.
      */
 
     return (
+
         (
             north -
             south
         ) /
+
         Math.max(
             0.001,
             divisor
         )
+    );
+}
+
+
+/* ============================================================================
+   LOCAL BILINEAR SAMPLER
+
+   Kept inside physics so compatibility does not depend on the exact
+   EuropaUtils.bilinear argument signature.
+============================================================================ */
+
+function bilinearSample(
+    field,
+    nx,
+    ny,
+    x,
+    y
+) {
+
+    x = U.clamp(
+        x,
+        0,
+        nx - 1
+    );
+
+
+    y = U.clamp(
+        y,
+        0,
+        ny - 1
+    );
+
+
+    const x0 = Math.floor(
+        x
+    );
+
+
+    const y0 = Math.floor(
+        y
+    );
+
+
+    const x1 = Math.min(
+        nx - 1,
+        x0 + 1
+    );
+
+
+    const y1 = Math.min(
+        ny - 1,
+        y0 + 1
+    );
+
+
+    const tx = (
+        x -
+        x0
+    );
+
+
+    const ty = (
+        y -
+        y0
+    );
+
+
+    const i00 = (
+        y0 *
+        nx +
+        x0
+    );
+
+
+    const i10 = (
+        y0 *
+        nx +
+        x1
+    );
+
+
+    const i01 = (
+        y1 *
+        nx +
+        x0
+    );
+
+
+    const i11 = (
+        y1 *
+        nx +
+        x1
+    );
+
+
+    const top = U.lerp(
+
+        field[i00],
+
+        field[i10],
+
+        tx
+    );
+
+
+    const bottom = U.lerp(
+
+        field[i01],
+
+        field[i11],
+
+        tx
+    );
+
+
+    return U.lerp(
+
+        top,
+
+        bottom,
+
+        ty
     );
 }
 
@@ -565,9 +843,13 @@ function solarDeclinationRad(
 ) {
 
     return (
+
         23.44 *
+
         U.DEG *
+
         Math.sin(
+
             2 *
             Math.PI *
             (
@@ -614,6 +896,7 @@ function solarFactor(
 
 
     const localSolarHour = (
+
         utcHour +
         lon /
         15
@@ -621,28 +904,36 @@ function solarFactor(
 
 
     const hourAngle = (
+
         (
             localSolarHour -
             12
         ) *
+
         15 *
+
         U.DEG
     );
 
 
     const sineElevation = (
+
         Math.sin(
             latitude
         ) *
+
         Math.sin(
             declination
         ) +
+
         Math.cos(
             latitude
         ) *
+
         Math.cos(
             declination
         ) *
+
         Math.cos(
             hourAngle
         )
@@ -658,11 +949,7 @@ function solarFactor(
 
 
 /* ============================================================================
-   SIMPLE FIELD DIFFUSION
-
-   Only weak numerical smoothing.
-
-   It must NOT erase real fronts.
+   FIELD DIFFUSION
 ============================================================================ */
 
 function diffuse(
@@ -691,13 +978,15 @@ function diffuse(
 
     for (
         let y = 1;
-        y < ny - 1;
+        y <
+        ny - 1;
         y++
     ) {
 
         for (
             let x = 1;
-            x < nx - 1;
+            x <
+            nx - 1;
             x++
         ) {
 
@@ -711,18 +1000,35 @@ function diffuse(
 
 
             const average = (
-                original[i - 1] +
-                original[i + 1] +
-                original[i - nx] +
-                original[i + nx]
-            ) / 4;
+
+                original[
+                    i - 1
+                ] +
+
+                original[
+                    i + 1
+                ] +
+
+                original[
+                    i - nx
+                ] +
+
+                original[
+                    i + nx
+                ]
+
+            ) /
+            4;
 
 
             field[i] = U.clamp(
 
                 U.lerp(
+
                     original[i],
+
                     average,
+
                     strength
                 ),
 
@@ -748,20 +1054,39 @@ class PhysicsEngine {
         atmosphere
     ) {
 
-        this.terrain = terrain;
-
-        this.ocean = ocean;
-
-        this.synoptic = synoptic;
-
-        this.atmosphere = atmosphere;
+        this.terrain = (
+            terrain
+        );
 
 
-        this.nx = terrain.nx;
+        this.ocean = (
+            ocean
+        );
 
-        this.ny = terrain.ny;
 
-        this.n = terrain.n;
+        this.synoptic = (
+            synoptic
+        );
+
+
+        this.atmosphere = (
+            atmosphere
+        );
+
+
+        this.nx = (
+            terrain.nx
+        );
+
+
+        this.ny = (
+            terrain.ny
+        );
+
+
+        this.n = (
+            terrain.n
+        );
 
 
         /* ====================================================================
@@ -829,7 +1154,7 @@ class PhysicsEngine {
 
 
     /* ========================================================================
-       MAIN STEP
+       MAIN PHYSICS STEP
        ======================================================================== */
 
     step(
@@ -838,30 +1163,58 @@ class PhysicsEngine {
     ) {
 
         const date = (
+
             dateInput instanceof Date
+
                 ? dateInput
+
                 : new Date(
                     dateInput
                 )
         );
 
 
-        const timestep = (
-            explicitMinutes === null
-                ? getTimestep()
-                : {
-                    minutes:
-                        explicitMinutes,
+        let timestep;
 
-                    hours:
-                        explicitMinutes /
-                        60,
 
-                    seconds:
-                        explicitMinutes *
-                        60
-                }
-        );
+        if (
+            explicitMinutes ===
+            null ||
+            explicitMinutes ===
+            undefined
+        ) {
+
+            timestep = (
+                getTimestep()
+            );
+        }
+
+        else {
+
+            const minutes = Math.max(
+
+                0.1,
+
+                Number(
+                    explicitMinutes
+                ) ||
+                4
+            );
+
+
+            timestep = {
+
+                minutes,
+
+                hours:
+                    minutes /
+                    60,
+
+                seconds:
+                    minutes *
+                    60
+            };
+        }
 
 
         const dtHours = (
@@ -870,11 +1223,13 @@ class PhysicsEngine {
 
 
         /* ====================================================================
-           1. SYNOPTIC SYSTEMS MOVE
+           1. SYNOPTIC SYSTEM EVOLUTION
            ==================================================================== */
 
         if (
-            this.synoptic
+            this.synoptic &&
+            typeof this.synoptic.advanceSystems ===
+            "function"
         ) {
 
             this.synoptic.advanceSystems(
@@ -884,7 +1239,7 @@ class PhysicsEngine {
 
 
         /* ====================================================================
-           2. PRESSURE EVOLVES
+           2. PRESSURE
            ==================================================================== */
 
         this._updatePressure(
@@ -893,7 +1248,7 @@ class PhysicsEngine {
 
 
         /* ====================================================================
-           3. WIND RESPONDS TO PRESSURE + SYSTEMS + USER FORCING
+           3. WIND
            ==================================================================== */
 
         this._updateWind(
@@ -902,7 +1257,7 @@ class PhysicsEngine {
 
 
         /* ====================================================================
-           4. TRANSPORT THE EXISTING AIR
+           4. AIR TRANSPORT
            ==================================================================== */
 
         this._advect(
@@ -911,7 +1266,7 @@ class PhysicsEngine {
 
 
         /* ====================================================================
-           5. SURFACE EXCHANGE / RADIATION
+           5. SURFACE / RADIATION
            ==================================================================== */
 
         this._surfacePhysics(
@@ -921,7 +1276,7 @@ class PhysicsEngine {
 
 
         /* ====================================================================
-           6. AIR-MASS SURFACE HISTORY
+           6. AIR-MASS HISTORY
            ==================================================================== */
 
         this._updateAirMassHistory(
@@ -930,7 +1285,7 @@ class PhysicsEngine {
 
 
         /* ====================================================================
-           7. DYNAMIC ASCENT / FRONTS / TERRAIN
+           7. DYNAMICS / FRONTS / ASCENT
            ==================================================================== */
 
         this._calculateDynamics(
@@ -948,7 +1303,7 @@ class PhysicsEngine {
 
 
         /* ====================================================================
-           9. SNOW AND GROUND WATER
+           9. SNOW / GROUND WATER
            ==================================================================== */
 
         this._snowAndSurfaceWater(
@@ -958,7 +1313,7 @@ class PhysicsEngine {
 
 
         /* ====================================================================
-           10. WEAK NUMERICAL MIXING
+           10. NUMERICAL MIXING
            ==================================================================== */
 
         this._numericalMixing(
@@ -967,11 +1322,13 @@ class PhysicsEngine {
 
 
         /* ====================================================================
-           11. OCEAN SST EVOLVES
+           11. OCEAN
            ==================================================================== */
 
         if (
-            this.ocean
+            this.ocean &&
+            typeof this.ocean.step ===
+            "function"
         ) {
 
             this.ocean.step(
@@ -990,9 +1347,13 @@ class PhysicsEngine {
 
 
         /* ====================================================================
-           12. DIAGNOSTICS
+           12. DIAGNOSTICS LAST
 
-           Includes climatology and anomaly, AFTER physics.
+           This includes climatology and anomaly.
+
+           anomaly =
+               actual -
+               climatology
            ==================================================================== */
 
         this.atmosphere.updateDerivedFields(
@@ -1014,42 +1375,68 @@ class PhysicsEngine {
         );
 
 
-        const synopticTarget = (
-            this.synoptic
-                ? this.synoptic.pressureField()
-                : null
-        );
+        let synopticTarget = null;
+
+
+        if (
+            this.synoptic &&
+            typeof this.synoptic.pressureField ===
+            "function"
+        ) {
+
+            synopticTarget = (
+                this.synoptic.pressureField()
+            );
+        }
 
 
         for (
             let i = 0;
-            i < this.n;
+            i <
+            this.n;
             i++
         ) {
 
             let target = (
+
                 synopticTarget
+
                     ? synopticTarget[i]
+
                     : 1015
             );
 
 
-            /*
-             * Small thermodynamic pressure response.
+            if (
+                !Number.isFinite(
+                    target
+                )
+            ) {
 
-             * This is based on ACTUAL temperature relative to climatology.
-             *
-             * It does not set temperature.
+                target = (
+                    1015
+                );
+            }
+
+
+            /*
+             * Very weak thermal response.
+
+             * The anomaly is only being OBSERVED here as a pressure feedback.
+             * It does not create temperature.
              */
 
             const thermalDifference = (
+
                 A.temperatureC[i] -
                 A.climatologyC[i]
             );
 
 
             target -= (
+
                 thermalDifference *
+
                 P.thermalPressureCouplingHpaPerCPerHour
             );
 
@@ -1060,9 +1447,13 @@ class PhysicsEngine {
 
 
             const response = U.clamp(
+
                 P.pressureTargetRelaxationPerHour *
+
                 dtHours,
+
                 0,
+
                 1
             );
 
@@ -1114,15 +1505,37 @@ class PhysicsEngine {
         );
 
 
+        const dragLand = setting(
+
+            C.atmosphere,
+
+            "surfaceDragLand",
+
+            0.055
+        );
+
+
+        const dragSea = setting(
+
+            C.atmosphere,
+
+            "surfaceDragSea",
+
+            0.020
+        );
+
+
         for (
             let y = 0;
-            y < this.ny;
+            y <
+            this.ny;
             y++
         ) {
 
             for (
                 let x = 0;
-                x < this.nx;
+                x <
+                this.nx;
                 x++
             ) {
 
@@ -1145,60 +1558,72 @@ class PhysicsEngine {
                 );
 
 
-                const dpdx = (
-                    gradientX(
-                        A.pressureHpa,
-                        x,
-                        y,
-                        this.terrain
-                    )
+                const dpdx = gradientX(
+
+                    A.pressureHpa,
+
+                    x,
+
+                    y,
+
+                    this.terrain
                 );
 
 
-                const dpdy = (
-                    gradientY(
-                        A.pressureHpa,
-                        x,
-                        y,
-                        this.terrain
-                    )
+                const dpdy = gradientY(
+
+                    A.pressureHpa,
+
+                    x,
+
+                    y,
+
+                    this.terrain
                 );
 
 
                 /*
-                 * Approximate Northern Hemisphere geostrophic turning.
-
-                 * Wind runs broadly parallel to isobars rather than directly
-                 * from high to low.
+                 * Approximate Northern Hemisphere geostrophic wind.
                  */
 
                 const latitudeFactor = U.clamp(
+
                     Math.sin(
+
                         Math.max(
                             25,
                             lat
                         ) *
+
                         U.DEG
                     ),
+
                     0.30,
+
                     1
                 );
 
 
                 const geostrophicScale = (
+
                     P.pressureGradientWindFactor /
+
                     latitudeFactor
                 );
 
 
                 const pressureU = (
+
                     -dpdy *
+
                     geostrophicScale
                 );
 
 
                 const pressureV = (
+
                     dpdx *
+
                     geostrophicScale
                 );
 
@@ -1214,11 +1639,13 @@ class PhysicsEngine {
 
 
                 /* ============================================================
-                   Broad system circulation + steering arrows
+                   SYNOPTIC GUIDANCE
                    ============================================================ */
 
                 if (
-                    this.synoptic
+                    this.synoptic &&
+                    typeof this.synoptic.guidanceWindAt ===
+                    "function"
                 ) {
 
                     const guidance = (
@@ -1229,19 +1656,30 @@ class PhysicsEngine {
                     );
 
 
-                    targetU += (
-                        guidance.u
-                    );
+                    if (
+                        guidance
+                    ) {
+
+                        targetU += (
+                            Number(
+                                guidance.u
+                            ) ||
+                            0
+                        );
 
 
-                    targetV += (
-                        guidance.v
-                    );
+                        targetV += (
+                            Number(
+                                guidance.v
+                            ) ||
+                            0
+                        );
+                    }
                 }
 
 
                 /* ============================================================
-                   Modest climatological mid-latitude westerly
+                   BACKGROUND WESTERLIES
                    ============================================================ */
 
                 if (
@@ -1252,6 +1690,7 @@ class PhysicsEngine {
                     const westerlyFactor = U.clamp(
 
                         1 -
+
                         Math.abs(
                             lat - 53
                         ) /
@@ -1264,40 +1703,48 @@ class PhysicsEngine {
 
 
                     targetU += (
+
                         P.backgroundWesterlyMs *
+
                         westerlyFactor
                     );
                 }
 
 
-                /* ============================================================
-                   Response inertia
-                   ============================================================ */
-
                 const response = U.clamp(
+
                     P.synopticWindResponsePerHour *
+
                     dtHours,
+
                     0,
+
                     1
                 );
 
 
                 let newU = U.lerp(
+
                     A.windU[i],
+
                     targetU,
+
                     response
                 );
 
 
                 let newV = U.lerp(
+
                     A.windV[i],
+
                     targetV,
+
                     response
                 );
 
 
                 /* ============================================================
-                   Surface drag
+                   SURFACE FRICTION
                    ============================================================ */
 
                 const land = (
@@ -1307,18 +1754,22 @@ class PhysicsEngine {
 
                 const dragPerHour = U.lerp(
 
-                    C.atmosphere.surfaceDragSea,
+                    dragSea,
 
-                    C.atmosphere.surfaceDragLand,
+                    dragLand,
 
                     land
                 );
 
 
                 const drag = U.clamp(
+
                     dragPerHour *
+
                     dtHours,
+
                     0,
+
                     0.5
                 );
 
@@ -1336,7 +1787,7 @@ class PhysicsEngine {
 
 
                 /* ============================================================
-                   Global speed safety
+                   WIND SAFETY LIMIT
                    ============================================================ */
 
                 const speed = Math.hypot(
@@ -1351,14 +1802,21 @@ class PhysicsEngine {
                 ) {
 
                     const scale = (
+
                         C.grid.maxWindMs /
+
                         speed
                     );
 
 
-                    newU *= scale;
+                    newU *= (
+                        scale
+                    );
 
-                    newV *= scale;
+
+                    newV *= (
+                        scale
+                    );
                 }
 
 
@@ -1432,44 +1890,40 @@ class PhysicsEngine {
         );
 
 
-        const oldTemperature = (
+        const oldTemperature =
             new Float32Array(
                 A.temperatureC
-            )
-        );
+            );
 
 
-        const oldHumidity = (
+        const oldHumidity =
             new Float32Array(
                 A.specificHumidity
-            )
-        );
+            );
 
 
-        const oldCloudWater = (
+        const oldCloudWater =
             new Float32Array(
                 A.cloudWater
-            )
-        );
+            );
 
 
-        const oldCloudFraction = (
+        const oldCloudFraction =
             new Float32Array(
                 A.cloudFraction
-            )
-        );
+            );
 
 
-        const oldTracers = (
+        const oldTracers =
             new Float32Array(
                 A.airMassTracer
-            )
-        );
+            );
 
 
         for (
             let y = 0;
-            y < this.ny;
+            y <
+            this.ny;
             y++
         ) {
 
@@ -1483,7 +1937,8 @@ class PhysicsEngine {
 
             for (
                 let x = 0;
-                x < this.nx;
+                x <
+                this.nx;
                 x++
             ) {
 
@@ -1506,22 +1961,34 @@ class PhysicsEngine {
                 );
 
 
+                /*
+                 * m/s × hours × 3.6 = km
+                 */
+
                 const travelEastKm = (
+
                     u *
+
                     dtHours *
+
                     3.6
                 );
 
 
                 const travelNorthKm = (
+
                     v *
+
                     dtHours *
+
                     3.6
                 );
 
 
                 let dxCells = (
+
                     travelEastKm /
+
                     Math.max(
                         1,
                         spacing.dxKm
@@ -1530,7 +1997,9 @@ class PhysicsEngine {
 
 
                 let dyCells = (
+
                     -travelNorthKm /
+
                     Math.max(
                         1,
                         spacing.dyKm
@@ -1558,95 +2027,84 @@ class PhysicsEngine {
                 );
 
 
-                const sourceX = (
-                    clampGridX(
-                        x -
-                        dxCells,
-                        this.nx
-                    )
+                const sourceX = clampGridX(
+
+                    x -
+                    dxCells,
+
+                    this.nx
                 );
 
 
-                const sourceY = (
-                    clampGridY(
-                        y -
-                        dyCells,
-                        this.ny
-                    )
+                const sourceY = clampGridY(
+
+                    y -
+                    dyCells,
+
+                    this.ny
                 );
 
 
-                this.nextTemperature[i] = (
-                    U.bilinear(
+                this.nextTemperature[i] = bilinearSample(
 
-                        oldTemperature,
+                    oldTemperature,
 
-                        this.nx,
+                    this.nx,
 
-                        this.ny,
+                    this.ny,
 
-                        sourceX,
+                    sourceX,
 
-                        sourceY
-                    )
+                    sourceY
                 );
 
 
-                this.nextHumidity[i] = (
-                    U.bilinear(
+                this.nextHumidity[i] = bilinearSample(
 
-                        oldHumidity,
+                    oldHumidity,
 
-                        this.nx,
+                    this.nx,
 
-                        this.ny,
+                    this.ny,
 
-                        sourceX,
+                    sourceX,
 
-                        sourceY
-                    )
+                    sourceY
                 );
 
 
-                this.nextCloudWater[i] = (
-                    U.bilinear(
+                this.nextCloudWater[i] = bilinearSample(
 
-                        oldCloudWater,
+                    oldCloudWater,
 
-                        this.nx,
+                    this.nx,
 
-                        this.ny,
+                    this.ny,
 
-                        sourceX,
+                    sourceX,
 
-                        sourceY
-                    )
+                    sourceY
                 );
 
 
-                this.nextCloudFraction[i] = (
-                    U.bilinear(
+                this.nextCloudFraction[i] = bilinearSample(
 
-                        oldCloudFraction,
+                    oldCloudFraction,
 
-                        this.nx,
+                    this.nx,
 
-                        this.ny,
+                    this.ny,
 
-                        sourceX,
+                    sourceX,
 
-                        sourceY
-                    )
+                    sourceY
                 );
 
-
-                /*
-                 * Transport every air-mass tracer independently.
-                 */
 
                 for (
                     let k = 0;
-                    k < AIR_MASS_COUNT;
+                    k <
+                    AIR_MASS_COUNT;
                     k++
                 ) {
 
@@ -1696,7 +2154,8 @@ class PhysicsEngine {
 
         for (
             let i = 0;
-            i < this.n;
+            i <
+            this.n;
             i++
         ) {
 
@@ -1708,7 +2167,7 @@ class PhysicsEngine {
 
 
     /* ========================================================================
-       TRACER BILINEAR SAMPLING
+       TRACER INTERPOLATION
        ======================================================================== */
 
     _bilinearTracer(
@@ -1717,6 +2176,20 @@ class PhysicsEngine {
         y,
         tracerIndex
     ) {
+
+        x = U.clamp(
+            x,
+            0,
+            this.nx - 1
+        );
+
+
+        y = U.clamp(
+            y,
+            0,
+            this.ny - 1
+        );
+
 
         const x0 = Math.floor(
             x
@@ -1807,8 +2280,11 @@ class PhysicsEngine {
 
 
         return U.lerp(
+
             top,
+
             bottom,
+
             ty
         );
     }
@@ -1830,7 +2306,8 @@ class PhysicsEngine {
 
         for (
             let i = 0;
-            i < this.n;
+            i <
+            this.n;
             i++
         ) {
 
@@ -1849,30 +2326,37 @@ class PhysicsEngine {
             );
 
 
-            const solar = (
-                solarFactor(
-                    lat,
-                    lon,
-                    date
-                )
+            const solar = solarFactor(
+
+                lat,
+
+                lon,
+
+                date
             );
 
 
             const cloud = U.clamp(
+
                 A.cloudFraction[i],
+
                 0,
+
                 1
             );
 
 
             const windSpeed = Math.hypot(
+
                 A.windU[i],
+
                 A.windV[i]
             );
 
 
             if (
-                land >= 0.5
+                land >=
+                0.5
             ) {
 
                 this._landSurfacePhysics(
@@ -1907,7 +2391,7 @@ class PhysicsEngine {
 
 
     /* ========================================================================
-       LAND
+       LAND SURFACE
        ======================================================================== */
 
     _landSurfacePhysics(
@@ -1939,7 +2423,7 @@ class PhysicsEngine {
 
 
         /* ====================================================================
-           DAYTIME SOLAR HEATING
+           DAYTIME
            ==================================================================== */
 
         if (
@@ -1957,17 +2441,26 @@ class PhysicsEngine {
 
 
             const snowFactor = (
-                snowDepth > 0.5
+
+                snowDepth >
+                0.5
+
                     ? P.snowSolarReduction
+
                     : 1
             );
 
 
             ground += (
+
                 P.daylightGroundHeatingCPerHour *
+
                 solar *
+
                 cloudTransmission *
+
                 snowFactor *
+
                 dtHours
             );
         }
@@ -1975,13 +2468,9 @@ class PhysicsEngine {
         else {
 
             /* =================================================================
-               NIGHTTIME RADIATIVE COOLING
+               NIGHT
 
-               Thick cloud strongly suppresses nocturnal cooling.
-
-               This is how moist cloudy regimes can naturally produce very
-               large positive NIGHT anomalies while daytime anomalies remain
-               modest.
+               Cloud substantially suppresses radiative cooling.
                ================================================================= */
 
             const cloudCoolingFactor = U.lerp(
@@ -1995,18 +2484,19 @@ class PhysicsEngine {
 
 
             ground -= (
+
                 P.nighttimeGroundCoolingCPerHour *
+
                 cloudCoolingFactor *
+
                 dtHours
             );
         }
 
 
-        /* ====================================================================
-           CLIMATOLOGICAL / DEEP GROUND RESTORATION
-
-           Ground slowly retains seasonal context.
-           ==================================================================== */
+        /*
+         * Deep ground / seasonal context.
+         */
 
         const climate = (
             A.climatologyC[i]
@@ -2014,25 +2504,31 @@ class PhysicsEngine {
 
 
         ground += (
+
             (
                 climate -
                 ground
             ) *
+
             P.groundResponsePerHour *
+
             dtHours
         );
 
 
-        /* ====================================================================
-           GROUND-AIR EXCHANGE
-           ==================================================================== */
+        /*
+         * Boundary-layer coupling.
+         */
 
         const mixingBoost = (
+
             1 +
+
             Math.min(
                 20,
                 windSpeed
             ) *
+
             0.025
         );
 
@@ -2040,7 +2536,9 @@ class PhysicsEngine {
         const exchange = U.clamp(
 
             P.landAirExchangePerHour *
+
             mixingBoost *
+
             dtHours,
 
             0,
@@ -2069,16 +2567,15 @@ class PhysicsEngine {
         );
 
 
-        /*
-         * Air also feeds back weakly into ground temperature.
-         */
-
         ground += (
+
             (
                 air -
                 ground
             ) *
+
             P.groundAirCouplingPerHour *
+
             dtHours
         );
 
@@ -2095,11 +2592,12 @@ class PhysicsEngine {
 
 
         /* ====================================================================
-           EVAPORATION FROM WET LAND
+           WET-SURFACE EVAPORATION
            ==================================================================== */
 
         if (
-            A.surfaceWetness[i] > 0
+            A.surfaceWetness[i] >
+            0
         ) {
 
             const saturation = (
@@ -2153,7 +2651,7 @@ class PhysicsEngine {
 
 
     /* ========================================================================
-       SEA
+       SEA SURFACE
        ======================================================================== */
 
     _seaSurfacePhysics(
@@ -2181,38 +2679,64 @@ class PhysicsEngine {
         );
 
 
+        if (
+            !Number.isFinite(
+                sst
+            )
+        ) {
+
+            return;
+        }
+
+
         const air = (
             A.temperatureC[i]
         );
 
 
         /* ====================================================================
-           AIR-SEA THERMAL MODIFICATION
+           PROCESS-BASED AIR-SEA HEAT EXCHANGE
            ==================================================================== */
 
-        const heatPotential = (
-            global.EuropaOcean.airSeaHeatFluxPotential(
+        let heatPotential = 0;
 
-                sst,
 
-                air,
+        if (
+            global.EuropaOcean &&
+            typeof global.EuropaOcean.airSeaHeatFluxPotential ===
+            "function"
+        ) {
 
-                windSpeed
-            )
-        );
+            heatPotential = Number(
+
+                global.EuropaOcean.airSeaHeatFluxPotential(
+
+                    sst,
+
+                    air,
+
+                    windSpeed
+                )
+
+            ) || 0;
+        }
 
 
         const exchangeStrength = U.clamp(
 
             P.seaAirExchangePerHour *
+
             (
                 1 +
+
                 Math.min(
                     30,
                     windSpeed
                 ) *
+
                 0.025
             ) *
+
             dtHours,
 
             0,
@@ -2220,10 +2744,6 @@ class PhysicsEngine {
             0.55
         );
 
-
-        /*
-         * Primary exchange is a tendency toward SST.
-         */
 
         let temperature = U.lerp(
 
@@ -2235,13 +2755,12 @@ class PhysicsEngine {
         );
 
 
-        /*
-         * Additional turbulent flux effect.
-         */
-
         temperature += (
+
             heatPotential *
+
             dtHours *
+
             0.12
         );
 
@@ -2258,35 +2777,54 @@ class PhysicsEngine {
 
         /* ====================================================================
            EVAPORATION
-
-           Cold, dry continental air crossing relatively warm water can acquire
-           moisture very rapidly.
            ==================================================================== */
 
-        const rh = (
-            U.relativeHumidity(
+        const rh = U.relativeHumidity(
 
-                A.temperatureC[i],
+            A.temperatureC[i],
 
-                A.pressureHpa[i],
+            A.pressureHpa[i],
 
-                A.specificHumidity[i]
-            )
+            A.specificHumidity[i]
         );
 
 
-        const evaporationPotential = (
-            global.EuropaOcean.evaporationPotential(
+        let evaporationPotential = 1;
 
-                sst,
 
-                A.temperatureC[i],
+        if (
+            global.EuropaOcean &&
+            typeof global.EuropaOcean.evaporationPotential ===
+            "function"
+        ) {
 
-                rh,
+            evaporationPotential = Number(
 
-                windSpeed
-            )
-        );
+                global.EuropaOcean.evaporationPotential(
+
+                    sst,
+
+                    A.temperatureC[i],
+
+                    rh,
+
+                    windSpeed
+                )
+
+            );
+
+
+            if (
+                !Number.isFinite(
+                    evaporationPotential
+                )
+            ) {
+
+                evaporationPotential = (
+                    1
+                );
+            }
+        }
 
 
         const saturation = (
@@ -2331,10 +2869,6 @@ class PhysicsEngine {
         );
 
 
-        /*
-         * For atmosphere diagnostics the sea surface acts as ground.
-         */
-
         A.groundTemperatureC[i] = (
             sst
         );
@@ -2356,7 +2890,8 @@ class PhysicsEngine {
 
         for (
             let i = 0;
-            i < this.n;
+            i <
+            this.n;
             i++
         ) {
 
@@ -2371,10 +2906,13 @@ class PhysicsEngine {
 
 
             if (
-                land < 0.5
+                land <
+                0.5
             ) {
 
-                A.lastSeaContactHours[i] = 0;
+                A.lastSeaContactHours[i] = (
+                    0
+                );
 
 
                 A.lastLandContactHours[i] = Math.min(
@@ -2387,7 +2925,9 @@ class PhysicsEngine {
 
 
                 const base = (
+
                     i *
+
                     AIR_MASS_COUNT
                 );
 
@@ -2395,6 +2935,7 @@ class PhysicsEngine {
                 const adjustment = U.clamp(
 
                     P.maritimeTracerConversionPerHour *
+
                     dtHours,
 
                     0,
@@ -2402,11 +2943,6 @@ class PhysicsEngine {
                     0.15
                 );
 
-
-                /*
-                 * Which maritime character develops depends on latitude /
-                 * geography.
-                 */
 
                 let targetTracer = (
                     AIR_MASS.ATLANTIC
@@ -2424,7 +2960,8 @@ class PhysicsEngine {
 
 
                 if (
-                    lat >= 66
+                    lat >=
+                    66
                 ) {
 
                     targetTracer = (
@@ -2458,18 +2995,21 @@ class PhysicsEngine {
 
                 for (
                     let k = 0;
-                    k < AIR_MASS_COUNT;
+                    k <
+                    AIR_MASS_COUNT;
                     k++
                 ) {
 
                     const tracerIndex = (
+
                         base +
                         k
                     );
 
 
                     if (
-                        k === targetTracer
+                        k ===
+                        targetTracer
                     ) {
 
                         A.airMassTracer[
@@ -2484,7 +3024,9 @@ class PhysicsEngine {
                         A.airMassTracer[
                             tracerIndex
                         ] *= (
+
                             1 -
+
                             adjustment *
                             0.30
                         );
@@ -2499,7 +3041,9 @@ class PhysicsEngine {
 
             else {
 
-                A.lastLandContactHours[i] = 0;
+                A.lastLandContactHours[i] = (
+                    0
+                );
 
 
                 A.lastSeaContactHours[i] = Math.min(
@@ -2511,22 +3055,30 @@ class PhysicsEngine {
                 );
 
 
-                /*
-                 * Land slowly increases continental character.
-
-                 * This is deliberately much slower than sea modification.
-                 */
-
                 const base = (
+
                     i *
+
                     AIR_MASS_COUNT
+                );
+
+
+                const continentality = (
+
+                    this.terrain.continental
+
+                        ? this.terrain.continental[i]
+
+                        : 0.5
                 );
 
 
                 const adjustment = U.clamp(
 
                     P.landTracerConversionPerHour *
-                    this.terrain.continental[i] *
+
+                    continentality *
+
                     dtHours,
 
                     0,
@@ -2552,7 +3104,7 @@ class PhysicsEngine {
 
 
     /* ========================================================================
-       DYNAMICS
+       ATMOSPHERIC DYNAMICS
        ======================================================================== */
 
     _calculateDynamics(
@@ -2564,15 +3116,37 @@ class PhysicsEngine {
         );
 
 
+        const mixingLand = setting(
+
+            C.atmosphere,
+
+            "mixingRateLand",
+
+            0.055
+        );
+
+
+        const mixingSea = setting(
+
+            C.atmosphere,
+
+            "mixingRateSea",
+
+            0.040
+        );
+
+
         for (
             let y = 0;
-            y < this.ny;
+            y <
+            this.ny;
             y++
         ) {
 
             for (
                 let x = 0;
-                x < this.nx;
+                x <
+                this.nx;
                 x++
             ) {
 
@@ -2614,6 +3188,7 @@ class PhysicsEngine {
 
 
                 const divergence = (
+
                     dudx +
                     dvdy
                 );
@@ -2622,6 +3197,7 @@ class PhysicsEngine {
                 const convergence = U.clamp(
 
                     -divergence *
+
                     P.convergenceScale,
 
                     -1,
@@ -2636,7 +3212,7 @@ class PhysicsEngine {
 
 
                 /* ============================================================
-                   THERMAL GRADIENT / FRONT STRENGTH
+                   FRONTAL GRADIENT
                    ============================================================ */
 
                 const dTdx = gradientX(
@@ -2674,13 +3250,17 @@ class PhysicsEngine {
                 const frontStrength = U.clamp(
 
                     thermalGradient *
+
                     P.temperatureGradientScale *
+
                     (
                         0.35 +
+
                         Math.max(
                             0,
                             convergence
                         ) *
+
                         0.90
                     ),
 
@@ -2696,7 +3276,7 @@ class PhysicsEngine {
 
 
                 /* ============================================================
-                   OROGRAPHIC LIFT
+                   OROGRAPHIC UPLIFT
                    ============================================================ */
 
                 const dZdx = gradientX(
@@ -2723,12 +3303,6 @@ class PhysicsEngine {
                 );
 
 
-                /*
-                 * Terrain gradient in metres per kilometre.
-
-                 * Wind projected upslope.
-                 */
-
                 const upslope = Math.max(
 
                     0,
@@ -2753,11 +3327,13 @@ class PhysicsEngine {
 
 
                 /* ============================================================
-                   THERMAL INSTABILITY
+                   SURFACE INSTABILITY
                    ============================================================ */
 
                 const surfaceDifference = (
+
                     A.groundTemperatureC[i] -
+
                     A.temperatureC[i]
                 );
 
@@ -2774,7 +3350,7 @@ class PhysicsEngine {
 
 
                 /* ============================================================
-                   COMBINED VERTICAL MOTION
+                   VERTICAL MOTION
                    ============================================================ */
 
                 const targetVerticalMotion = (
@@ -2783,27 +3359,30 @@ class PhysicsEngine {
                         0,
                         convergence
                     ) *
+
                     P.convergenceLiftScale +
 
                     frontStrength *
+
                     P.frontalLiftScale +
 
                     orographicLift *
+
                     P.orographicLiftScale +
 
                     thermalLift *
+
                     P.thermalLiftScale
                 );
 
 
                 const response = U.clamp(
 
-                    (
-                        1 -
-                        Math.exp(
-                            -2.5 *
-                            dtHours
-                        )
+                    1 -
+
+                    Math.exp(
+                        -2.5 *
+                        dtHours
                     ),
 
                     0,
@@ -2812,14 +3391,26 @@ class PhysicsEngine {
                 );
 
 
-                A.verticalMotion[i] = U.lerp(
+                const decayedExisting = (
 
                     A.verticalMotion[i] *
-                    (
+
+                    Math.max(
+
+                        0,
+
                         1 -
+
                         P.verticalMotionDecayPerHour *
+
                         dtHours
-                    ),
+                    )
+                );
+
+
+                A.verticalMotion[i] = U.lerp(
+
+                    decayedExisting,
 
                     targetVerticalMotion,
 
@@ -2859,13 +3450,18 @@ class PhysicsEngine {
 
                 /* ============================================================
                    BOUNDARY-LAYER MIXING
+
+                   Corrected missing constants now defined above.
                    ============================================================ */
 
                 const baseMixing = (
 
-                    this.terrain.land[i] >= 0.5
-                        ? C.atmosphere.mixingRateLand
-                        : C.atmosphere.mixingRateSea
+                    this.terrain.land[i] >=
+                    0.5
+
+                        ? mixingLand
+
+                        : mixingSea
                 );
 
 
@@ -2882,6 +3478,7 @@ class PhysicsEngine {
                 A.boundaryLayerMixing[i] = U.clamp(
 
                     baseMixing *
+
                     instabilityBoost,
 
                     0.005,
@@ -2906,9 +3503,20 @@ class PhysicsEngine {
         );
 
 
+        const condensationRate = setting(
+
+            C.moisture,
+
+            "condensationRate",
+
+            0.70
+        );
+
+
         for (
             let i = 0;
-            i < this.n;
+            i <
+            this.n;
             i++
         ) {
 
@@ -2924,7 +3532,9 @@ class PhysicsEngine {
 
             const qsat = (
                 U.qsatFromTempPressure(
+
                     temperature,
+
                     pressure
                 )
             );
@@ -2945,13 +3555,6 @@ class PhysicsEngine {
             );
 
 
-            /* ================================================================
-               ASCENT LOWERS EFFECTIVE SATURATION THRESHOLD
-
-               This approximates expansion/cooling in rising air without
-               maintaining full vertical atmospheric columns.
-               ================================================================ */
-
             const lift = U.clamp(
 
                 A.verticalMotion[i],
@@ -2962,10 +3565,17 @@ class PhysicsEngine {
             );
 
 
+            /*
+             * Rising air reaches saturation slightly sooner.
+             */
+
             const effectiveSaturation = (
+
                 qsat *
+
                 (
                     1 -
+
                     Math.min(
                         0.10,
                         lift *
@@ -2985,16 +3595,19 @@ class PhysicsEngine {
             ) {
 
                 const excess = (
+
                     q -
                     effectiveSaturation
                 );
 
 
-                const condensation = (
+                const condensation = Math.min(
+
+                    excess,
 
                     excess *
 
-                    C.moisture.condensationRate *
+                    condensationRate *
 
                     P.condensationEfficiency *
 
@@ -3012,42 +3625,47 @@ class PhysicsEngine {
 
 
                 cloudWater += (
+
                     condensation *
+
                     P.cloudFormationScale *
+
                     100
                 );
 
 
                 /*
-                 * Weak latent heating.
-
-                 * Condensation releases energy naturally instead of creating a
-                 * direct arbitrary warm anomaly.
+                 * Simplified latent heat release.
                  */
 
                 A.temperatureC[i] += (
+
                     condensation *
+
                     110
                 );
             }
 
 
             /* ================================================================
-               UNSATURATED CLOUD EVAPORATION
+               CLOUD EVAPORATION
                ================================================================ */
 
-            const rh = (
-                U.relativeHumidity(
-                    A.temperatureC[i],
-                    pressure,
-                    q
-                )
+            const rh = U.relativeHumidity(
+
+                A.temperatureC[i],
+
+                pressure,
+
+                q
             );
 
 
             if (
-                rh < 0.90 &&
-                cloudWater > 0
+                rh <
+                0.90 &&
+                cloudWater >
+                0
             ) {
 
                 const evaporation = Math.min(
@@ -3058,7 +3676,9 @@ class PhysicsEngine {
                         0.90 -
                         rh
                     ) *
+
                     P.cloudEvaporationPerHour *
+
                     dtHours
                 );
 
@@ -3069,17 +3689,17 @@ class PhysicsEngine {
 
 
                 q += (
+
                     evaporation *
+
                     0.001
                 );
 
 
-                /*
-                 * Evaporative cooling.
-                 */
-
                 A.temperatureC[i] -= (
+
                     evaporation *
+
                     0.035
                 );
             }
@@ -3145,6 +3765,7 @@ class PhysicsEngine {
             const cloudResponse = U.clamp(
 
                 1.6 *
+
                 dtHours,
 
                 0,
@@ -3164,34 +3785,42 @@ class PhysicsEngine {
 
 
             if (
-                rh < 0.65 &&
-                lift < 0.10
+                rh <
+                0.65 &&
+                lift <
+                0.10
             ) {
 
                 cloudFraction *= (
+
                     1 -
+
                     P.cloudFractionDecayPerHour *
+
                     dtHours
                 );
             }
 
 
-            cloudWater *= (
+            cloudWater *= Math.max(
+
+                0,
+
                 1 -
+
                 P.cloudWaterDecayPerHour *
+
                 dtHours
             );
 
 
             /* ================================================================
                PRECIPITATION
-
-               Requires cloud water PLUS atmospheric ascent/moisture.
-
-               Moist air by itself does not automatically rain.
                ================================================================ */
 
-            let precipRate = 0;
+            let precipRate = (
+                0
+            );
 
 
             if (
@@ -3215,6 +3844,7 @@ class PhysicsEngine {
                     0.15 +
 
                     lift *
+
                     P.upliftPrecipBoost
                 );
 
@@ -3224,6 +3854,7 @@ class PhysicsEngine {
                     1 +
 
                     A.frontStrength[i] *
+
                     1.5
                 );
 
@@ -3255,7 +3886,9 @@ class PhysicsEngine {
                     cloudWater,
 
                     precipRate *
+
                     0.006 *
+
                     dtHours
                 );
 
@@ -3270,10 +3903,21 @@ class PhysicsEngine {
                     0,
 
                     q -
+
                     removal *
                     0.00035
                 );
             }
+
+
+            A.temperatureC[i] = U.clamp(
+
+                A.temperatureC[i],
+
+                P.minimumTemperatureC,
+
+                P.maximumTemperatureC
+            );
 
 
             A.specificHumidity[i] = U.clamp(
@@ -3314,7 +3958,7 @@ class PhysicsEngine {
 
 
     /* ========================================================================
-       SNOW + SURFACE WATER
+       SNOW / SURFACE WATER
        ======================================================================== */
 
     _snowAndSurfaceWater(
@@ -3327,9 +3971,50 @@ class PhysicsEngine {
         );
 
 
+        const snowMaxC = setting(
+
+            C.precipitationPhase,
+
+            "snowMaxC",
+
+            1.5
+        );
+
+
+        const sleetMaxC = setting(
+
+            C.precipitationPhase,
+
+            "sleetMaxC",
+
+            3.0
+        );
+
+
+        const accumulationEfficiency = setting(
+
+            C.snow,
+
+            "accumulationEfficiency",
+
+            1
+        );
+
+
+        const minimumPersistentDepth = setting(
+
+            C.snow,
+
+            "minimumPersistentDepthCm",
+
+            0.05
+        );
+
+
         for (
             let i = 0;
-            i < this.n;
+            i <
+            this.n;
             i++
         ) {
 
@@ -3339,12 +4024,19 @@ class PhysicsEngine {
 
 
             if (
-                land < 0.5
+                land <
+                0.5
             ) {
 
-                A.snowDepthCm[i] = 0;
+                A.snowDepthCm[i] = (
+                    0
+                );
 
-                A.surfaceWetness[i] = 1;
+
+                A.surfaceWetness[i] = (
+                    1
+                );
+
 
                 continue;
             }
@@ -3370,22 +4062,19 @@ class PhysicsEngine {
             );
 
 
-            /* ================================================================
-               PRECIPITATION PHASE
-               ================================================================ */
-
             let phase = (
                 PHASE.NONE
             );
 
 
             if (
-                precip > 0.005
+                precip >
+                0.005
             ) {
 
                 if (
                     temperature <=
-                    C.precipitationPhase.snowMaxC
+                    snowMaxC
                 ) {
 
                     phase = (
@@ -3395,7 +4084,7 @@ class PhysicsEngine {
 
                 else if (
                     temperature <=
-                    C.precipitationPhase.sleetMaxC
+                    sleetMaxC
                 ) {
 
                     phase = (
@@ -3418,7 +4107,7 @@ class PhysicsEngine {
 
 
             /* ================================================================
-               SNOW ACCUMULATION
+               SNOW
                ================================================================ */
 
             if (
@@ -3427,7 +4116,9 @@ class PhysicsEngine {
             ) {
 
                 const liquidEquivalentMm = (
+
                     precip *
+
                     dtHours
                 );
 
@@ -3445,7 +4136,7 @@ class PhysicsEngine {
                 const thermalEfficiency = U.clamp(
 
                     (
-                        C.precipitationPhase.snowMaxC +
+                        snowMaxC +
                         1.5 -
                         temperature
                     ) /
@@ -3463,7 +4154,8 @@ class PhysicsEngine {
 
                     thermalEfficiency *
 
-                    C.snow.accumulationEfficiency *
+                    accumulationEfficiency *
+
                     7.5
                 );
 
@@ -3471,58 +4163,9 @@ class PhysicsEngine {
                 wetness = U.clamp(
 
                     wetness +
+
                     0.01 *
-                    dtHours,
 
-                    0,
-
-                    1
-                );
-            }
-
-
-            else if (
-                phase ===
-                PHASE.SLEET
-            ) {
-
-                const liquidEquivalentMm = (
-                    precip *
-                    dtHours
-                );
-
-
-                snow += (
-
-                    liquidEquivalentMm *
-                    0.12
-                );
-
-
-                wetness = U.clamp(
-
-                    wetness +
-                    P.wetnessFromSleet *
-                    precip *
-                    dtHours,
-
-                    0,
-
-                    1
-                );
-            }
-
-
-            else if (
-                phase ===
-                PHASE.RAIN
-            ) {
-
-                wetness = U.clamp(
-
-                    wetness +
-                    P.wetnessFromRain *
-                    precip *
                     dtHours,
 
                     0,
@@ -3533,21 +4176,93 @@ class PhysicsEngine {
 
 
             /* ================================================================
-               SNOW MELTING
+               SLEET
+               ================================================================ */
+
+            else if (
+                phase ===
+                PHASE.SLEET
+            ) {
+
+                const liquidEquivalentMm = (
+
+                    precip *
+
+                    dtHours
+                );
+
+
+                snow += (
+
+                    liquidEquivalentMm *
+
+                    0.12
+                );
+
+
+                wetness = U.clamp(
+
+                    wetness +
+
+                    P.wetnessFromSleet *
+
+                    precip *
+
+                    dtHours,
+
+                    0,
+
+                    1
+                );
+            }
+
+
+            /* ================================================================
+               RAIN
+               ================================================================ */
+
+            else if (
+                phase ===
+                PHASE.RAIN
+            ) {
+
+                wetness = U.clamp(
+
+                    wetness +
+
+                    P.wetnessFromRain *
+
+                    precip *
+
+                    dtHours,
+
+                    0,
+
+                    1
+                );
+            }
+
+
+            /* ================================================================
+               MELT
                ================================================================ */
 
             if (
-                snow > 0
+                snow >
+                0
             ) {
 
                 let melt = (
+
                     P.baseSnowMeltCmPerHour *
+
                     dtHours
                 );
 
 
                 if (
-                    temperature > 0
+                    temperature >
+                    0
                 ) {
 
                     melt += (
@@ -3588,13 +4303,16 @@ class PhysicsEngine {
 
 
                 if (
-                    temperature > -1
+                    temperature >
+                    -1
                 ) {
 
                     melt += (
 
                         solar *
+
                         0.10 *
+
                         dtHours
                     );
                 }
@@ -3614,24 +4332,31 @@ class PhysicsEngine {
                COMPACTION
                ================================================================ */
 
-            snow *= (
+            snow *= Math.max(
+
+                0,
+
                 1 -
+
                 P.snowCompactionPerHour *
+
                 dtHours
             );
 
 
             if (
                 snow <
-                C.snow.minimumPersistentDepthCm
+                minimumPersistentDepth
             ) {
 
-                snow = 0;
+                snow = (
+                    0
+                );
             }
 
 
             /* ================================================================
-               SURFACE DRYING
+               DRYING
                ================================================================ */
 
             if (
@@ -3653,6 +4378,7 @@ class PhysicsEngine {
 
                     (
                         0.5 +
+
                         windSpeed *
                         0.04
                     ) *
@@ -3701,12 +4427,28 @@ class PhysicsEngine {
         );
 
 
+        const temperatureDiffusion = setting(
+
+            C.atmosphere,
+
+            "temperatureDiffusion",
+
+            0.018
+        );
+
+
+        const moistureDiffusion = setting(
+
+            C.atmosphere,
+
+            "moistureDiffusion",
+
+            0.014
+        );
+
+
         /*
-         * Very small amount of smoothing.
-
-         * Strong enough to prevent checkerboard fields.
-
-         * Weak enough to preserve frontal boundaries.
+         * Weak smoothing only.
          */
 
         diffuse(
@@ -3717,7 +4459,8 @@ class PhysicsEngine {
 
             this.ny,
 
-            C.atmosphere.temperatureDiffusion *
+            temperatureDiffusion *
+
             dtHours,
 
             P.minimumTemperatureC,
@@ -3734,7 +4477,8 @@ class PhysicsEngine {
 
             this.ny,
 
-            C.atmosphere.moistureDiffusion *
+            moistureDiffusion *
+
             dtHours,
 
             0,
@@ -3752,6 +4496,7 @@ class PhysicsEngine {
             this.ny,
 
             P.cloudDiffusionPerHour *
+
             dtHours,
 
             0,
@@ -3766,9 +4511,15 @@ class PhysicsEngine {
    EXPORT
 ============================================================================ */
 
-global.EuropaPhysics = PhysicsEngine;
+global.EuropaPhysics = (
+    PhysicsEngine
+);
 
-global.EuropaPhysicsConstants = P;
+
+global.EuropaPhysicsConstants = (
+    P
+);
+
 
 global.EuropaPhysicsUtilities = Object.freeze({
 
