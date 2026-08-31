@@ -1,3203 +1,2872 @@
 <!DOCTYPE html>
-
 <html lang="en">
-
 <head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>EuropaCraft Weather Simulator</title>
 
-<meta charset="UTF-8">
+    <style>
 
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
->
+        * {
+            box-sizing: border-box;
+        }
 
-<title>
-    EuropaCraft Climate Simulator
-</title>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            min-height: 100%;
+            background: #101418;
+            color: #e8edf1;
+            font-family:
+                Inter,
+                system-ui,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
+        }
 
+        body {
+            overflow-x: hidden;
+        }
 
-<style>
+        button,
+        select,
+        input {
+            font: inherit;
+        }
 
-    * {
-        box-sizing: border-box;
-    }
+        button {
+            cursor: pointer;
+        }
 
 
-    html,
-    body {
+        /* ================================================================
+           HEADER
+           ================================================================ */
 
-        margin: 0;
-        padding: 0;
+        #header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
 
-        background:
-            #eef2f4;
+            padding: 13px 18px;
 
-        color:
-            #17212b;
+            background: #171d22;
 
-        font-family:
-            Arial,
-            Helvetica,
-            sans-serif;
-    }
+            border-bottom:
+                1px solid #303941;
+        }
 
+        #title-area {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
 
-    body {
-        min-width:
-            920px;
-    }
+        #main-title {
+            margin: 0;
 
+            font-size: 20px;
+            font-weight: 700;
 
-    #toolbar {
+            letter-spacing: 0.2px;
+        }
 
-        display:
-            flex;
+        #subtitle {
+            color: #9eabb5;
 
-        flex-wrap:
-            wrap;
+            font-size: 12px;
+        }
 
-        align-items:
-            center;
+        #status-area {
+            display: flex;
+            align-items: center;
+            gap: 9px;
 
-        gap:
-            6px;
+            font-size: 12px;
+        }
 
-        padding:
-            8px 10px;
+        #status-dot {
+            width: 10px;
+            height: 10px;
 
-        background:
-            white;
+            border-radius: 50%;
 
-        border-bottom:
-            1px solid #b9c2c9;
-    }
+            background: #d5a93a;
+        }
 
+        #status-text {
+            color: #bfc8cf;
+        }
 
-    .group {
 
-        display:
-            flex;
+        /* ================================================================
+           MAIN
+           ================================================================ */
 
-        align-items:
-            center;
+        #app {
+            width: 100%;
 
-        gap:
-            5px;
+            display: grid;
 
-        padding-right:
-            9px;
+            grid-template-columns:
+                minmax(0, 1fr)
+                300px;
 
-        margin-right:
-            3px;
+            min-height:
+                calc(100vh - 57px);
+        }
 
-        border-right:
-            1px solid #d5dce1;
-    }
 
+        /* ================================================================
+           LEFT / MAP
+           ================================================================ */
 
-    .group:last-child {
-        border-right: 0;
-    }
+        #map-section {
+            min-width: 0;
 
+            padding: 12px;
 
-    button,
-    input {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
 
-        font:
-            inherit;
-    }
 
+        /* ================================================================
+           CONTROL TOOLBAR
+           ================================================================ */
 
-    button {
+        #toolbar {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            flex-wrap: wrap;
 
-        min-height:
-            34px;
+            padding: 8px;
 
-        padding:
-            5px 10px;
+            background: #171d22;
 
-        border:
-            1px solid #aab5bd;
+            border:
+                1px solid #303941;
 
-        border-radius:
-            4px;
+            border-radius: 6px;
+        }
 
-        background:
-            white;
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
 
-        color:
-            #17212b;
+        .toolbar-separator {
+            width: 1px;
+            height: 27px;
 
-        cursor:
-            pointer;
-    }
+            background: #344049;
 
+            margin:
+                0 4px;
+        }
 
-    button:hover {
+        .button {
+            border:
+                1px solid #3d4851;
 
-        background:
-            #f2f5f7;
-    }
+            background: #222a30;
+            color: #e6ebef;
 
+            border-radius: 4px;
 
-    button.active {
+            padding:
+                6px 10px;
 
-        background:
-            #17212b;
+            min-height: 32px;
+        }
 
-        border-color:
-            #17212b;
+        .button:hover {
+            background: #2c363e;
+        }
 
-        color:
-            white;
-    }
+        .button.active {
+            background: #36546b;
 
+            border-color: #5d8099;
+        }
 
-    button.primary {
+        .button.danger {
+            background: #4a292c;
 
-        background:
-            #17212b;
+            border-color: #6b3b40;
+        }
 
-        border-color:
-            #17212b;
+        select,
+        input[type="number"],
+        input[type="datetime-local"],
+        input[type="text"] {
+            border:
+                1px solid #3d4851;
 
-        color:
-            white;
-    }
+            background: #20272c;
+            color: #e8edf1;
 
+            border-radius: 4px;
 
-    button:disabled {
+            padding:
+                6px 7px;
+        }
 
-        opacity:
-            0.45;
+        select {
+            min-height: 32px;
+        }
 
-        cursor:
-            default;
-    }
 
+        /* ================================================================
+           MAP CONTAINER
+           ================================================================ */
 
-    input {
+        #map-container {
+            position: relative;
 
-        min-height:
-            34px;
+            width: 100%;
 
-        padding:
-            4px 6px;
+            background: #080b0d;
 
-        border:
-            1px solid #aab5bd;
+            border:
+                1px solid #303941;
 
-        border-radius:
-            4px;
-    }
+            border-radius: 6px;
 
+            overflow: hidden;
 
-    #dateInput {
+            line-height: 0;
+        }
 
-        width:
-            195px;
-    }
+        #weather-map {
+            display: block;
 
+            width: 100%;
+            height: auto;
 
-    #seedInput {
+            image-rendering: auto;
+        }
 
-        width:
-            116px;
-    }
 
+        /* ================================================================
+           MAP LABELS
+           ================================================================ */
 
-    #main {
+        #layer-label {
+            position: absolute;
 
-        display:
-            grid;
+            top: 9px;
+            left: 10px;
 
-        grid-template-columns:
-            780px
-            minmax(
-                300px,
-                1fr
-            );
-    }
+            padding:
+                5px 7px;
 
+            background:
+                rgba(
+                    10,
+                    14,
+                    17,
+                    0.72
+                );
 
-    #mapColumn {
+            border-radius: 4px;
 
-        background:
-            white;
+            font-size: 12px;
+            line-height: normal;
 
-        border-right:
-            1px solid #b9c2c9;
-    }
+            pointer-events: none;
+        }
 
+        #time-label {
+            position: absolute;
 
-    #mapWrap {
+            top: 9px;
+            right: 10px;
 
-        position:
-            relative;
+            padding:
+                5px 7px;
 
-        width:
-            780px;
+            background:
+                rgba(
+                    10,
+                    14,
+                    17,
+                    0.72
+                );
 
-        height:
-            440px;
+            border-radius: 4px;
 
-        overflow:
-            hidden;
+            font-size: 12px;
+            line-height: normal;
 
-        background:
-            #cdd6dc;
-    }
+            pointer-events: none;
+        }
 
 
-    #mapCanvas,
-    #particleCanvas {
+        /* ================================================================
+           HOVER
+           ================================================================ */
 
-        position:
-            absolute;
+        #hover-panel {
+            position: absolute;
 
-        top:
-            0;
+            display: none;
 
-        left:
-            0;
+            min-width: 185px;
 
-        width:
-            780px;
+            padding: 8px;
 
-        height:
-            440px;
-    }
+            background:
+                rgba(
+                    10,
+                    14,
+                    17,
+                    0.92
+                );
 
+            border:
+                1px solid #50606c;
 
-    #mapCanvas {
+            border-radius: 5px;
 
-        z-index:
-            1;
-    }
+            line-height: 1.35;
 
+            font-size: 11px;
 
-    #particleCanvas {
+            pointer-events: none;
 
-        z-index:
-            2;
+            z-index: 20;
+        }
 
-        pointer-events:
-            none;
-    }
+        #hover-panel strong {
+            font-size: 13px;
+        }
 
 
-    #selectionMarker {
+        /* ================================================================
+           TIMELINE
+           ================================================================ */
 
-        position:
-            absolute;
+        #timeline-panel {
+            padding: 9px;
 
-        z-index:
-            3;
+            background: #171d22;
 
-        width:
-            8px;
+            border:
+                1px solid #303941;
 
-        height:
-            8px;
+            border-radius: 6px;
+        }
 
-        margin-left:
-            -4px;
+        #timeline-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
 
-        margin-top:
-            -4px;
+            margin-bottom: 8px;
+        }
 
-        border:
-            1px solid black;
+        #timeline-date {
+            font-size: 13px;
+            font-weight: 600;
+        }
 
-        background:
-            white;
+        #timeline-subtext {
+            font-size: 11px;
+            color: #98a5ae;
+        }
 
-        display:
-            none;
+        #timeline-controls {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
 
-        pointer-events:
-            none;
-    }
 
+        /* ================================================================
+           SIDE PANEL
+           ================================================================ */
 
-    #mapFooter {
+        #sidebar {
+            border-left:
+                1px solid #303941;
 
-        min-height:
-            38px;
+            background: #14191d;
 
-        padding:
-            8px 11px;
+            padding: 11px;
 
-        border-top:
-            1px solid #d4dade;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
 
-        font-size:
-            12px;
-    }
+        .panel {
+            background: #1a2025;
 
+            border:
+                1px solid #303941;
 
-    #side {
+            border-radius: 6px;
 
-        min-width:
-            0;
+            padding: 10px;
+        }
 
-        padding:
-            12px;
-    }
+        .panel-title {
+            margin:
+                0 0 9px 0;
 
+            font-size: 13px;
+            font-weight: 700;
+        }
 
-    .panel {
+        .data-grid {
+            display: grid;
 
-        margin-bottom:
-            12px;
+            grid-template-columns:
+                1fr auto;
 
-        padding:
-            12px;
+            gap:
+                5px 10px;
 
-        background:
-            white;
+            font-size: 11px;
+        }
 
-        border:
-            1px solid #c7d0d6;
+        .data-name {
+            color: #9eabb5;
+        }
 
-        border-radius:
-            5px;
-    }
+        .data-value {
+            text-align: right;
 
+            font-variant-numeric:
+                tabular-nums;
+        }
 
-    .panel h2 {
 
-        margin:
-            0 0 9px 0;
+        /* ================================================================
+           LAYER BUTTONS
+           ================================================================ */
 
-        font-size:
-            15px;
-    }
+        #layer-buttons {
+            display: grid;
 
+            grid-template-columns:
+                1fr 1fr;
 
-    #status {
+            gap: 5px;
+        }
 
-        font-size:
-            13px;
+        #layer-buttons .button {
+            font-size: 11px;
+        }
 
-        line-height:
-            1.55;
-    }
 
+        /* ================================================================
+           OVERLAYS
+           ================================================================ */
 
-    #performance {
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
 
-        margin-top:
-            8px;
+            gap: 8px;
 
-        padding-top:
-            7px;
+            margin-bottom: 7px;
 
-        border-top:
-            1px solid #e1e5e8;
+            font-size: 11px;
+        }
 
-        font-size:
-            12px;
 
-        color:
-            #596873;
-    }
+        /* ================================================================
+           STATIONS
+           ================================================================ */
 
+        #station-form {
+            display: grid;
 
-    #inspector {
+            grid-template-columns:
+                1fr 1fr;
 
-        display:
-            grid;
+            gap: 5px;
+        }
 
-        grid-template-columns:
-            150px
-            minmax(
-                0,
-                1fr
-            );
+        #station-name {
+            grid-column:
+                1 / -1;
+        }
 
-        gap:
-            4px 8px;
+        #add-station-button {
+            grid-column:
+                1 / -1;
+        }
 
-        font-size:
-            13px;
-    }
+        #station-list {
+            margin-top: 8px;
 
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
 
-    .label {
+            max-height: 170px;
 
-        color:
-            #5e6d77;
-    }
+            overflow-y: auto;
+        }
 
+        .station-item {
+            padding: 6px;
 
-    .value {
+            background: #20272c;
 
-        font-variant-numeric:
-            tabular-nums;
-    }
+            border-radius: 4px;
 
+            font-size: 11px;
+        }
 
-    #log {
 
-        max-height:
-            170px;
+        /* ================================================================
+           SYSTEM INFO
+           ================================================================ */
 
-        overflow-y:
-            auto;
+        #system-message {
+            white-space: pre-wrap;
 
-        padding:
-            8px;
+            max-height: 180px;
 
-        white-space:
-            pre-wrap;
+            overflow-y: auto;
 
-        background:
-            #f7f9fa;
+            font-family:
+                Consolas,
+                monospace;
 
-        border:
-            1px solid #d9dfe3;
+            font-size: 10px;
 
-        font-family:
-            Consolas,
-            monospace;
+            color: #aeb9c1;
+        }
 
-        font-size:
-            11px;
 
-        line-height:
-            1.45;
-    }
+        /* ================================================================
+           RESPONSIVE
+           ================================================================ */
 
+        @media (
+            max-width: 1050px
+        ) {
 
-    .small {
+            #app {
+                grid-template-columns:
+                    1fr;
+            }
 
-        font-size:
-            11px;
+            #sidebar {
+                border-left: none;
 
-        line-height:
-            1.45;
+                border-top:
+                    1px solid #303941;
 
-        color:
-            #64727c;
-    }
+                display: grid;
 
-</style>
+                grid-template-columns:
+                    repeat(
+                        2,
+                        minmax(
+                            0,
+                            1fr
+                        )
+                    );
+            }
+        }
 
+        @media (
+            max-width: 650px
+        ) {
+
+            #sidebar {
+                grid-template-columns:
+                    1fr;
+            }
+
+            #header {
+                align-items: flex-start;
+
+                flex-direction: column;
+            }
+        }
+
+    </style>
 </head>
 
 
 <body>
 
 
-<div id="toolbar">
+    <!-- ================================================================
+         HEADER
+         ================================================================ -->
 
+    <header id="header">
 
-    <div class="group">
+        <div id="title-area">
 
-        <button
-            id="initialiseBtn"
-            class="primary"
-        >
-            Initialise
-        </button>
+            <h1 id="main-title">
+                EuropaCraft Weather Simulator
+            </h1>
 
-        <button
-            id="newRunBtn"
-        >
-            New Random Run
-        </button>
-
-    </div>
-
-
-    <div class="group">
-
-        <label for="dateInput">
-            UTC
-        </label>
-
-        <input
-            id="dateInput"
-            type="datetime-local"
-            value="2026-01-15T12:00"
-        >
-
-    </div>
-
-
-    <div class="group">
-
-        <label for="seedInput">
-            Seed
-        </label>
-
-        <input
-            id="seedInput"
-            type="number"
-            min="1"
-            step="1"
-        >
-
-        <button
-            id="applySeedBtn"
-        >
-            Apply
-        </button>
-
-    </div>
-
-
-    <div class="group">
-
-        <button
-            id="playBtn"
-        >
-            ▶ Play
-        </button>
-
-        <button
-            id="step1Btn"
-        >
-            +1 h
-        </button>
-
-        <button
-            id="step6Btn"
-        >
-            +6 h
-        </button>
-
-        <button
-            id="step24Btn"
-        >
-            +24 h
-        </button>
-
-    </div>
-
-
-    <div class="group">
-
-        <button
-            id="averageBtn"
-        >
-            Climatological Balance: OFF
-        </button>
-
-    </div>
-
-
-    <div class="group">
-
-        <button
-            class="viewBtn active"
-            data-view="temperature"
-        >
-            Temperature
-        </button>
-
-        <button
-            class="viewBtn"
-            data-view="anomaly"
-        >
-            Anomaly
-        </button>
-
-        <button
-            class="viewBtn"
-            data-view="pressure"
-        >
-            Pressure
-        </button>
-
-        <button
-            class="viewBtn"
-            data-view="wind"
-        >
-            Wind
-        </button>
-
-        <button
-            class="viewBtn"
-            data-view="cloud"
-        >
-            Cloud
-        </button>
-
-        <button
-            class="viewBtn"
-            data-view="precipitation"
-        >
-            Precipitation
-        </button>
-
-        <button
-            class="viewBtn"
-            data-view="airmass"
-        >
-            Air Mass
-        </button>
-
-    </div>
-
-
-    <div class="group">
-
-        <button
-            id="particlesBtn"
-            class="active"
-        >
-            Particles: ON
-        </button>
-
-    </div>
-
-
-</div>
-
-
-<div id="main">
-
-
-    <div id="mapColumn">
-
-
-        <div id="mapWrap">
-
-
-            <canvas
-                id="mapCanvas"
-                width="780"
-                height="440"
-            ></canvas>
-
-
-            <canvas
-                id="particleCanvas"
-                width="780"
-                height="440"
-            ></canvas>
-
-
-            <div
-                id="selectionMarker"
-            ></div>
-
-
-        </div>
-
-
-        <div id="mapFooter">
-
-            Atmospheric physics:
-            195 × 110 cells.
-            Display:
-            780 × 440.
-            Click map to inspect.
-
-        </div>
-
-
-    </div>
-
-
-    <div id="side">
-
-
-        <div class="panel">
-
-
-            <h2>
-                Simulation
-            </h2>
-
-
-            <div id="status">
-                Loading engines...
+            <div id="subtitle">
+                Persistent European atmosphere
             </div>
 
-
-            <div id="performance">
-                No simulation timing yet.
-            </div>
-
-
         </div>
 
 
-        <div class="panel">
+        <div id="status-area">
+
+            <div id="status-dot"></div>
+
+            <span id="status-text">
+                Loading simulation…
+            </span>
+
+        </div>
+
+    </header>
 
 
-            <h2>
-                Selected Location
-            </h2>
+    <!-- ================================================================
+         APPLICATION
+         ================================================================ -->
+
+    <main id="app">
 
 
-            <div id="inspector">
+        <!-- ============================================================
+             MAP SIDE
+             ============================================================ -->
+
+        <section id="map-section">
 
 
-                <div class="label">
-                    Latitude
-                </div>
+            <!-- ========================================================
+                 TOOLBAR
+                 ======================================================== -->
 
-                <div
-                    id="inspectLat"
-                    class="value"
-                >
-                    —
-                </div>
+            <div id="toolbar">
 
+                <div class="toolbar-group">
 
-                <div class="label">
-                    Longitude
-                </div>
+                    <button
+                        id="play-button"
+                        class="button"
+                        type="button"
+                    >
+                        ▶ Play
+                    </button>
 
-                <div
-                    id="inspectLon"
-                    class="value"
-                >
-                    —
-                </div>
+                    <button
+                        id="step-button"
+                        class="button"
+                        type="button"
+                    >
+                        +4 min
+                    </button>
 
-
-                <div class="label">
-                    Temperature
-                </div>
-
-                <div
-                    id="inspectTemperature"
-                    class="value"
-                >
-                    —
-                </div>
-
-
-                <div class="label">
-                    Anomaly
-                </div>
-
-                <div
-                    id="inspectAnomaly"
-                    class="value"
-                >
-                    —
                 </div>
 
 
-                <div class="label">
-                    SST
-                </div>
-
-                <div
-                    id="inspectSST"
-                    class="value"
-                >
-                    —
-                </div>
+                <div class="toolbar-separator"></div>
 
 
-                <div class="label">
-                    Pressure
-                </div>
+                <div class="toolbar-group">
 
-                <div
-                    id="inspectPressure"
-                    class="value"
-                >
-                    —
-                </div>
+                    <label for="speed-select">
+                        Speed
+                    </label>
 
+                    <select id="speed-select">
 
-                <div class="label">
-                    Wind
-                </div>
+                        <option value="1">
+                            Real time
+                        </option>
 
-                <div
-                    id="inspectWind"
-                    class="value"
-                >
-                    —
-                </div>
+                        <option
+                            value="60"
+                            selected
+                        >
+                            1 min/sec
+                        </option>
 
+                        <option value="600">
+                            10 min/sec
+                        </option>
 
-                <div class="label">
-                    Moisture
-                </div>
+                        <option value="3600">
+                            1 hour/sec
+                        </option>
 
-                <div
-                    id="inspectMoisture"
-                    class="value"
-                >
-                    —
+                        <option value="21600">
+                            6 hours/sec
+                        </option>
+
+                        <option value="86400">
+                            1 day/sec
+                        </option>
+
+                    </select>
+
                 </div>
 
 
-                <div class="label">
-                    Cloud
+                <div class="toolbar-separator"></div>
+
+
+                <div class="toolbar-group">
+
+                    <button
+                        id="minus-hour-button"
+                        class="button"
+                        type="button"
+                    >
+                        −1h
+                    </button>
+
+                    <button
+                        id="plus-hour-button"
+                        class="button"
+                        type="button"
+                    >
+                        +1h
+                    </button>
+
+                    <button
+                        id="minus-day-button"
+                        class="button"
+                        type="button"
+                    >
+                        −1d
+                    </button>
+
+                    <button
+                        id="plus-day-button"
+                        class="button"
+                        type="button"
+                    >
+                        +1d
+                    </button>
+
                 </div>
 
-                <div
-                    id="inspectCloud"
-                    class="value"
-                >
-                    —
+
+                <div class="toolbar-separator"></div>
+
+
+                <div class="toolbar-group">
+
+                    <button
+                        id="snapshot-button"
+                        class="button"
+                        type="button"
+                    >
+                        Snapshot
+                    </button>
+
                 </div>
-
-
-                <div class="label">
-                    Precipitation
-                </div>
-
-                <div
-                    id="inspectPrecip"
-                    class="value"
-                >
-                    —
-                </div>
-
-
-                <div class="label">
-                    Air mass
-                </div>
-
-                <div
-                    id="inspectAirMass"
-                    class="value"
-                >
-                    —
-                </div>
-
 
             </div>
 
 
-        </div>
+            <!-- ========================================================
+                 MAP
+                 ======================================================== -->
+
+            <div id="map-container">
+
+                <canvas
+                    id="weather-map"
+                    width="780"
+                    height="440"
+                ></canvas>
 
 
-        <div class="panel">
+                <div id="layer-label">
+                    Actual temperature
+                </div>
 
 
-            <h2>
-                Run Log
-            </h2>
+                <div id="time-label">
+                    —
+                </div>
 
 
-            <div
-                id="log"
-            >
-                No simulation initialised.
+                <div id="hover-panel"></div>
+
             </div>
 
 
-            <p class="small">
+            <!-- ========================================================
+                 TIMELINE
+                 ======================================================== -->
 
-                Layer switching now reads the atmospheric arrays
-                directly. It does not rerun the weather simulation.
+            <div id="timeline-panel">
 
-            </p>
+                <div id="timeline-top">
 
+                    <div>
 
-        </div>
+                        <div id="timeline-date">
+                            —
+                        </div>
 
+                        <div id="timeline-subtext">
+                            Physics timestep: —
+                        </div>
 
-    </div>
-
-
-</div>
-
-
-<script src="europacraft-climate-v3.js"></script>
-
-<script src="europacraft-weather-v1.js"></script>
+                    </div>
 
 
-<script>
+                    <input
+                        id="datetime-input"
+                        type="datetime-local"
+                        step="60"
+                    >
 
-(function () {
+                </div>
 
+
+                <div id="timeline-controls">
+
+                    <button
+                        id="seek-button"
+                        class="button"
+                        type="button"
+                    >
+                        Go to time
+                    </button>
+
+                    <button
+                        id="now-reset-button"
+                        class="button"
+                        type="button"
+                    >
+                        Reset simulation
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ============================================================
+             SIDEBAR
+             ============================================================ -->
+
+        <aside id="sidebar">
+
+
+            <!-- ========================================================
+                 CURRENT STATE
+                 ======================================================== -->
+
+            <section class="panel">
+
+                <h2 class="panel-title">
+                    Simulation
+                </h2>
+
+
+                <div class="data-grid">
+
+                    <span class="data-name">
+                        Physics step
+                    </span>
+
+                    <span
+                        class="data-value"
+                        id="info-step"
+                    >
+                        —
+                    </span>
+
+
+                    <span class="data-name">
+                        Total steps
+                    </span>
+
+                    <span
+                        class="data-value"
+                        id="info-total-steps"
+                    >
+                        —
+                    </span>
+
+
+                    <span class="data-name">
+                        Systems
+                    </span>
+
+                    <span
+                        class="data-value"
+                        id="info-systems"
+                    >
+                        —
+                    </span>
+
+
+                    <span class="data-name">
+                        Steering arrows
+                    </span>
+
+                    <span
+                        class="data-value"
+                        id="info-arrows"
+                    >
+                        —
+                    </span>
+
+
+                    <span class="data-name">
+                        Snapshots
+                    </span>
+
+                    <span
+                        class="data-value"
+                        id="info-snapshots"
+                    >
+                        —
+                    </span>
+
+
+                    <span class="data-name">
+                        Render time
+                    </span>
+
+                    <span
+                        class="data-value"
+                        id="info-render"
+                    >
+                        —
+                    </span>
+
+                </div>
+
+            </section>
+
+
+            <!-- ========================================================
+                 MAP LAYERS
+                 ======================================================== -->
+
+            <section class="panel">
+
+                <h2 class="panel-title">
+                    Map Layer
+                </h2>
+
+
+                <div id="layer-buttons">
+
+                    <button
+                        class="button active"
+                        data-layer="temperature"
+                        type="button"
+                    >
+                        Temperature
+                    </button>
+
+                    <button
+                        class="button"
+                        data-layer="anomaly"
+                        type="button"
+                    >
+                        Anomaly
+                    </button>
+
+                    <button
+                        class="button"
+                        data-layer="pressure"
+                        type="button"
+                    >
+                        Pressure
+                    </button>
+
+                    <button
+                        class="button"
+                        data-layer="wind"
+                        type="button"
+                    >
+                        Wind
+                    </button>
+
+                    <button
+                        class="button"
+                        data-layer="cloud"
+                        type="button"
+                    >
+                        Cloud
+                    </button>
+
+                    <button
+                        class="button"
+                        data-layer="precipitation"
+                        type="button"
+                    >
+                        Precipitation
+                    </button>
+
+                    <button
+                        class="button"
+                        data-layer="snow"
+                        type="button"
+                    >
+                        Snow
+                    </button>
+
+                    <button
+                        class="button"
+                        data-layer="sst"
+                        type="button"
+                    >
+                        SST
+                    </button>
+
+                    <button
+                        class="button"
+                        data-layer="fronts"
+                        type="button"
+                    >
+                        Fronts
+                    </button>
+
+                </div>
+
+            </section>
+
+
+            <!-- ========================================================
+                 OVERLAYS
+                 ======================================================== -->
+
+            <section class="panel">
+
+                <h2 class="panel-title">
+                    Overlays
+                </h2>
+
+
+                <label class="toggle-row">
+
+                    <span>
+                        Isobars
+                    </span>
+
+                    <input
+                        id="isobar-toggle"
+                        type="checkbox"
+                        checked
+                    >
+
+                </label>
+
+
+                <label class="toggle-row">
+
+                    <span>
+                        Wind vectors
+                    </span>
+
+                    <input
+                        id="wind-vector-toggle"
+                        type="checkbox"
+                    >
+
+                </label>
+
+
+                <label class="toggle-row">
+
+                    <span>
+                        Front overlay
+                    </span>
+
+                    <input
+                        id="front-toggle"
+                        type="checkbox"
+                    >
+
+                </label>
+
+
+                <label class="toggle-row">
+
+                    <span>
+                        Synoptic systems
+                    </span>
+
+                    <input
+                        id="system-toggle"
+                        type="checkbox"
+                        checked
+                    >
+
+                </label>
+
+
+                <label class="toggle-row">
+
+                    <span>
+                        Steering arrows
+                    </span>
+
+                    <input
+                        id="arrow-toggle"
+                        type="checkbox"
+                        checked
+                    >
+
+                </label>
+
+            </section>
+
+
+            <!-- ========================================================
+                 WEATHER STATIONS
+                 ======================================================== -->
+
+            <section class="panel">
+
+                <h2 class="panel-title">
+                    Weather Stations
+                </h2>
+
+
+                <div id="station-form">
+
+                    <input
+                        id="station-name"
+                        type="text"
+                        placeholder="Station name"
+                    >
+
+
+                    <input
+                        id="station-lat"
+                        type="number"
+                        step="0.01"
+                        min="30"
+                        max="74"
+                        value="51.27"
+                        placeholder="Latitude"
+                    >
+
+
+                    <input
+                        id="station-lon"
+                        type="number"
+                        step="0.01"
+                        min="-26"
+                        max="52"
+                        value="0.52"
+                        placeholder="Longitude"
+                    >
+
+
+                    <button
+                        id="add-station-button"
+                        class="button"
+                        type="button"
+                    >
+                        Add Station
+                    </button>
+
+                </div>
+
+
+                <div id="station-list"></div>
+
+            </section>
+
+
+            <!-- ========================================================
+                 DIAGNOSTICS
+                 ======================================================== -->
+
+            <section class="panel">
+
+                <h2 class="panel-title">
+                    Diagnostics
+                </h2>
+
+
+                <div id="system-message">
+                    Waiting for simulator…
+                </div>
+
+            </section>
+
+        </aside>
+
+    </main>
+
+
+    <!-- ================================================================
+         EUROPAcraft WEATHER MODULES
+
+         LOAD ORDER IS IMPORTANT.
+
+         null1.js IS INTENTIONALLY NOT LOADED.
+         ================================================================ -->
+
+
+    <script src="config.js"></script>
+
+    <script src="europacraft-utils.js"></script>
+
+    <script src="europacraft-terrain.js"></script>
+
+    <script src="europacraft-climate-v3.js"></script>
+
+    <script src="europacraft-ocean.js"></script>
+
+    <script src="europacraft-synoptic.js"></script>
+
+    <script src="europacraft-atmosphere.js"></script>
+
+    <script src="europacraft-physics.js"></script>
+
+    <script src="europacraft-history.js"></script>
+
+    <script src="europacraft-weather.js"></script>
+
+    <script src="europacraft-renderer.js"></script>
+
+
+    <!-- ================================================================
+         APPLICATION BOOT
+         ================================================================ -->
+
+    <script>
+
+    (function () {
     "use strict";
 
 
-    /* ============================================================
-       DISPLAY CONSTANTS
-    ============================================================ */
+    /* ====================================================================
+       ELEMENTS
+       ==================================================================== */
 
-    var DISPLAY_WIDTH =
-        780;
-
-    var DISPLAY_HEIGHT =
-        440;
-
-
-    var WEST =
-        -26;
-
-    var EAST =
-        52;
-
-    var SOUTH =
-        30;
-
-    var NORTH =
-        74;
-
-
-    /* ============================================================
-       DOM
-    ============================================================ */
-
-    var mapCanvas =
+    const $ = id =>
         document.getElementById(
-            "mapCanvas"
+            id
         );
 
-    var mapContext =
-        mapCanvas.getContext(
-            "2d",
+
+    const statusDot =
+        $("status-dot");
+
+    const statusText =
+        $("status-text");
+
+    const diagnostics =
+        $("system-message");
+
+
+    let weather = null;
+
+    let renderer = null;
+
+
+    /* ====================================================================
+       STATUS
+       ==================================================================== */
+
+    function setStatus(
+        text,
+        state = "loading"
+    ) {
+
+        statusText.textContent = (
+            text
+        );
+
+
+        if (
+            state ===
+            "good"
+        ) {
+
+            statusDot.style.background = (
+                "#4db878"
+            );
+        }
+
+        else if (
+            state ===
+            "bad"
+        ) {
+
+            statusDot.style.background = (
+                "#d95c5c"
+            );
+        }
+
+        else {
+
+            statusDot.style.background = (
+                "#d5a93a"
+            );
+        }
+    }
+
+
+    function log(
+        text
+    ) {
+
+        diagnostics.textContent = (
+            text
+        );
+    }
+
+
+    /* ====================================================================
+       DATE DISPLAY
+       ==================================================================== */
+
+    function formatDate(
+        date
+    ) {
+
+        return new Intl.DateTimeFormat(
+
+            "en-GB",
+
             {
-                alpha:
-                    false
+                year:
+                    "numeric",
+
+                month:
+                    "short",
+
+                day:
+                    "2-digit",
+
+                hour:
+                    "2-digit",
+
+                minute:
+                    "2-digit",
+
+                second:
+                    "2-digit",
+
+                hour12:
+                    false,
+
+                timeZone:
+                    "UTC"
             }
-        );
 
-
-    var particleCanvas =
-        document.getElementById(
-            "particleCanvas"
-        );
-
-    var particleContext =
-        particleCanvas.getContext(
-            "2d"
-        );
-
-
-    var selectionMarker =
-        document.getElementById(
-            "selectionMarker"
-        );
-
-
-    var dateInput =
-        document.getElementById(
-            "dateInput"
-        );
-
-
-    var seedInput =
-        document.getElementById(
-            "seedInput"
-        );
-
-
-    var statusElement =
-        document.getElementById(
-            "status"
-        );
-
-
-    var performanceElement =
-        document.getElementById(
-            "performance"
-        );
-
-
-    var logElement =
-        document.getElementById(
-            "log"
-        );
-
-
-    /* ============================================================
-       OFFSCREEN ATMOSPHERIC CANVAS
-
-       THIS IS THE MAIN PERFORMANCE CHANGE.
-
-       Instead of rendering 780 × 440 weather samples,
-       we render only 195 × 110 pixels.
-    ============================================================ */
-
-    var atmosphereCanvas =
-        document.createElement(
-            "canvas"
-        );
-
-
-    var atmosphereContext =
-        atmosphereCanvas.getContext(
-            "2d",
-            {
-                alpha:
-                    false
-            }
-        );
-
-
-    var atmosphereImage =
-        null;
-
-
-    /* ============================================================
-       STATE
-    ============================================================ */
-
-    var world =
-        null;
-
-
-    var particles =
-        [];
-
-
-    var particlesEnabled =
-        true;
-
-
-    var currentView =
-        "temperature";
-
-
-    var selectedLatitude =
-        51.5;
-
-
-    var selectedLongitude =
-        -0.1;
-
-
-    var playing =
-        false;
-
-
-    var playTimer =
-        null;
-
-
-    var busy =
-        false;
-
-
-    /* ============================================================
-       ENGINE CHECK
-    ============================================================ */
-
-    function enginesReady() {
-
-        if (
-            !window.EuropaClimate
-        ) {
-
-            statusElement.textContent =
-                "Climate engine missing.";
-
-            return false;
-        }
-
-
-        if (
-            !window.EuropaWeather
-        ) {
-
-            statusElement.textContent =
-                "Weather engine missing.";
-
-            return false;
-        }
-
-
-        return true;
+        ).format(
+            date
+        ) + " UTC";
     }
 
 
-    /* ============================================================
-       SURFACE PROVIDER
-
-       This remains deliberately lightweight.
-
-       It can later be replaced with the exact Natural Earth /
-       EuropaCraft surface grid without changing weather physics.
-    ============================================================ */
-
-    function roughLandFraction(
-        latitude,
-        longitude
+    function localInputValue(
+        date
     ) {
 
-
-        /* ATLANTIC */
-
-        if (
-            longitude <
-            -11
+        function pad(
+            value
         ) {
 
-            return 0;
+            return String(
+                value
+            ).padStart(
+                2,
+                "0"
+            );
         }
 
-
-        /* NORWEGIAN / GREENLAND SEAS */
-
-        if (
-            latitude >
-            66 &&
-            longitude <
-            -5
-        ) {
-
-            return 0;
-        }
-
-
-        /* NORTH SEA */
-
-        if (
-            latitude >
-            51 &&
-            latitude <
-            61 &&
-            longitude >
-            2 &&
-            longitude <
-            8
-        ) {
-
-            return 0;
-        }
-
-
-        /* BALTIC BROAD */
-
-        if (
-            latitude >
-            55 &&
-            latitude <
-            66 &&
-            longitude >
-            14 &&
-            longitude <
-            30
-        ) {
-
-            if (
-                longitude >
-                20 ||
-                latitude <
-                59
-            ) {
-
-                return 0;
-            }
-        }
-
-
-        /* BLACK SEA */
-
-        if (
-            latitude >
-            40 &&
-            latitude <
-            47 &&
-            longitude >
-            27 &&
-            longitude <
-            42
-        ) {
-
-            return 0;
-        }
-
-
-        /* WESTERN MEDITERRANEAN */
-
-        if (
-            latitude <
-            41 &&
-            longitude >
-            4 &&
-            longitude <
-            10
-        ) {
-
-            return 0;
-        }
-
-
-        /* CENTRAL MEDITERRANEAN */
-
-        if (
-            latitude <
-            40 &&
-            longitude >=
-            10 &&
-            longitude <
-            20
-        ) {
-
-            return 0;
-        }
-
-
-        /* EASTERN MEDITERRANEAN */
-
-        if (
-            latitude <
-            38 &&
-            longitude >=
-            20 &&
-            longitude <
-            34
-        ) {
-
-            return 0;
-        }
-
-
-        return 1;
-    }
-
-
-    /* ============================================================
-       MAP TRANSFORMS
-    ============================================================ */
-
-    function lonToPixel(
-        longitude
-    ) {
 
         return (
-            (
-                longitude -
-                WEST
-            ) /
-            (
-                EAST -
-                WEST
-            ) *
-            DISPLAY_WIDTH
-        );
-    }
 
+            date.getUTCFullYear() +
+            "-" +
 
-    function latToPixel(
-        latitude
-    ) {
+            pad(
+                date.getUTCMonth() +
+                1
+            ) +
+            "-" +
 
-        return (
-            (
-                NORTH -
-                latitude
-            ) /
-            (
-                NORTH -
-                SOUTH
-            ) *
-            DISPLAY_HEIGHT
-        );
-    }
+            pad(
+                date.getUTCDate()
+            ) +
+            "T" +
 
+            pad(
+                date.getUTCHours()
+            ) +
+            ":" +
 
-    function pixelToLon(
-        x
-    ) {
-
-        return (
-            WEST +
-            x /
-            DISPLAY_WIDTH *
-            (
-                EAST -
-                WEST
+            pad(
+                date.getUTCMinutes()
             )
         );
     }
 
 
-    function pixelToLat(
-        y
+    function dateFromInput(
+        value
     ) {
 
-        return (
-            NORTH -
-            y /
-            DISPLAY_HEIGHT *
-            (
-                NORTH -
-                SOUTH
-            )
-        );
-    }
-
-
-    /* ============================================================
-       DATE
-    ============================================================ */
-
-    function parseDateInput() {
-
         if (
-            !dateInput.value
+            !value
         ) {
 
-            return new Date();
+            return null;
+        }
+
+
+        const parts = (
+            value.split(
+                "T"
+            )
+        );
+
+
+        if (
+            parts.length !==
+            2
+        ) {
+
+            return null;
+        }
+
+
+        const dateParts = (
+            parts[0]
+                .split(
+                    "-"
+                )
+                .map(
+                    Number
+                )
+        );
+
+
+        const timeParts = (
+            parts[1]
+                .split(
+                    ":"
+                )
+                .map(
+                    Number
+                )
+        );
+
+
+        if (
+            dateParts.length <
+            3 ||
+            timeParts.length <
+            2
+        ) {
+
+            return null;
         }
 
 
         return new Date(
-            dateInput.value +
-            ":00Z"
-        );
-    }
 
+            Date.UTC(
 
-    function updateDateInput() {
+                dateParts[0],
 
-        if (
-            !world
-        ) {
-            return;
-        }
+                dateParts[1] - 1,
 
+                dateParts[2],
 
-        dateInput.value =
-            world.date
-                .toISOString()
-                .substring(
-                    0,
-                    16
-                );
-    }
+                timeParts[0],
 
+                timeParts[1],
 
-    /* ============================================================
-       UI BUSY STATE
-    ============================================================ */
+                0,
 
-    function setBusy(
-        enabled
-    ) {
-
-        busy =
-            !!enabled;
-
-
-        var ids = [
-
-            "initialiseBtn",
-            "newRunBtn",
-            "applySeedBtn",
-            "step1Btn",
-            "step6Btn",
-            "step24Btn",
-            "averageBtn"
-
-        ];
-
-
-        var i;
-
-
-        for (
-            i = 0;
-            i <
-            ids.length;
-            i++
-        ) {
-
-            document.getElementById(
-                ids[
-                    i
-                ]
-            ).disabled =
-                busy;
-        }
-    }
-
-
-    /* ============================================================
-       LOG
-    ============================================================ */
-
-    function appendLog(
-        message
-    ) {
-
-        var existing =
-            logElement.textContent;
-
-
-        if (
-            existing ===
-            "No simulation initialised."
-        ) {
-
-            existing =
-                "";
-        }
-
-
-        var lines =
-            (
-                existing +
-                "\n" +
-                message
+                0
             )
-            .trim()
-            .split(
-                "\n"
-            );
-
-
-        if (
-            lines.length >
-            18
-        ) {
-
-            lines =
-                lines.slice(
-                    lines.length -
-                    18
-                );
-        }
-
-
-        logElement.textContent =
-            lines.join(
-                "\n"
-            );
+        );
     }
 
 
-    /* ============================================================
-       INITIALISE
-    ============================================================ */
+    /* ====================================================================
+       STATE DISPLAY
+       ==================================================================== */
 
-    function initialiseWorld() {
+    function updateInformation() {
 
         if (
-            busy
+            !weather ||
+            !renderer
         ) {
+
             return;
         }
 
 
-        if (
-            !enginesReady()
-        ) {
-            return;
-        }
-
-
-        stopPlayback();
-
-
-        setBusy(
-            true
+        const state = (
+            weather.getStateSummary()
         );
 
 
-        statusElement.textContent =
-            "Initialising atmospheric grid...";
-
-
-        /*
-         * Allow browser to paint status before heavy work.
-         */
-        setTimeout(
-            function () {
-
-                var start =
-                    performance.now();
-
-
-                window.EuropaWeather
-                    .setSurfaceProvider(
-                        roughLandFraction
-                    );
-
-
-                world =
-                    new window.EuropaWeather
-                        .WeatherWorld(
-                            parseDateInput()
-                        );
-
-
-                particles =
-                    window.EuropaWeather
-                        .createParticles(
-                            350
-                        );
-
-
-                seedInput.value =
-                    window.EuropaWeather
-                        .getSimulationSeed();
-
-
-                atmosphereCanvas.width =
-                    window.EuropaWeather
-                        .grid
-                        .width;
-
-
-                atmosphereCanvas.height =
-                    window.EuropaWeather
-                        .grid
-                        .height;
-
-
-                atmosphereImage =
-                    atmosphereContext
-                        .createImageData(
-                            atmosphereCanvas.width,
-                            atmosphereCanvas.height
-                        );
-
-
-                var elapsed =
-                    performance.now() -
-                    start;
-
-
-                appendLog(
-                    "Initialised " +
-                    world.date
-                        .toISOString()
-                        .substring(
-                            0,
-                            16
-                        ) +
-                    " | seed " +
-                    seedInput.value
-                );
-
-
-                render();
-
-
-                inspectSelected();
-
-
-                performanceElement.textContent =
-                    "Initialisation: " +
-                    elapsed.toFixed(
-                        0
-                    ) +
-                    " ms";
-
-
-                setBusy(
-                    false
-                );
-
-            },
-            20
+        const renderInfo = (
+            renderer.getInfo()
         );
-    }
 
 
-    /* ============================================================
-       COLOUR HELPERS
-    ============================================================ */
-
-    function colourTemperature(
-        value
-    ) {
-
-        if (
-            value <=
-            -20
-        ) {
-
-            return [
-                40,
-                55,
-                125
-            ];
-        }
-
-
-        if (
-            value <=
-            -10
-        ) {
-
-            var t1 =
-                (
-                    value +
-                    20
-                ) /
-                10;
-
-            return mixColour(
-                [40,55,125],
-                [80,125,195],
-                t1
-            );
-        }
-
-
-        if (
-            value <=
-            0
-        ) {
-
-            var t2 =
-                (
-                    value +
-                    10
-                ) /
-                10;
-
-            return mixColour(
-                [80,125,195],
-                [200,225,235],
-                t2
-            );
-        }
-
-
-        if (
-            value <=
-            10
-        ) {
-
-            var t3 =
-                value /
-                10;
-
-            return mixColour(
-                [200,225,235],
-                [225,230,165],
-                t3
-            );
-        }
-
-
-        if (
-            value <=
-            20
-        ) {
-
-            var t4 =
-                (
-                    value -
-                    10
-                ) /
-                10;
-
-            return mixColour(
-                [225,230,165],
-                [235,180,95],
-                t4
-            );
-        }
-
-
-        if (
-            value <=
-            30
-        ) {
-
-            var t5 =
-                (
-                    value -
-                    20
-                ) /
-                10;
-
-            return mixColour(
-                [235,180,95],
-                [210,90,65],
-                t5
-            );
-        }
-
-
-        return [
-            160,
-            50,
-            50
-        ];
-    }
-
-
-    function colourAnomaly(
-        value
-    ) {
-
-        value =
-            Math.max(
-                -8,
-                Math.min(
-                    8,
-                    value
-                )
-            );
-
-
-        if (
-            value <
-            0
-        ) {
-
-            return mixColour(
-                [70,110,205],
-                [230,230,225],
-                (
-                    value +
-                    8
-                ) /
-                8
-            );
-        }
-
-
-        return mixColour(
-            [230,230,225],
-            [205,75,60],
-            value /
-            8
-        );
-    }
-
-
-    function colourPressure(
-        value
-    ) {
-
-        var amount =
-            (
-                value -
-                985
-            ) /
-            60;
-
-
-        amount =
-            Math.max(
-                0,
-                Math.min(
-                    1,
-                    amount
-                )
-            );
-
-
-        var shade =
-            Math.round(
-                45 +
-                amount *
-                200
-            );
-
-
-        return [
-            shade,
-            shade,
-            shade
-        ];
-    }
-
-
-    function colourWind(
-        value
-    ) {
-
-        var amount =
-            Math.min(
-                1,
-                value /
-                20
-            );
-
-
-        var shade =
-            Math.round(
-                245 -
-                amount *
-                200
-            );
-
-
-        return [
-            shade,
-            shade,
-            shade
-        ];
-    }
-
-
-    function colourCloud(
-        value
-    ) {
-
-        var shade =
-            Math.round(
-                245 -
-                value *
-                210
-            );
-
-
-        return [
-            shade,
-            shade,
-            shade
-        ];
-    }
-
-
-    function colourPrecipitation(
-        intensity,
-        temperature
-    ) {
-
-        if (
-            intensity <
-            0.02
-        ) {
-
-            return [
-                246,
-                246,
-                246
-            ];
-        }
-
-
-        if (
-            temperature <=
-            1.5
-        ) {
-
-            return mixColour(
-                [238,242,250],
-                [115,130,190],
-                intensity
-            );
-        }
-
-
-        if (
-            temperature <=
-            3
-        ) {
-
-            return mixColour(
-                [235,242,242],
-                [80,165,180],
-                intensity
-            );
-        }
-
-
-        return mixColour(
-            [235,242,245],
-            [55,110,185],
-            intensity
-        );
-    }
-
-
-    function colourAirMass(
-        value
-    ) {
-
-        if (
-            value <
-            0
-        ) {
-
-            return mixColour(
-                [65,105,205],
-                [230,230,225],
-                value +
-                1
-            );
-        }
-
-
-        return mixColour(
-            [230,230,225],
-            [210,80,55],
-            value
-        );
-    }
-
-
-    function mixColour(
-        a,
-        b,
-        amount
-    ) {
-
-        amount =
-            Math.max(
-                0,
-                Math.min(
-                    1,
-                    amount
-                )
-            );
-
-
-        return [
-
-            Math.round(
-                a[0] +
-                (
-                    b[0] -
-                    a[0]
-                ) *
-                amount
-            ),
-
-            Math.round(
-                a[1] +
-                (
-                    b[1] -
-                    a[1]
-                ) *
-                amount
-            ),
-
-            Math.round(
-                a[2] +
-                (
-                    b[2] -
-                    a[2]
-                ) *
-                amount
+        $("time-label").textContent = (
+            formatDate(
+                state.date
             )
-
-        ];
-    }
-
-
-    /* ============================================================
-       OPTIMISED RENDER
-
-       Only 21,450 atmospheric cells are coloured.
-
-       NO world.sample() loop.
-    ============================================================ */
-
-    function render() {
-
-        if (
-            !world
-        ) {
-
-            mapContext.fillStyle =
-                "#cdd6dc";
-
-
-            mapContext.fillRect(
-                0,
-                0,
-                DISPLAY_WIDTH,
-                DISPLAY_HEIGHT
-            );
-
-
-            clearParticles();
-
-
-            updateStatus();
-
-
-            return;
-        }
-
-
-        var start =
-            performance.now();
-
-
-        var data =
-            atmosphereImage.data;
-
-
-        var count =
-            window.EuropaWeather
-                .grid
-                .cells;
-
-
-        var i;
-
-
-        for (
-            i = 0;
-            i <
-            count;
-            i++
-        ) {
-
-            var colour;
-
-
-            if (
-                currentView ===
-                "temperature"
-            ) {
-
-                colour =
-                    colourTemperature(
-                        world.temperature[
-                            i
-                        ]
-                    );
-
-            } else if (
-                currentView ===
-                "anomaly"
-            ) {
-
-                colour =
-                    colourAnomaly(
-                        world.temperatureAnomaly[
-                            i
-                        ]
-                    );
-
-            } else if (
-                currentView ===
-                "pressure"
-            ) {
-
-                colour =
-                    colourPressure(
-                        world.pressure[
-                            i
-                        ]
-                    );
-
-            } else if (
-                currentView ===
-                "wind"
-            ) {
-
-                colour =
-                    colourWind(
-                        world.windSpeed[
-                            i
-                        ]
-                    );
-
-            } else if (
-                currentView ===
-                "cloud"
-            ) {
-
-                colour =
-                    colourCloud(
-                        world.cloud[
-                            i
-                        ]
-                    );
-
-            } else if (
-                currentView ===
-                "precipitation"
-            ) {
-
-                colour =
-                    colourPrecipitation(
-                        world.precipitation[
-                            i
-                        ],
-                        world.temperature[
-                            i
-                        ]
-                    );
-
-            } else {
-
-                colour =
-                    colourAirMass(
-                        world.airMass[
-                            i
-                        ]
-                    );
-            }
-
-
-            var offset =
-                i *
-                4;
-
-
-            data[
-                offset
-            ] =
-                colour[
-                    0
-                ];
-
-
-            data[
-                offset + 1
-            ] =
-                colour[
-                    1
-                ];
-
-
-            data[
-                offset + 2
-            ] =
-                colour[
-                    2
-                ];
-
-
-            data[
-                offset + 3
-            ] =
-                255;
-        }
-
-
-        atmosphereContext
-            .putImageData(
-                atmosphereImage,
-                0,
-                0
-            );
-
-
-        mapContext
-            .clearRect(
-                0,
-                0,
-                DISPLAY_WIDTH,
-                DISPLAY_HEIGHT
-            );
-
-
-        /*
-         * Smooth visual scaling from 195×110 to 780×440.
-         */
-        mapContext.imageSmoothingEnabled =
-            true;
-
-
-        mapContext.drawImage(
-            atmosphereCanvas,
-            0,
-            0,
-            DISPLAY_WIDTH,
-            DISPLAY_HEIGHT
         );
 
 
-        renderParticles();
-
-
-        updateStatus();
-
-
-        var elapsed =
-            performance.now() -
-            start;
-
-
-        performanceElement.textContent =
-            "Last render: " +
-            elapsed.toFixed(
-                1
-            ) +
-            " ms";
-    }
-
-
-    /* ============================================================
-       PARTICLES
-    ============================================================ */
-
-    function clearParticles() {
-
-        particleContext
-            .clearRect(
-                0,
-                0,
-                DISPLAY_WIDTH,
-                DISPLAY_HEIGHT
-            );
-    }
-
-
-    function renderParticles() {
-
-        clearParticles();
-
-
-        if (
-            !world ||
-            !particlesEnabled
-        ) {
-
-            return;
-        }
-
-
-        particleContext.fillStyle =
-            "rgba(255,255,255,0.72)";
-
-
-        var i;
-
-
-        for (
-            i = 0;
-            i <
-            particles.length;
-            i++
-        ) {
-
-            var particle =
-                particles[
-                    i
-                ];
-
-
-            var x =
-                lonToPixel(
-                    particle.lon
-                );
-
-
-            var y =
-                latToPixel(
-                    particle.lat
-                );
-
-
-            particleContext.fillRect(
-                x,
-                y,
-                2,
-                2
-            );
-        }
-    }
-
-
-    /* ============================================================
-       INSPECTOR
-    ============================================================ */
-
-    function inspectSelected() {
-
-        if (
-            !world
-        ) {
-
-            return;
-        }
-
-
-        var weather =
-            world.sample(
-                selectedLatitude,
-                selectedLongitude
-            );
-
-
-        document.getElementById(
-            "inspectLat"
-        ).textContent =
-            selectedLatitude.toFixed(
-                2
-            ) +
-            "°";
-
-
-        document.getElementById(
-            "inspectLon"
-        ).textContent =
-            selectedLongitude.toFixed(
-                2
-            ) +
-            "°";
-
-
-        document.getElementById(
-            "inspectTemperature"
-        ).textContent =
-            weather.temperatureC.toFixed(
-                1
-            ) +
-            " °C";
-
-
-        document.getElementById(
-            "inspectAnomaly"
-        ).textContent =
-            (
-                weather.temperatureAnomalyC >=
-                0
-                    ? "+"
-                    : ""
-            ) +
-            weather.temperatureAnomalyC.toFixed(
-                1
-            ) +
-            " °C";
-
-
-        document.getElementById(
-            "inspectSST"
-        ).textContent =
-            weather.seaSurfaceTemperatureC.toFixed(
-                1
-            ) +
-            " °C";
-
-
-        document.getElementById(
-            "inspectPressure"
-        ).textContent =
-            weather.pressureHpa.toFixed(
-                1
-            ) +
-            " hPa";
-
-
-        document.getElementById(
-            "inspectWind"
-        ).textContent =
-            weather.wind.speedMs.toFixed(
-                1
-            ) +
-            " m/s from " +
-            Math.round(
-                weather.wind.directionDeg
-            ) +
-            "°";
-
-
-        document.getElementById(
-            "inspectMoisture"
-        ).textContent =
-            (
-                weather.moisture *
-                100
-            ).toFixed(
-                0
-            ) +
-            "%";
-
-
-        document.getElementById(
-            "inspectCloud"
-        ).textContent =
-            (
-                weather.cloudFraction *
-                100
-            ).toFixed(
-                0
-            ) +
-            "%";
-
-
-        document.getElementById(
-            "inspectPrecip"
-        ).textContent =
-            weather.precipitationType +
-            " / " +
-            (
-                weather.precipitationIntensity *
-                100
-            ).toFixed(
-                0
-            ) +
-            "%";
-
-
-        var airMass =
-            "neutral";
-
-
-        if (
-            weather.airMass <
-            -0.35
-        ) {
-
-            airMass =
-                "cold-origin";
-
-        } else if (
-            weather.airMass >
-            0.35
-        ) {
-
-            airMass =
-                "warm-origin";
-        }
-
-
-        document.getElementById(
-            "inspectAirMass"
-        ).textContent =
-            airMass +
-            " (" +
-            weather.airMass.toFixed(
-                2
-            ) +
-            ")";
-    }
-
-
-    /* ============================================================
-       STATUS
-    ============================================================ */
-
-    function updateStatus() {
-
-        if (
-            !enginesReady()
-        ) {
-
-            return;
-        }
-
-
-        var html =
-            "Climate: Loaded";
-
-
-        html +=
-            "<br>Weather: " +
-            window.EuropaWeather.version;
-
-
-        html +=
-            "<br>Atmosphere: " +
-            window.EuropaWeather.grid.width +
-            " × " +
-            window.EuropaWeather.grid.height +
-            " (" +
-            window.EuropaWeather.grid.cells.toLocaleString() +
-            " cells)";
-
-
-        html +=
-            "<br>Seed: " +
-            window.EuropaWeather
-                .getSimulationSeed();
-
-
-        if (
-            world
-        ) {
-
-            html +=
-                "<br>UTC: " +
-                world.date
-                    .toISOString()
-                    .replace(
-                        "T",
-                        " "
-                    )
-                    .substring(
-                        0,
-                        16
-                    );
-
-
-            html +=
-                "<br>Elapsed: " +
-                world.hoursElapsed +
-                " h";
-        }
-
-
-        html +=
-            "<br>Mode: " +
-            (
-                window.EuropaWeather
-                    .getClimatologicalMode()
-                    ? "CLIMATOLOGICAL BALANCE"
-                    : "EVOLVING WEATHER"
-            );
-
-
-        statusElement.innerHTML =
-            html;
-    }
-
-
-    /* ============================================================
-       STEP WEATHER
-
-       Multi-hour simulation runs all physics first.
-
-       Only ONE render happens afterwards.
-    ============================================================ */
-
-    function stepWeather(
-        hours
-    ) {
-
-        if (
-            busy
-        ) {
-            return;
-        }
-
-
-        if (
-            !world
-        ) {
-
-            initialiseWorld();
-
-            return;
-        }
-
-
-        var count =
-            Math.floor(
-                Number(
-                    hours
-                )
-            );
-
-
-        if (
-            !isFinite(
-                count
-            ) ||
-            count <
-            1
-        ) {
-
-            count = 1;
-        }
-
-
-        setBusy(
-            true
+        $("timeline-date").textContent = (
+            formatDate(
+                state.date
+            )
         );
 
 
-        var start =
-            performance.now();
-
-
-        setTimeout(
-            function () {
-
-
-                world.step(
-                    count
-                );
-
-
-                window.EuropaWeather
-                    .moveParticles(
-                        particles,
-                        world,
-                        count
-                    );
-
-
-                updateDateInput();
-
-
-                var physicsElapsed =
-                    performance.now() -
-                    start;
-
-
-                render();
-
-
-                inspectSelected();
-
-
-                performanceElement.textContent =
-                    "+" +
-                    count +
-                    " h physics: " +
-                    physicsElapsed.toFixed(
-                        0
-                    ) +
-                    " ms";
-
-
-                appendLog(
-                    "+" +
-                    count +
-                    " h → " +
-                    world.date
-                        .toISOString()
-                        .substring(
-                            0,
-                            16
-                        ) +
-                    " | " +
-                    physicsElapsed.toFixed(
-                        0
-                    ) +
-                    " ms"
-                );
-
-
-                setBusy(
-                    false
-                );
-
-
-            },
-            10
-        );
-    }
-
-
-    /* ============================================================
-       PLAYBACK
-    ============================================================ */
-
-    function startPlayback() {
-
-        if (
-            playing ||
-            busy
-        ) {
-
-            return;
-        }
-
-
-        if (
-            !world
-        ) {
-
-            initialiseWorld();
-
-            return;
-        }
-
-
-        playing =
-            true;
-
-
-        document.getElementById(
-            "playBtn"
-        ).textContent =
-            "⏸ Pause";
-
-
-        playTimer =
-            setInterval(
-                function () {
-
-                    if (
-                        !busy
-                    ) {
-
-                        stepWeather(
-                            1
-                        );
-                    }
-
-                },
-                650
-            );
-    }
-
-
-    function stopPlayback() {
-
-        playing =
-            false;
-
-
-        if (
-            playTimer
-        ) {
-
-            clearInterval(
-                playTimer
-            );
-
-
-            playTimer =
-                null;
-        }
-
-
-        document.getElementById(
-            "playBtn"
-        ).textContent =
-            "▶ Play";
-    }
-
-
-    function togglePlayback() {
-
-        if (
-            playing
-        ) {
-
-            stopPlayback();
-
-        } else {
-
-            startPlayback();
-        }
-    }
-
-
-    /* ============================================================
-       RANDOM RUN
-    ============================================================ */
-
-    function newRandomRun() {
-
-        if (
-            busy
-        ) {
-
-            return;
-        }
-
-
-        stopPlayback();
-
-
-        var seed =
-            window.EuropaWeather
-                .rerollWeather();
-
-
-        seedInput.value =
-            seed;
-
-
-        appendLog(
-            "New seed: " +
-            seed
+        $("timeline-subtext").textContent = (
+
+            "Physics timestep: " +
+            state.physicsStepMinutes +
+            " minutes"
         );
 
 
-        initialiseWorld();
-    }
-
-
-    function applySeed() {
-
-        if (
-            busy
-        ) {
-
-            return;
-        }
-
-
-        stopPlayback();
-
-
-        var seed =
-            window.EuropaWeather
-                .setSimulationSeed(
-                    seedInput.value
-                );
-
-
-        seedInput.value =
-            seed;
-
-
-        appendLog(
-            "Applied seed: " +
-            seed
+        $("datetime-input").value = (
+            localInputValue(
+                state.date
+            )
         );
 
 
-        initialiseWorld();
-    }
+        $("info-step").textContent = (
+
+            state.physicsStepMinutes +
+            " min"
+        );
 
 
-    /* ============================================================
-       CLIMATOLOGICAL BALANCE
-    ============================================================ */
-
-    function toggleAverageMode() {
-
-        if (
-            busy
-        ) {
-
-            return;
-        }
+        $("info-total-steps").textContent = (
+            state.totalPhysicsSteps
+        );
 
 
-        stopPlayback();
+        $("info-systems").textContent = (
+            state.systems
+        );
 
 
-        var next =
-            !window.EuropaWeather
-                .getClimatologicalMode();
+        $("info-arrows").textContent = (
+            state.steeringArrows
+        );
 
 
-        window.EuropaWeather
-            .setClimatologicalMode(
-                next
-            );
+        $("info-snapshots").textContent = (
+            state.snapshots
+        );
 
 
-        var button =
-            document.getElementById(
-                "averageBtn"
-            );
+        $("info-render").textContent = (
+
+            renderInfo.lastRenderMs.toFixed(
+                1
+            ) +
+            " ms"
+        );
 
 
-        button.textContent =
-            next
-                ? "Climatological Balance: ON"
-                : "Climatological Balance: OFF";
+        $("play-button").textContent = (
+
+            state.playing
+                ? "❚❚ Pause"
+                : "▶ Play"
+        );
 
 
-        button.classList.toggle(
+        $("play-button").classList.toggle(
+
             "active",
-            next
+
+            state.playing
         );
-
-
-        appendLog(
-            next
-                ? "Climatological balance enabled."
-                : "Evolving weather enabled."
-        );
-
-
-        initialiseWorld();
     }
 
 
-    /* ============================================================
-       CHANGE VIEW
+    /* ====================================================================
+       RENDER
+       ==================================================================== */
 
-       This should now feel immediate.
-    ============================================================ */
+    function redraw() {
 
-    function setView(
-        view
-    ) {
-
-        currentView =
-            view;
-
-
-        var buttons =
-            document.querySelectorAll(
-                ".viewBtn"
-            );
-
-
-        var i;
-
-
-        for (
-            i = 0;
-            i <
-            buttons.length;
-            i++
+        if (
+            !renderer
         ) {
 
-            buttons[
-                i
-            ].classList.toggle(
-                "active",
-                buttons[
-                    i
-                ].getAttribute(
-                    "data-view"
-                ) ===
-                view
-            );
+            return;
         }
 
 
-        render();
+        renderer.render();
+
+        updateInformation();
     }
 
 
-    /* ============================================================
-       EVENTS
-    ============================================================ */
+    /* ====================================================================
+       HOVER
+       ==================================================================== */
 
-    document.getElementById(
-        "initialiseBtn"
-    ).addEventListener(
-        "click",
-        initialiseWorld
-    );
+    function configureHover() {
 
+        renderer.options.onHover = data => {
 
-    document.getElementById(
-        "newRunBtn"
-    ).addEventListener(
-        "click",
-        newRandomRun
-    );
-
-
-    document.getElementById(
-        "applySeedBtn"
-    ).addEventListener(
-        "click",
-        applySeed
-    );
-
-
-    document.getElementById(
-        "playBtn"
-    ).addEventListener(
-        "click",
-        togglePlayback
-    );
-
-
-    document.getElementById(
-        "step1Btn"
-    ).addEventListener(
-        "click",
-        function () {
-
-            stepWeather(
-                1
-            );
-        }
-    );
-
-
-    document.getElementById(
-        "step6Btn"
-    ).addEventListener(
-        "click",
-        function () {
-
-            stepWeather(
-                6
-            );
-        }
-    );
-
-
-    document.getElementById(
-        "step24Btn"
-    ).addEventListener(
-        "click",
-        function () {
-
-            stepWeather(
-                24
-            );
-        }
-    );
-
-
-    document.getElementById(
-        "averageBtn"
-    ).addEventListener(
-        "click",
-        toggleAverageMode
-    );
-
-
-    document.getElementById(
-        "particlesBtn"
-    ).addEventListener(
-        "click",
-        function () {
-
-            particlesEnabled =
-                !particlesEnabled;
-
-
-            this.textContent =
-                particlesEnabled
-                    ? "Particles: ON"
-                    : "Particles: OFF";
-
-
-            this.classList.toggle(
-                "active",
-                particlesEnabled
+            const panel = (
+                $("hover-panel")
             );
 
-
-            renderParticles();
-        }
-    );
-
-
-    var viewButtons =
-        document.querySelectorAll(
-            ".viewBtn"
-        );
-
-
-    var i;
-
-
-    for (
-        i = 0;
-        i <
-        viewButtons.length;
-        i++
-    ) {
-
-        viewButtons[
-            i
-        ].addEventListener(
-            "click",
-            function () {
-
-                setView(
-                    this.getAttribute(
-                        "data-view"
-                    )
-                );
-            }
-        );
-    }
-
-
-    mapCanvas.addEventListener(
-        "click",
-        function (
-            event
-        ) {
 
             if (
-                !world
+                !data ||
+                !data.sample
             ) {
+
+                panel.style.display = (
+                    "none"
+                );
+
 
                 return;
             }
 
 
-            var rectangle =
-                mapCanvas
-                    .getBoundingClientRect();
+            const sample = (
+                data.sample
+            );
 
 
-            var x =
+            const temperature = (
+                Number(
+                    sample.temperatureC
+                )
+            );
+
+
+            const anomaly = (
+                Number(
+                    sample.anomalyC
+                )
+            );
+
+
+            const pressure = (
+                Number(
+                    sample.pressureHpa
+                )
+            );
+
+
+            const wind = (
+                Number(
+                    sample.windSpeed
+                )
+            );
+
+
+            const rh = (
+
+                Number(
+                    sample.relativeHumidity
+                ) *
+                100
+            );
+
+
+            const precip = (
+                Number(
+                    sample.precipRateMmHr
+                )
+            );
+
+
+            const snow = (
+                Number(
+                    sample.snowDepthCm
+                )
+            );
+
+
+            panel.innerHTML = (
+
+                "<strong>" +
+
+                data.lat.toFixed(
+                    2
+                ) +
+
+                "°N, " +
+
+                data.lon.toFixed(
+                    2
+                ) +
+
+                "°</strong>" +
+
+                "<br>" +
+
+                "Temperature: " +
+
+                temperature.toFixed(
+                    1
+                ) +
+
+                " °C" +
+
+                "<br>" +
+
+                "Anomaly: " +
+
                 (
-                    event.clientX -
-                    rectangle.left
-                ) /
-                rectangle.width *
-                DISPLAY_WIDTH;
+                    anomaly >= 0
+                        ? "+"
+                        : ""
+                ) +
+
+                anomaly.toFixed(
+                    1
+                ) +
+
+                " °C" +
+
+                "<br>" +
+
+                "Pressure: " +
+
+                pressure.toFixed(
+                    0
+                ) +
+
+                " hPa" +
+
+                "<br>" +
+
+                "Humidity: " +
+
+                rh.toFixed(
+                    0
+                ) +
+
+                "%" +
+
+                "<br>" +
+
+                "Wind: " +
+
+                wind.toFixed(
+                    1
+                ) +
+
+                " m/s" +
+
+                "<br>" +
+
+                "Precip: " +
+
+                precip.toFixed(
+                    2
+                ) +
+
+                " mm/h" +
+
+                "<br>" +
+
+                "Snow: " +
+
+                snow.toFixed(
+                    1
+                ) +
+
+                " cm"
+            );
 
 
-            var y =
-                (
-                    event.clientY -
-                    rectangle.top
-                ) /
-                rectangle.height *
-                DISPLAY_HEIGHT;
+            panel.style.display = (
+                "block"
+            );
 
 
-            selectedLongitude =
-                pixelToLon(
-                    x
+            let left = (
+                data.x +
+                14
+            );
+
+
+            let top = (
+                data.y +
+                14
+            );
+
+
+            if (
+                left >
+                renderer.width -
+                205
+            ) {
+
+                left = (
+                    data.x -
+                    200
                 );
+            }
 
 
-            selectedLatitude =
-                pixelToLat(
-                    y
+            if (
+                top >
+                renderer.height -
+                165
+            ) {
+
+                top = (
+                    data.y -
+                    160
                 );
+            }
 
 
-            selectionMarker.style.left =
-                x +
-                "px";
+            panel.style.left = (
+                left +
+                "px"
+            );
 
 
-            selectionMarker.style.top =
-                y +
-                "px";
+            panel.style.top = (
+                top +
+                "px"
+            );
+        };
+    }
 
 
-            selectionMarker.style.display =
-                "block";
+    /* ====================================================================
+       LAYERS
+       ==================================================================== */
+
+    const layerNames = {
+
+        temperature:
+            "Actual temperature",
+
+        anomaly:
+            "Temperature anomaly",
+
+        pressure:
+            "Sea-level pressure",
+
+        wind:
+            "Wind speed",
+
+        cloud:
+            "Cloud",
+
+        precipitation:
+            "Precipitation",
+
+        snow:
+            "Snow depth",
+
+        sst:
+            "Sea-surface temperature",
+
+        fronts:
+            "Front strength"
+    };
 
 
-            inspectSelected();
-        }
-    );
+    function configureLayers() {
 
-
-    /* ============================================================
-       INITIAL PAGE
-
-       IMPORTANT:
-       No weather world is created automatically.
-
-       This means the page itself should load quickly.
-    ============================================================ */
-
-    if (
-        enginesReady()
-    ) {
-
-        seedInput.value =
-            window.EuropaWeather
-                .getSimulationSeed();
-
-
-        statusElement.innerHTML =
-            "Climate: Loaded" +
-            "<br>Weather: " +
-            window.EuropaWeather.version +
-            "<br>Press Initialise.";
-
-
-        mapContext.fillStyle =
-            "#cdd6dc";
-
-
-        mapContext.fillRect(
-            0,
-            0,
-            DISPLAY_WIDTH,
-            DISPLAY_HEIGHT
+        const buttons = (
+            document.querySelectorAll(
+                "[data-layer]"
+            )
         );
 
 
-    } else {
+        buttons.forEach(
+            button => {
+
+                button.addEventListener(
+
+                    "click",
+
+                    () => {
+
+                        const layer = (
+                            button.dataset.layer
+                        );
 
 
-        mapContext.fillStyle =
-            "#d9dde0";
+                        renderer.setLayer(
+                            layer
+                        );
 
 
-        mapContext.fillRect(
-            0,
-            0,
-            DISPLAY_WIDTH,
-            DISPLAY_HEIGHT
+                        buttons.forEach(
+                            other => {
+
+                                other.classList.toggle(
+
+                                    "active",
+
+                                    other ===
+                                    button
+                                );
+                            }
+                        );
+
+
+                        $("layer-label").textContent = (
+
+                            layerNames[layer] ||
+                            layer
+                        );
+
+
+                        updateInformation();
+                    }
+                );
+            }
         );
     }
 
 
-})();
+    /* ====================================================================
+       PLAYBACK
+       ==================================================================== */
 
-</script>
+    function configurePlayback() {
 
+        $("play-button").addEventListener(
+
+            "click",
+
+            () => {
+
+                weather.togglePlay();
+
+                updateInformation();
+            }
+        );
+
+
+        $("step-button").addEventListener(
+
+            "click",
+
+            () => {
+
+                weather.step();
+
+                redraw();
+            }
+        );
+
+
+        $("speed-select").addEventListener(
+
+            "change",
+
+            event => {
+
+                weather.setTimeScale(
+
+                    Number(
+                        event.target.value
+                    )
+                );
+
+
+                updateInformation();
+            }
+        );
+
+
+        $("minus-hour-button").addEventListener(
+
+            "click",
+
+            () => {
+
+                weather.seekHours(
+                    -1
+                );
+
+
+                redraw();
+            }
+        );
+
+
+        $("plus-hour-button").addEventListener(
+
+            "click",
+
+            () => {
+
+                weather.seekHours(
+                    1
+                );
+
+
+                redraw();
+            }
+        );
+
+
+        $("minus-day-button").addEventListener(
+
+            "click",
+
+            () => {
+
+                weather.seekDays(
+                    -1
+                );
+
+
+                redraw();
+            }
+        );
+
+
+        $("plus-day-button").addEventListener(
+
+            "click",
+
+            () => {
+
+                weather.seekDays(
+                    1
+                );
+
+
+                redraw();
+            }
+        );
+
+
+        $("snapshot-button").addEventListener(
+
+            "click",
+
+            () => {
+
+                weather.saveSnapshot();
+
+                updateInformation();
+            }
+        );
+
+
+        $("seek-button").addEventListener(
+
+            "click",
+
+            () => {
+
+                const date = (
+                    dateFromInput(
+                        $("datetime-input").value
+                    )
+                );
+
+
+                if (
+                    !date
+                ) {
+
+                    return;
+                }
+
+
+                weather.seek(
+                    date
+                );
+
+
+                redraw();
+            }
+        );
+
+
+        $("now-reset-button").addEventListener(
+
+            "click",
+
+            () => {
+
+                weather.reset(
+                    new Date()
+                );
+
+
+                redraw();
+            }
+        );
+    }
+
+
+    /* ====================================================================
+       OVERLAYS
+       ==================================================================== */
+
+    function configureOverlays() {
+
+        $("isobar-toggle").addEventListener(
+
+            "change",
+
+            event => {
+
+                renderer.setIsobars(
+                    event.target.checked
+                );
+            }
+        );
+
+
+        $("wind-vector-toggle").addEventListener(
+
+            "change",
+
+            event => {
+
+                renderer.setWindVectors(
+                    event.target.checked
+                );
+            }
+        );
+
+
+        $("front-toggle").addEventListener(
+
+            "change",
+
+            event => {
+
+                renderer.setFrontOverlay(
+                    event.target.checked
+                );
+            }
+        );
+
+
+        $("system-toggle").addEventListener(
+
+            "change",
+
+            event => {
+
+                renderer.setSystemMarkers(
+                    event.target.checked
+                );
+            }
+        );
+
+
+        $("arrow-toggle").addEventListener(
+
+            "change",
+
+            event => {
+
+                renderer.setSteeringArrows(
+                    event.target.checked
+                );
+            }
+        );
+    }
+
+
+    /* ====================================================================
+       STATIONS
+       ==================================================================== */
+
+    function updateStationList() {
+
+        const list = (
+            $("station-list")
+        );
+
+
+        list.innerHTML = "";
+
+
+        const stations = (
+            weather.getStations()
+        );
+
+
+        for (
+            const station
+            of stations
+        ) {
+
+            const item = (
+                document.createElement(
+                    "div"
+                )
+            );
+
+
+            item.className = (
+                "station-item"
+            );
+
+
+            const latest = (
+                station.sampleAt(
+                    weather.getDate()
+                )
+            );
+
+
+            let text = (
+
+                station.name +
+                " — " +
+
+                station.lat.toFixed(
+                    2
+                ) +
+
+                ", " +
+
+                station.lon.toFixed(
+                    2
+                )
+            );
+
+
+            if (
+                latest &&
+                Number.isFinite(
+                    latest.temperatureC
+                )
+            ) {
+
+                text += (
+
+                    " — " +
+
+                    latest.temperatureC.toFixed(
+                        1
+                    ) +
+
+                    " °C"
+                );
+            }
+
+
+            item.textContent = (
+                text
+            );
+
+
+            list.appendChild(
+                item
+            );
+        }
+    }
+
+
+    function configureStations() {
+
+        $("add-station-button").addEventListener(
+
+            "click",
+
+            () => {
+
+                const name = (
+
+                    $("station-name").value.trim() ||
+                    null
+                );
+
+
+                const lat = Number(
+                    $("station-lat").value
+                );
+
+
+                const lon = Number(
+                    $("station-lon").value
+                );
+
+
+                if (
+                    !Number.isFinite(
+                        lat
+                    ) ||
+                    !Number.isFinite(
+                        lon
+                    )
+                ) {
+
+                    return;
+                }
+
+
+                weather.addStation(
+
+                    lat,
+
+                    lon,
+
+                    name
+                );
+
+
+                $("station-name").value = "";
+
+
+                updateStationList();
+
+                updateInformation();
+            }
+        );
+    }
+
+
+    /* ====================================================================
+       WEATHER EVENTS
+       ==================================================================== */
+
+    function configureWeatherEvents() {
+
+        weather.on(
+
+            "frame",
+
+            () => {
+
+                renderer.render();
+
+                updateInformation();
+
+                updateStationList();
+            }
+        );
+
+
+        weather.on(
+
+            "step",
+
+            () => {
+
+                updateInformation();
+
+                updateStationList();
+            }
+        );
+
+
+        weather.on(
+
+            "seek",
+
+            () => {
+
+                updateInformation();
+
+                updateStationList();
+            }
+        );
+
+
+        weather.on(
+
+            "reset",
+
+            () => {
+
+                updateInformation();
+
+                updateStationList();
+            }
+        );
+    }
+
+
+    /* ====================================================================
+       BOOT CHECK
+       ==================================================================== */
+
+    function checkModules() {
+
+        const modules = [
+
+            [
+                "EuropaConfig",
+                window.EuropaConfig
+            ],
+
+            [
+                "EuropaUtils",
+                window.EuropaUtils
+            ],
+
+            [
+                "EuropaTerrain",
+                window.EuropaTerrain
+            ],
+
+            [
+                "EuropaClimate",
+                window.EuropaClimate
+            ],
+
+            [
+                "EuropaOcean",
+                window.EuropaOcean
+            ],
+
+            [
+                "EuropaSynoptic",
+                window.EuropaSynoptic
+            ],
+
+            [
+                "EuropaAtmosphere",
+                window.EuropaAtmosphere
+            ],
+
+            [
+                "EuropaPhysics",
+                window.EuropaPhysics
+            ],
+
+            [
+                "EuropaHistory",
+                window.EuropaHistory
+            ],
+
+            [
+                "EuropaWeather",
+                window.EuropaWeather
+            ],
+
+            [
+                "EuropaRenderer",
+                window.EuropaRenderer
+            ]
+        ];
+
+
+        const missing = (
+            modules
+                .filter(
+                    entry =>
+                        !entry[1]
+                )
+                .map(
+                    entry =>
+                        entry[0]
+                )
+        );
+
+
+        if (
+            missing.length >
+            0
+        ) {
+
+            throw new Error(
+
+                "Missing modules: " +
+                missing.join(
+                    ", "
+                )
+            );
+        }
+    }
+
+
+    /* ====================================================================
+       GLOBAL ERROR DISPLAY
+       ==================================================================== */
+
+    window.addEventListener(
+
+        "error",
+
+        event => {
+
+            setStatus(
+                "Simulation error",
+                "bad"
+            );
+
+
+            log(
+
+                "JavaScript error\n\n" +
+
+                (
+                    event.message ||
+                    "Unknown error"
+                ) +
+
+                "\n\n" +
+
+                (
+                    event.filename ||
+                    ""
+                ) +
+
+                ":" +
+
+                (
+                    event.lineno ||
+                    ""
+                )
+            );
+        }
+    );
+
+
+    window.addEventListener(
+
+        "unhandledrejection",
+
+        event => {
+
+            setStatus(
+                "Simulation error",
+                "bad"
+            );
+
+
+            log(
+
+                "Unhandled error\n\n" +
+
+                String(
+                    event.reason
+                )
+            );
+        }
+    );
+
+
+    /* ====================================================================
+       START
+       ==================================================================== */
+
+    function boot() {
+
+        try {
+
+            setStatus(
+                "Checking modules…",
+                "loading"
+            );
+
+
+            checkModules();
+
+
+            setStatus(
+                "Building terrain and atmosphere…",
+                "loading"
+            );
+
+
+            weather = (
+                window.EuropaWeather.create({
+
+                    startDate:
+                        new Date(),
+
+                    seed:
+                        20261001,
+
+                    timeScale:
+                        60,
+
+                    maxPhysicsStepsPerFrame:
+                        24
+                })
+            );
+
+
+            renderer = (
+                new window.EuropaRenderer(
+
+                    weather,
+
+                    "weather-map",
+
+                    {
+                        width:
+                            window.EuropaConfig.display
+                                ? window.EuropaConfig.display.width
+                                : 780,
+
+                        height:
+                            window.EuropaConfig.display
+                                ? window.EuropaConfig.display.height
+                                : 440,
+
+                        layer:
+                            "temperature",
+
+                        isobars:
+                            true,
+
+                        windVectors:
+                            false,
+
+                        frontOverlay:
+                            false,
+
+                        steeringArrows:
+                            true,
+
+                        systems:
+                            true,
+
+                        autoRender:
+                            false
+                    }
+                )
+            );
+
+
+            configureHover();
+
+            configureLayers();
+
+            configurePlayback();
+
+            configureOverlays();
+
+            configureStations();
+
+            configureWeatherEvents();
+
+
+            /*
+             * A few useful starter stations.
+             */
+
+            weather.addStation(
+
+                51.27,
+
+                0.52,
+
+                "Maidstone"
+            );
+
+
+            weather.addStation(
+
+                60.05,
+
+                -19.95,
+
+                "EuropaCraft Spawn"
+            );
+
+
+            weather.addStation(
+
+                54.35,
+
+                18.65,
+
+                "Gdańsk"
+            );
+
+
+            weather.addStation(
+
+                43.51,
+
+                16.44,
+
+                "Split"
+            );
+
+
+            weather.addStation(
+
+                45.81,
+
+                15.98,
+
+                "Zagreb"
+            );
+
+
+            weather.addStation(
+
+                46.77,
+
+                23.59,
+
+                "Transylvania"
+            );
+
+
+            renderer.render();
+
+
+            updateStationList();
+
+            updateInformation();
+
+
+            setStatus(
+                "Simulation ready",
+                "good"
+            );
+
+
+            log(
+
+                "EuropaCraft Weather " +
+                window.EuropaWeather.version +
+
+                "\n\n" +
+
+                "Physics grid: " +
+
+                weather.nx +
+                " × " +
+                weather.ny +
+
+                "\n" +
+
+                "Physics timestep: " +
+
+                weather.getPhysicsStepMinutes() +
+                " minutes" +
+
+                "\n" +
+
+                "Display grid: " +
+
+                renderer.width +
+                " × " +
+                renderer.height +
+
+                "\n\n" +
+
+                "Persistent atmosphere initialized."
+            );
+
+
+            /*
+             * Expose instances for browser console testing.
+             */
+
+            window.europaWeather = (
+                weather
+            );
+
+
+            window.europaRenderer = (
+                renderer
+            );
+
+        }
+
+        catch (
+            error
+        ) {
+
+            console.error(
+                error
+            );
+
+
+            setStatus(
+                "Startup failed",
+                "bad"
+            );
+
+
+            log(
+
+                "EuropaCraft failed to start.\n\n" +
+
+                (
+                    error &&
+                    error.stack
+                        ? error.stack
+                        : String(
+                            error
+                        )
+                )
+            );
+        }
+    }
+
+
+    if (
+        document.readyState ===
+        "loading"
+    ) {
+
+        document.addEventListener(
+
+            "DOMContentLoaded",
+
+            boot
+        );
+    }
+
+    else {
+
+        boot();
+    }
+
+
+    })();
+
+    </script>
 
 </body>
-
 </html>
