@@ -3,27 +3,42 @@
 
     /* =========================================================
        EuropaCraft Weather Engine
-       Version 4.0
+       Version 5.0
 
-       Main changes:
-       - Proper normal weather regimes
-       - Separate climatological-average diagnostic mode
-       - Much stronger and more realistic wind
-       - No sinusoidal / wavy cloud texture
-       - Coherent synoptic cloud shields
-       - Frontal cloud bands
-       - Convective / post-frontal cloud
-       - Precipitation actually occurs
-       - Average mode can be toggled from index.html
+       Normal mode:
+       - randomized simulation realization
+       - multi-day weather regimes
+       - synoptic lows/highs
+       - strong air-mass temperature anomalies
+       - realistic multi-m/s wind
+       - irregular cloud fields
+       - frontal/cyclonic/showery precipitation
+
+       Average mode:
+       - climatological balancing diagnostic
+       - no weather anomaly
+       - no travelling synoptic systems
 
        Requires:
        window.EuropaClimate.getIndices()
     ========================================================= */
 
+
     var DEG = Math.PI / 180;
     var TWO_PI = Math.PI * 2;
 
     var averageMode = false;
+
+    /*
+     * Different browser loads start with a different realization.
+     *
+     * Rerolling changes this without changing the selected date.
+     */
+    var simulationSeed =
+        Math.floor(
+            Math.random() *
+            1000000000
+        );
 
 
     /* =========================================================
@@ -31,73 +46,138 @@
     ========================================================= */
 
     function clamp(v, min, max) {
-        return Math.max(min, Math.min(max, v));
+        return Math.max(
+            min,
+            Math.min(
+                max,
+                v
+            )
+        );
     }
 
+
     function lerp(a, b, t) {
-        return a + (b - a) * t;
+        return a +
+            (
+                b - a
+            ) *
+            t;
     }
+
 
     function smoothstep(a, b, x) {
         var t;
 
         if (a === b) {
-            return x < a ? 0 : 1;
+            return x < a
+                ? 0
+                : 1;
         }
 
-        t = clamp((x - a) / (b - a), 0, 1);
+        t =
+            clamp(
+                (
+                    x - a
+                ) /
+                (
+                    b - a
+                ),
+                0,
+                1
+            );
 
-        return t * t * (3 - 2 * t);
+        return (
+            t *
+            t *
+            (
+                3 -
+                2 * t
+            )
+        );
     }
+
 
     function fract(x) {
-        return x - Math.floor(x);
+        return (
+            x -
+            Math.floor(x)
+        );
     }
+
 
     function validDate(date) {
         var d;
 
-        if (date instanceof Date) {
+        if (
+            date instanceof Date
+        ) {
             d = date;
         } else {
-            d = new Date(date);
+            d =
+                new Date(date);
         }
 
-        if (isNaN(d.getTime())) {
-            d = new Date();
+        if (
+            isNaN(
+                d.getTime()
+            )
+        ) {
+            d =
+                new Date();
         }
 
         return d;
     }
 
+
     function dayNumber(date) {
-        return validDate(date).getTime() / 86400000;
-    }
-
-    function dayOfYear(date) {
-        var d = validDate(date);
-
-        var start = Date.UTC(
-            d.getUTCFullYear(),
-            0,
-            0
-        );
-
-        var current = Date.UTC(
-            d.getUTCFullYear(),
-            d.getUTCMonth(),
-            d.getUTCDate()
-        );
-
-        return Math.floor(
-            (current - start) /
+        return (
+            validDate(date)
+                .getTime() /
             86400000
         );
     }
 
-    function distanceApprox(lat1, lon1, lat2, lon2) {
+
+    function dayOfYear(date) {
+        var d =
+            validDate(date);
+
+        var start =
+            Date.UTC(
+                d.getUTCFullYear(),
+                0,
+                0
+            );
+
+        var current =
+            Date.UTC(
+                d.getUTCFullYear(),
+                d.getUTCMonth(),
+                d.getUTCDate()
+            );
+
+        return Math.floor(
+            (
+                current -
+                start
+            ) /
+            86400000
+        );
+    }
+
+
+    function distanceApprox(
+        lat1,
+        lon1,
+        lat2,
+        lon2
+    ) {
         var meanLat =
-            (lat1 + lat2) *
+            (
+                lat1 +
+                lat2
+            ) *
             0.5 *
             DEG;
 
@@ -106,8 +186,13 @@
             lat2;
 
         var dx =
-            (lon1 - lon2) *
-            Math.cos(meanLat);
+            (
+                lon1 -
+                lon2
+            ) *
+            Math.cos(
+                meanLat
+            );
 
         return Math.sqrt(
             dx * dx +
@@ -117,40 +202,67 @@
 
 
     /* =========================================================
-       DETERMINISTIC RANDOM NUMBER GENERATOR
+       RANDOM GENERATION
     ========================================================= */
 
     function hash1(n) {
         var x =
             Math.sin(
-                n * 127.1 +
-                311.7
+                n *
+                127.1 +
+                311.7 +
+                simulationSeed *
+                0.000137
             ) *
             43758.5453123;
 
         return fract(x);
     }
 
-    function hash2(x, y, seed) {
-        var n =
-            x * 127.1 +
-            y * 311.7 +
-            seed * 74.7;
 
-        return hash1(n);
+    function hash2(
+        x,
+        y,
+        seed
+    ) {
+        return hash1(
+            x *
+            127.1 +
+            y *
+            311.7 +
+            seed *
+            74.7
+        );
+    }
+
+
+    /*
+     * Stable random value for a particular large-scale
+     * weather period.
+     */
+    function periodRandom(
+        period,
+        salt
+    ) {
+        return hash1(
+            period *
+            7919.37 +
+            salt *
+            104729.19
+        );
     }
 
 
     /* =========================================================
-       NON-WAVY VALUE NOISE
-
-       This replaces the old sine/cosine cloud texture.
-
-       Adjacent cells remain related but there are no giant
-       curved periodic stripes across Europe.
+       SPATIALLY COHERENT NON-PERIODIC NOISE
     ========================================================= */
 
-    function valueNoise(x, y, seed, scale) {
+    function valueNoise(
+        x,
+        y,
+        seed,
+        scale
+    ) {
         var sx =
             x /
             scale;
@@ -174,12 +286,18 @@
         tx =
             tx *
             tx *
-            (3 - 2 * tx);
+            (
+                3 -
+                2 * tx
+            );
 
         ty =
             ty *
             ty *
-            (3 - 2 * ty);
+            (
+                3 -
+                2 * ty
+            );
 
         var a =
             hash2(
@@ -230,7 +348,15 @@
         );
     }
 
-    function multiScaleNoise(lat, lon, date) {
+
+    function multiScaleNoise(
+        latitude,
+        longitude,
+        date
+    ) {
+        /*
+         * Changes gradually every six hours.
+         */
         var seed =
             Math.floor(
                 dayNumber(date) *
@@ -239,43 +365,45 @@
 
         var broad =
             valueNoise(
-                lon,
-                lat,
+                longitude,
+                latitude,
                 seed,
-                5.5
+                6.5
             );
 
         var medium =
             valueNoise(
-                lon,
-                lat,
-                seed + 91,
-                2.2
+                longitude,
+                latitude,
+                seed + 103,
+                2.7
             );
 
         var fine =
             valueNoise(
-                lon,
-                lat,
-                seed + 207,
-                0.85
+                longitude,
+                latitude,
+                seed + 257,
+                1.05
             );
 
         return (
-            broad * 0.48 +
-            medium * 0.34 +
-            fine * 0.18
+            broad *
+            0.50 +
+            medium *
+            0.33 +
+            fine *
+            0.17
         );
     }
 
 
     /* =========================================================
-       TEMPERATURE NORMALS
+       MONTHLY TEMPERATURE NORMALS
 
-       Jan to Dec:
-       average daily maximum / minimum.
+       Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec
 
-       These are broad climatological control anchors.
+       Daily normal high / normal low.
     ========================================================= */
 
     var TEMP_ANCHORS = [
@@ -497,7 +625,10 @@
             d.getUTCMonth();
 
         var nextMonth =
-            (month + 1) %
+            (
+                month +
+                1
+            ) %
             12;
 
         var start =
@@ -509,7 +640,10 @@
 
         var next;
 
-        if (month === 11) {
+        if (
+            month ===
+            11
+        ) {
             next =
                 Date.UTC(
                     d.getUTCFullYear() + 1,
@@ -540,11 +674,17 @@
             );
 
         return {
-            month: month,
-            next: nextMonth,
-            t: t
+            month:
+                month,
+
+            next:
+                nextMonth,
+
+            t:
+                t
         };
     }
+
 
     function interpolatedNormals(
         latitude,
@@ -584,7 +724,8 @@
             var weight =
                 1 /
                 Math.pow(
-                    distance + 1.3,
+                    distance +
+                    1.3,
                     2.35
                 );
 
@@ -670,6 +811,7 @@
         return climate.indices[name];
     }
 
+
     function climateWeight(
         climate,
         name
@@ -691,7 +833,7 @@
 
 
     /* =========================================================
-       LOCAL TEMPERATURE NORMALS
+       LOCAL NORMALS
     ========================================================= */
 
     function localTemperatureNormals(
@@ -815,14 +957,16 @@
                 lerp(
                     mean + 1,
                     normal.high,
-                    landFraction * 4
+                    landFraction *
+                    4
                 );
 
             normal.low =
                 lerp(
                     mean - 1,
                     normal.low,
-                    landFraction * 4
+                    landFraction *
+                    4
                 );
         }
 
@@ -831,7 +975,9 @@
 
 
     /* =========================================================
-       SST WITH SEASONAL LAG
+       SEA SURFACE TEMPERATURE
+
+       Seasonal peak deliberately delayed relative to land.
     ========================================================= */
 
     function seaSurfaceTemperature(
@@ -960,19 +1106,14 @@
         return (
             atlantic *
             atlanticSST +
-
             northSea *
             northSeaSST +
-
             baltic *
             balticSST +
-
             mediterranean *
             mediterraneanSST +
-
             blackSea *
             blackSeaSST +
-
             caspian *
             caspianSST
         ) /
@@ -982,67 +1123,56 @@
 
     /* =========================================================
        WEATHER REGIMES
-
-       These are NOT climatological averages.
-
-       A regime is selected deterministically from the date
-       so the same date always gives the same weather.
-
-       Regime changes roughly every 4 days.
     ========================================================= */
 
     var REGIMES = [
+
         "atlantic_westerly",
+
         "southwesterly",
+
         "northwesterly",
+
         "northerly",
+
         "easterly",
+
         "southeasterly",
+
         "southerly",
+
         "blocking",
+
         "weak_variable"
     ];
 
-    function currentRegime(date) {
-        if (
-            averageMode
-        ) {
-            return {
-                name:
-                    "climatological_average",
 
-                strength:
-                    1.0,
+    /*
+     * Each regime lasts between roughly 2.5 and 6 days.
+     *
+     * We use fixed four-day regime blocks internally for
+     * deterministic stability, but blend neighbouring periods.
+     */
+    function regimePeriod(date) {
+        return Math.floor(
+            dayNumber(date) /
+            4
+        );
+    }
 
-                centreLat:
-                    52,
 
-                centreLon:
-                    10,
-
-                radius:
-                    100
-            };
-        }
-
-        var t =
-            dayNumber(date);
-
-        var period =
-            Math.floor(
-                t /
-                4
-            );
-
-        var random =
-            hash1(
-                period *
-                17.731
+    function buildRegime(
+        period
+    ) {
+        var choice =
+            periodRandom(
+                period,
+                1
             );
 
         var index =
             Math.floor(
-                random *
+                choice *
                 REGIMES.length
             );
 
@@ -1054,49 +1184,61 @@
                 1
             );
 
-        var name =
-            REGIMES[
-                index
-            ];
-
         var strength =
-            0.65 +
-            hash1(
-                period *
-                27.417
+            0.75 +
+            periodRandom(
+                period,
+                2
             ) *
             0.75;
 
         var centreLat =
-            45 +
-            hash1(
-                period *
-                91.31
+            44 +
+            periodRandom(
+                period,
+                3
             ) *
-            18;
+            21;
 
         var centreLon =
-            -5 +
-            hash1(
-                period *
-                51.19
+            -10 +
+            periodRandom(
+                period,
+                4
             ) *
-            35;
+            42;
 
         var radius =
-            14 +
-            hash1(
-                period *
-                79.71
+            15 +
+            periodRandom(
+                period,
+                5
             ) *
-            18;
+            21;
+
+        /*
+         * Regime temperature anomaly strength.
+         * Allows weak and extreme runs.
+         */
+        var thermalStrength =
+            0.75 +
+            periodRandom(
+                period,
+                6
+            ) *
+            0.70;
 
         return {
             name:
-                name,
+                REGIMES[
+                    index
+                ],
 
             strength:
                 strength,
+
+            thermalStrength:
+                thermalStrength,
 
             centreLat:
                 centreLat,
@@ -1110,13 +1252,39 @@
     }
 
 
+    function currentRegime(date) {
+        if (
+            averageMode
+        ) {
+            return {
+                name:
+                    "climatological_average",
+
+                strength:
+                    1,
+
+                thermalStrength:
+                    0,
+
+                centreLat:
+                    52,
+
+                centreLon:
+                    10,
+
+                radius:
+                    100
+            };
+        }
+
+        return buildRegime(
+            regimePeriod(date)
+        );
+    }
+
+
     /* =========================================================
        CLIMATOLOGICAL WIND
-
-       Used as the balancing / "dead average" field.
-
-       IMPORTANT:
-       normal weather adds regimes and synoptic systems on top.
     ========================================================= */
 
     function climatologicalWind(
@@ -1130,11 +1298,7 @@
         var v =
             0;
 
-        /*
-         * Mid-latitude prevailing westerlies.
-         */
-
-        var midLatitude =
+        var middle =
             smoothstep(
                 34,
                 45,
@@ -1149,31 +1313,32 @@
                 )
             );
 
+        /*
+         * Basic European westerlies.
+         */
         u +=
-            3.5 *
-            midLatitude;
+            middle *
+            3.3;
 
         /*
-         * Atlantic / northern Europe stronger.
+         * Atlantic-facing Europe somewhat windier.
          */
-
-        var atlantic =
+        var atlanticBoost =
             1 -
             smoothstep(
-                -10,
-                20,
+                -12,
+                18,
                 longitude
             );
 
         u +=
-            atlantic *
-            midLatitude *
-            1.8;
+            atlanticBoost *
+            middle *
+            1.7;
 
         /*
-         * Northern storm-track contribution.
+         * Northern storm-track mean.
          */
-
         var northern =
             smoothstep(
                 52,
@@ -1191,21 +1356,20 @@
 
         u +=
             northern *
-            1.4;
+            1.3;
 
         /*
-         * Mediterranean average weaker.
+         * Mediterranean background weaker.
          */
-
         if (
             latitude <
             43
         ) {
             u *=
-                0.68;
+                0.70;
 
             v *=
-                0.68;
+                0.70;
         }
 
         return {
@@ -1219,7 +1383,7 @@
 
 
     /* =========================================================
-       REGIME WIND COMPONENT
+       REGIME WIND
     ========================================================= */
 
     function regimeWind(
@@ -1251,7 +1415,7 @@
                 regime.centreLon
             );
 
-        var influence =
+        var localInfluence =
             Math.exp(
                 -(
                     distance *
@@ -1265,17 +1429,16 @@
             );
 
         /*
-         * Even outside centre there should still be
-         * some continental-scale influence.
+         * Weather regimes are continent-scale,
+         * so retain some influence outside the core.
          */
-
-        influence =
-            0.35 +
-            influence *
-            0.65;
+        var influence =
+            0.30 +
+            localInfluence *
+            0.70;
 
         var speed =
-            4.5 *
+            5.2 *
             regime.strength *
             influence;
 
@@ -1285,139 +1448,131 @@
         var v =
             0;
 
-        switch (
-            regime.name
+        if (
+            regime.name ===
+            "atlantic_westerly"
         ) {
+            u =
+                speed *
+                1.30;
 
-            case "atlantic_westerly":
+            v =
+                speed *
+                0.10;
+        }
 
-                u =
-                    speed *
-                    1.25;
+        else if (
+            regime.name ===
+            "southwesterly"
+        ) {
+            u =
+                speed *
+                0.95;
 
-                v =
-                    speed *
-                    0.10;
+            v =
+                speed *
+                0.72;
+        }
 
-                break;
+        else if (
+            regime.name ===
+            "northwesterly"
+        ) {
+            u =
+                speed *
+                0.95;
 
+            v =
+                -speed *
+                0.72;
+        }
 
-            case "southwesterly":
+        else if (
+            regime.name ===
+            "northerly"
+        ) {
+            u =
+                speed *
+                0.08;
 
-                u =
-                    speed;
+            v =
+                -speed *
+                1.20;
+        }
 
-                v =
-                    speed *
-                    0.72;
+        else if (
+            regime.name ===
+            "easterly"
+        ) {
+            u =
+                -speed *
+                1.20;
 
-                break;
+            v =
+                speed *
+                0.05;
+        }
 
+        else if (
+            regime.name ===
+            "southeasterly"
+        ) {
+            u =
+                -speed *
+                0.82;
 
-            case "northwesterly":
+            v =
+                speed *
+                0.72;
+        }
 
-                u =
-                    speed;
+        else if (
+            regime.name ===
+            "southerly"
+        ) {
+            u =
+                speed *
+                0.12;
 
-                v =
-                    -speed *
-                    0.72;
+            v =
+                speed *
+                1.18;
+        }
 
-                break;
+        else if (
+            regime.name ===
+            "blocking"
+        ) {
+            u =
+                speed *
+                0.08;
 
+            v =
+                speed *
+                0.05;
+        }
 
-            case "northerly":
+        else {
+            var angle =
+                periodRandom(
+                    regimePeriod(date),
+                    77
+                ) *
+                TWO_PI;
 
-                u =
-                    speed *
-                    0.12;
+            u =
+                Math.cos(
+                    angle
+                ) *
+                speed *
+                0.55;
 
-                v =
-                    -speed *
-                    1.2;
-
-                break;
-
-
-            case "easterly":
-
-                u =
-                    -speed *
-                    1.15;
-
-                v =
-                    speed *
-                    0.05;
-
-                break;
-
-
-            case "southeasterly":
-
-                u =
-                    -speed *
-                    0.82;
-
-                v =
-                    speed *
-                    0.72;
-
-                break;
-
-
-            case "southerly":
-
-                u =
-                    speed *
-                    0.15;
-
-                v =
-                    speed *
-                    1.15;
-
-                break;
-
-
-            case "blocking":
-
-                u =
-                    -speed *
-                    0.12;
-
-                v =
-                    speed *
-                    0.08;
-
-                break;
-
-
-            case "weak_variable":
-
-                var direction =
-                    hash1(
-                        Math.floor(
-                            dayNumber(date) /
-                            4
-                        ) *
-                        119.7
-                    ) *
-                    TWO_PI;
-
-                u =
-                    Math.cos(
-                        direction
-                    ) *
-                    speed *
-                    0.45;
-
-                v =
-                    Math.sin(
-                        direction
-                    ) *
-                    speed *
-                    0.45;
-
-                break;
+            v =
+                Math.sin(
+                    angle
+                ) *
+                speed *
+                0.55;
         }
 
         return {
@@ -1437,9 +1592,7 @@
 
 
     /* =========================================================
-       SYNOPTIC LOWS / HIGHS
-
-       Average mode removes travelling systems completely.
+       SYNOPTIC SYSTEMS
     ========================================================= */
 
     function synopticSystems(date) {
@@ -1467,6 +1620,9 @@
         var systems =
             [];
 
+        var regime =
+            currentRegime(date);
+
         var i;
 
         for (
@@ -1476,114 +1632,148 @@
         ) {
             var seed =
                 cycle *
-                31 +
+                43 +
                 i *
-                97;
+                101;
 
             var startLon =
-                -34 +
+                -38 +
                 hash1(
-                    seed + 2
-                ) *
-                12;
-
-            var travel =
-                52 +
-                hash1(
-                    seed + 4
-                ) *
-                28;
-
-            var lat =
-                48 +
-                hash1(
-                    seed + 6
+                    seed +
+                    1
                 ) *
                 17;
 
-            lat +=
-                (
-                    hash1(
-                        seed + 19
-                    ) -
-                    0.5
+            var travel =
+                48 +
+                hash1(
+                    seed +
+                    2
                 ) *
-                5;
+                34;
 
-            var lon =
-                startLon +
-                travel *
-                progress +
-                i *
-                16;
+            var latitude =
+                47 +
+                hash1(
+                    seed +
+                    3
+                ) *
+                18;
+
+            /*
+             * Westerly regime sends systems farther east.
+             */
+            if (
+                regime.name ===
+                "atlantic_westerly" ||
+                regime.name ===
+                "southwesterly"
+            ) {
+                travel +=
+                    10;
+            }
+
+            /*
+             * Blocking suppresses normal Atlantic lows.
+             */
+            var depthMultiplier =
+                regime.name ===
+                "blocking"
+                    ? 0.45
+                    : 1;
 
             systems.push({
                 type:
                     "low",
 
                 lat:
-                    lat,
+                    latitude,
 
                 lon:
-                    lon,
+                    startLon +
+                    travel *
+                    progress +
+                    i *
+                    18,
 
                 depth:
-                    12 +
-                    hash1(
-                        seed + 7
+                    (
+                        12 +
+                        hash1(
+                            seed +
+                            4
+                        ) *
+                        15
                     ) *
-                    13,
+                    depthMultiplier,
 
                 radius:
                     6 +
                     hash1(
-                        seed + 9
+                        seed +
+                        5
                     ) *
-                    6,
+                    7,
 
                 frontRotation:
                     hash1(
-                        seed + 12
+                        seed +
+                        6
                     ) *
                     TWO_PI
             });
         }
 
         /*
-         * Semi-persistent high.
+         * Blocking/high-pressure system.
          */
-
         systems.push({
             type:
                 "high",
 
             lat:
-                39 +
-                hash1(
-                    cycle * 41
-                ) *
-                7,
+                regime.name ===
+                "blocking"
+                    ? regime.centreLat
+                    : 40 +
+                        hash1(
+                            cycle *
+                            61
+                        ) *
+                        10,
 
             lon:
-                -9 +
-                hash1(
-                    cycle * 59
-                ) *
-                28,
+                regime.name ===
+                "blocking"
+                    ? regime.centreLon
+                    : -10 +
+                        hash1(
+                            cycle *
+                            67
+                        ) *
+                        33,
 
             depth:
-                7 +
-                hash1(
-                    cycle * 61
-                ) *
-                8,
+                regime.name ===
+                "blocking"
+                    ? 16
+                    : 7 +
+                        hash1(
+                            cycle *
+                            71
+                        ) *
+                        8,
 
             radius:
-                12 +
-                hash1(
-                    cycle * 67
-                ) *
-                7
+                regime.name ===
+                "blocking"
+                    ? 18
+                    : 12 +
+                        hash1(
+                            cycle *
+                            73
+                        ) *
+                        8
         });
 
         return systems;
@@ -1602,11 +1792,6 @@
         if (
             averageMode
         ) {
-            /*
-             * Deliberately boring climatological pressure.
-             * Useful for balancing temperature / wind fields.
-             */
-
             return (
                 1015 +
                 (
@@ -1641,7 +1826,7 @@
                     s.lon
                 );
 
-            var effect =
+            var influence =
                 Math.exp(
                     -(
                         d *
@@ -1660,11 +1845,11 @@
             ) {
                 p -=
                     s.depth *
-                    effect;
+                    influence;
             } else {
                 p +=
                     s.depth *
-                    effect;
+                    influence;
             }
         }
 
@@ -1684,7 +1869,7 @@
         var step =
             0.25;
 
-        var n =
+        var north =
             pressure(
                 latitude +
                 step,
@@ -1692,7 +1877,7 @@
                 date
             );
 
-        var s =
+        var south =
             pressure(
                 latitude -
                 step,
@@ -1700,7 +1885,7 @@
                 date
             );
 
-        var e =
+        var east =
             pressure(
                 latitude,
                 longitude +
@@ -1708,7 +1893,7 @@
                 date
             );
 
-        var w =
+        var west =
             pressure(
                 latitude,
                 longitude -
@@ -1718,8 +1903,8 @@
 
         var ns =
             (
-                n -
-                s
+                north -
+                south
             ) /
             (
                 2 *
@@ -1728,8 +1913,8 @@
 
         var ew =
             (
-                e -
-                w
+                east -
+                west
             ) /
             (
                 2 *
@@ -1756,12 +1941,6 @@
 
     /* =========================================================
        WIND
-
-       Combination:
-       climatology
-       + weather regime
-       + pressure-gradient flow
-       + small non-wavy perturbation
     ========================================================= */
 
     function windAt(
@@ -1842,17 +2021,16 @@
             );
 
         /*
-         * Stronger than the old 3.2 multiplier.
+         * Strong synoptic pressure-gradient wind.
          */
-
         var pressureU =
             -gradient.northSouth *
-            14.0 *
+            15.0 *
             coriolis;
 
         var pressureV =
             gradient.eastWest *
-            14.0 *
+            15.0 *
             coriolis;
 
         var noise =
@@ -1863,16 +2041,14 @@
             );
 
         /*
-         * Only a small perturbation.
-         * It does not dominate the organised flow.
+         * Small local directional perturbation.
          */
-
         var perturb =
             (
                 noise -
                 0.5
             ) *
-            1.2;
+            1.4;
 
         var u =
             base.uMs +
@@ -1887,6 +2063,20 @@
             perturb *
             0.55;
 
+        /*
+         * Blocking should genuinely calm winds.
+         */
+        if (
+            regime.name ===
+            "blocking"
+        ) {
+            u *=
+                0.38;
+
+            v *=
+                0.38;
+        }
+
         var speed =
             Math.sqrt(
                 u *
@@ -1897,10 +2087,10 @@
 
         if (
             speed >
-            32
+            35
         ) {
             var scale =
-                32 /
+                35 /
                 speed;
 
             u *=
@@ -1910,7 +2100,7 @@
                 scale;
 
             speed =
-                32;
+                35;
         }
 
         var direction =
@@ -1962,8 +2152,10 @@
             15;
 
         return (
-            hour %
-            24 +
+            (
+                hour %
+                24
+            ) +
             24
         ) %
         24;
@@ -1971,7 +2163,7 @@
 
 
     /* =========================================================
-       DAILY TEMPERATURE
+       DAILY TEMPERATURE CURVE
     ========================================================= */
 
     function dailyTemperature(
@@ -1998,11 +2190,14 @@
             high -
             low;
 
+        /*
+         * Cloud reduces daytime heating and nighttime cooling.
+         */
         range *=
             clamp(
                 1 -
                 cloud *
-                0.34,
+                0.33,
                 0.58,
                 1
             );
@@ -2027,11 +2222,263 @@
 
 
     /* =========================================================
-       FRONTS AND CYCLONE STRUCTURE
+       REGIME TEMPERATURE ANOMALIES
 
-       No sine waves.
+       This is deliberately much stronger than before.
 
-       Fronts are curved geometric bands attached to lows.
+       It creates actual warm/cold spells rather than every
+       date sitting close to the monthly normal.
+    ========================================================= */
+
+    function regimeTemperatureAnomaly(
+        latitude,
+        longitude,
+        date,
+        regime,
+        wind
+    ) {
+        if (
+            averageMode ||
+            !regime
+        ) {
+            return 0;
+        }
+
+        var doy =
+            dayOfYear(date);
+
+        /*
+         * Winter air-mass contrasts are much stronger.
+         */
+        var seasonalAmplitude =
+            0.72 +
+            0.48 *
+            Math.cos(
+                TWO_PI *
+                (
+                    doy -
+                    15
+                ) /
+                365.2422
+            );
+
+        seasonalAmplitude =
+            clamp(
+                seasonalAmplitude,
+                0.34,
+                1.20
+            );
+
+        var base =
+            0;
+
+        if (
+            regime.name ===
+            "atlantic_westerly"
+        ) {
+            base =
+                3.0;
+        }
+
+        else if (
+            regime.name ===
+            "southwesterly"
+        ) {
+            base =
+                5.5;
+        }
+
+        else if (
+            regime.name ===
+            "northwesterly"
+        ) {
+            base =
+                -3.2;
+        }
+
+        else if (
+            regime.name ===
+            "northerly"
+        ) {
+            base =
+                -7.0;
+        }
+
+        else if (
+            regime.name ===
+            "easterly"
+        ) {
+            base =
+                -6.3;
+        }
+
+        else if (
+            regime.name ===
+            "southeasterly"
+        ) {
+            base =
+                1.8;
+        }
+
+        else if (
+            regime.name ===
+            "southerly"
+        ) {
+            base =
+                6.0;
+        }
+
+        else if (
+            regime.name ===
+            "blocking"
+        ) {
+            /*
+             * Blocking has little uniform anomaly itself.
+             * Night cooling is handled separately.
+             */
+            base =
+                -0.8;
+        }
+
+        else {
+            base =
+                (
+                    periodRandom(
+                        regimePeriod(date),
+                        91
+                    ) -
+                    0.5
+                ) *
+                5;
+        }
+
+        /*
+         * Regime core stronger than periphery.
+         */
+        var distance =
+            distanceApprox(
+                latitude,
+                longitude,
+                regime.centreLat,
+                regime.centreLon
+            );
+
+        var regionalInfluence =
+            Math.exp(
+                -(
+                    distance *
+                    distance
+                ) /
+                (
+                    2 *
+                    regime.radius *
+                    regime.radius
+                )
+            );
+
+        regionalInfluence =
+            0.55 +
+            regionalInfluence *
+            0.70;
+
+        /*
+         * Stronger wind carries the air mass farther.
+         */
+        var windTransport =
+            clamp(
+                0.72 +
+                wind.speedMs /
+                22,
+                0.72,
+                1.35
+            );
+
+        var anomaly =
+            base *
+            seasonalAmplitude *
+            regime.thermalStrength *
+            regionalInfluence *
+            windTransport;
+
+        /*
+         * Additional coherent weather-period variation.
+         */
+        var periodVariation =
+            0.78 +
+            periodRandom(
+                regimePeriod(date),
+                113
+            ) *
+            0.48;
+
+        anomaly *=
+            periodVariation;
+
+        return clamp(
+            anomaly,
+            -12,
+            12
+        );
+    }
+
+
+    /* =========================================================
+       SYNOPTIC TEMPERATURE ANOMALY
+
+       Local low/high sector adds further variation.
+    ========================================================= */
+
+    function synopticTemperatureAnomaly(
+        latitude,
+        longitude,
+        date,
+        pressureValue
+    ) {
+        if (
+            averageMode
+        ) {
+            return 0;
+        }
+
+        var noise =
+            valueNoise(
+                longitude,
+                latitude,
+                Math.floor(
+                    dayNumber(date) /
+                    2
+                ) +
+                631,
+                9
+            );
+
+        var randomSynoptic =
+            (
+                noise -
+                0.5
+            ) *
+            4.0;
+
+        var pressureEffect =
+            clamp(
+                (
+                    pressureValue -
+                    1015
+                ) *
+                0.035,
+                -1.3,
+                1.3
+            );
+
+        return (
+            randomSynoptic +
+            pressureEffect
+        );
+    }
+
+
+    /* =========================================================
+       FRONTS
     ========================================================= */
 
     function synopticStructure(
@@ -2043,14 +2490,9 @@
             averageMode
         ) {
             return {
-                front:
-                    0,
-
-                lowInfluence:
-                    0,
-
-                frontalDistance:
-                    999
+                front: 0,
+                lowInfluence: 0,
+                frontalDistance: 999
             };
         }
 
@@ -2063,7 +2505,7 @@
         var strongestLow =
             0;
 
-        var bestDistance =
+        var nearestFront =
             999;
 
         var i;
@@ -2120,8 +2562,8 @@
                     ) /
                     (
                         2 *
-                        8 *
-                        8
+                        9 *
+                        9
                     )
                 );
 
@@ -2132,13 +2574,13 @@
                 );
 
             /*
-             * Cold front extending south-westward.
+             * Cold front:
+             * southwestward trail from depression.
              */
-
             var coldAngle =
-                -2.35 +
+                -2.30 +
                 s.frontRotation *
-                0.12;
+                0.10;
 
             var coldAlong =
                 dx *
@@ -2167,9 +2609,9 @@
 
             if (
                 coldAlong >
-                1 &&
+                0 &&
                 coldAlong <
-                16
+                18
             ) {
                 coldFront =
                     Math.exp(
@@ -2179,27 +2621,28 @@
                         ) /
                         (
                             2 *
-                            0.85 *
-                            0.85
+                            1.05 *
+                            1.05
                         )
                     );
 
                 coldFront *=
+                    1 -
                     smoothstep(
-                        16,
-                        6,
+                        10,
+                        18,
                         coldAlong
                     );
             }
 
             /*
-             * Warm front extending east / north-eastward.
+             * Warm front:
+             * broad ENE cloud/precipitation shield.
              */
-
             var warmAngle =
-                0.42 +
+                0.45 +
                 s.frontRotation *
-                0.08;
+                0.07;
 
             var warmAlong =
                 dx *
@@ -2230,7 +2673,7 @@
                 warmAlong >
                 0 &&
                 warmAlong <
-                13
+                16
             ) {
                 warmFront =
                     Math.exp(
@@ -2240,15 +2683,16 @@
                         ) /
                         (
                             2 *
-                            1.25 *
-                            1.25
+                            1.55 *
+                            1.55
                         )
                     );
 
                 warmFront *=
+                    1 -
                     smoothstep(
-                        13,
-                        4,
+                        9,
+                        16,
                         warmAlong
                     );
             }
@@ -2266,7 +2710,7 @@
                 strongestFront =
                     combined;
 
-                bestDistance =
+                nearestFront =
                     Math.min(
                         coldCross,
                         warmCross
@@ -2290,15 +2734,13 @@
                 ),
 
             frontalDistance:
-                bestDistance
+                nearestFront
         };
     }
 
 
     /* =========================================================
-       UPSTREAM POINT
-
-       Stronger winds inspect farther upstream.
+       UPSTREAM AIR SOURCE
     ========================================================= */
 
     function upstreamPoint(
@@ -2319,13 +2761,16 @@
             };
         }
 
+        /*
+         * Faster winds look much farther upstream.
+         */
         var distance =
             clamp(
-                1.2 +
+                1.5 +
                 wind.speedMs *
-                0.42,
-                1.2,
-                10
+                0.55,
+                1.5,
+                14
             );
 
         var lat =
@@ -2338,7 +2783,7 @@
 
         var cosLat =
             Math.max(
-                0.3,
+                0.30,
                 Math.cos(
                     latitude *
                     DEG
@@ -2369,6 +2814,65 @@
                     52
                 )
         };
+    }
+
+
+    /* =========================================================
+       TEMPERATURE ADVECTION
+    ========================================================= */
+
+    function advectionCorrection(
+        latitude,
+        longitude,
+        date,
+        wind,
+        localMean
+    ) {
+        if (
+            averageMode
+        ) {
+            return 0;
+        }
+
+        var upstream =
+            upstreamPoint(
+                latitude,
+                longitude,
+                wind
+            );
+
+        var upstreamNormals =
+            interpolatedNormals(
+                upstream.lat,
+                upstream.lon,
+                date
+            );
+
+        var upstreamMean =
+            (
+                upstreamNormals.high +
+                upstreamNormals.low
+            ) /
+            2;
+
+        var difference =
+            upstreamMean -
+            localMean;
+
+        var strength =
+            clamp(
+                wind.speedMs /
+                13,
+                0,
+                0.90
+            );
+
+        return clamp(
+            difference *
+            strength,
+            -9,
+            9
+        );
     }
 
 
@@ -2406,8 +2910,8 @@
         var transport =
             clamp(
                 wind.speedMs /
-                12,
-                0.12,
+                10,
+                0.15,
                 1
             );
 
@@ -2432,16 +2936,16 @@
             );
 
         var moisture =
-            0.22;
+            0.25;
 
         moisture +=
             maritime *
-            0.24;
+            0.25;
 
         moisture +=
             upstreamMaritime *
             transport *
-            0.33;
+            0.36;
 
         moisture +=
             seaFraction *
@@ -2449,34 +2953,30 @@
 
         moisture +=
             seaFlux *
-            0.16;
+            0.17;
 
         moisture +=
             (
                 noise -
                 0.5
             ) *
-            0.10;
+            0.09;
 
         return clamp(
             moisture,
-            0.08,
+            0.10,
             1
         );
     }
 
 
     /* =========================================================
-       CLOUD FIELD
+       CLOUD
 
-       No wave functions.
+       NO SINE-WAVE CLOUD PATTERNS.
 
-       Main components:
-       - frontal cloud
-       - cyclone shield
-       - post-frontal / maritime convection
-       - random mesoscale cloud areas
-       - high pressure suppression
+       Noise only adds irregular boundaries.
+       Synoptic structure determines the main cloud masses.
     ========================================================= */
 
     function cloudField(
@@ -2493,16 +2993,11 @@
         if (
             averageMode
         ) {
-            /*
-             * Climatological balancing value only.
-             * Do not interpret as actual day's cloud map.
-             */
-
             return clamp(
-                0.32 +
+                0.30 +
                 moisture *
-                0.28,
-                0.18,
+                0.30,
+                0.15,
                 0.72
             );
         }
@@ -2515,33 +3010,30 @@
             );
 
         /*
-         * Broad cyclone cloud shield.
+         * Broad shield around low pressure.
          */
-
         var cycloneCloud =
             structure.lowInfluence *
             (
-                0.35 +
+                0.28 +
                 moisture *
-                0.48
+                0.50
             );
 
         /*
-         * Fronts are naturally very cloudy.
+         * Frontal cloud nearly overcast near strongest fronts.
          */
-
         var frontalCloud =
             structure.front *
             (
-                0.55 +
+                0.52 +
                 moisture *
                 0.52
             );
 
         /*
-         * Cold air over relatively warm sea.
+         * Cold air over warmer sea.
          */
-
         var instability =
             clamp(
                 (
@@ -2549,82 +3041,81 @@
                     temperature -
                     1
                 ) /
-                10,
+                9,
                 0,
                 1
             );
 
-        var maritimeConvection =
+        var convectiveCloud =
             instability *
             (
                 1 -
-                landFraction
+                landFraction *
+                0.60
             ) *
-            (
-                0.20 +
-                noise *
-                0.70
-            );
-
-        /*
-         * Mesoscale broken cloud elsewhere.
-         *
-         * This is random-looking but spatially coherent.
-         */
-
-        var brokenCloud =
             moisture *
             smoothstep(
-                0.48,
-                0.77,
+                0.38,
+                0.76,
                 noise
             ) *
-            0.55;
+            0.80;
 
         /*
-         * High pressure clears most deep cloud.
+         * Broken mesoscale cloud only where atmosphere
+         * already has enough moisture.
          */
+        var patchCloud =
+            moisture *
+            smoothstep(
+                0.57,
+                0.79,
+                noise
+            ) *
+            0.38;
 
+        /*
+         * High-pressure subsidence.
+         */
         var highSuppression =
             clamp(
                 (
                     pressureValue -
                     1018
                 ) /
-                14,
+                15,
                 0,
-                0.70
+                0.72
             );
 
         var cloud =
-            0.06 +
+            0.04 +
             cycloneCloud +
             frontalCloud +
-            maritimeConvection +
-            brokenCloud;
+            convectiveCloud +
+            patchCloud;
 
         cloud *=
             1 -
             highSuppression;
 
         /*
-         * Moist cool anticyclones can still have low stratus.
+         * Cold moist high pressure can still support stratus.
          */
-
         if (
             pressureValue >
             1020 &&
             moisture >
-            0.55 &&
+            0.57 &&
             temperature <
-            10
+            9
         ) {
             cloud =
                 Math.max(
                     cloud,
-                    0.25 +
+                    0.30 +
                     moisture *
-                    0.35
+                    0.32
                 );
         }
 
@@ -2639,15 +3130,14 @@
     /* =========================================================
        PRECIPITATION
 
-       Intentionally generous initial calibration.
+       Four mechanisms:
 
-       Rain/snow can occur from:
-       - fronts
-       - cyclone ascent
-       - maritime convection
-       - moist disturbed air
+       1 frontal
+       2 cyclonic
+       3 maritime showers
+       4 general disturbed wet sector
 
-       It should now be easy to find precipitation.
+       Threshold intentionally generous while calibrating.
     ========================================================= */
 
     function precipitationField(
@@ -2666,20 +3156,11 @@
             averageMode
         ) {
             return {
-                potential:
-                    0,
-
-                chance:
-                    0,
-
-                intensity:
-                    0,
-
-                precipitating:
-                    false,
-
-                mechanism:
-                    "none"
+                potential: 0,
+                chance: 0,
+                intensity: 0,
+                precipitating: false,
+                mechanism: "none"
             };
         }
 
@@ -2691,29 +3172,27 @@
             );
 
         /*
-         * 1. Frontal precipitation
+         * Frontal rain/snow.
          */
-
         var frontal =
             structure.front *
             moisture *
             (
-                0.75 +
+                0.80 +
                 cloud *
                 0.40
             );
 
         /*
-         * 2. General cyclone ascent
+         * Depression-wide ascent.
          */
-
-        var lowPressureLift =
+        var lowLift =
             clamp(
                 (
-                    1017 -
+                    1019 -
                     pressureValue
                 ) /
-                13,
+                15,
                 0,
                 1
             );
@@ -2721,74 +3200,78 @@
         var cyclone =
             structure.lowInfluence *
             moisture *
-            lowPressureLift *
-            0.85;
+            lowLift *
+            0.90;
 
         /*
-         * 3. Cold air over warmer sea / showers
+         * Maritime convection.
          */
-
         var instability =
             clamp(
                 (
                     sst -
                     temperature -
-                    1
+                    0.5
                 ) /
-                9,
+                8,
                 0,
                 1
             );
 
-        var maritimeShowers =
+        var showers =
             instability *
             moisture *
             (
                 1 -
                 landFraction *
-                0.65
+                0.55
             ) *
             smoothstep(
-                0.40,
-                0.72,
+                0.42,
+                0.67,
                 noise
             ) *
-            0.85;
+            0.90;
 
         /*
-         * 4. Disturbed moist air close to a depression.
+         * Wet disturbed air around cyclone.
          */
-
         var disturbed =
             moisture *
             structure.lowInfluence *
             smoothstep(
-                0.55,
-                0.82,
+                0.50,
+                0.74,
                 noise
             ) *
-            0.50;
+            0.58;
 
         var potential =
             Math.max(
                 frontal,
                 cyclone,
-                maritimeShowers,
+                showers,
                 disturbed
             );
 
         /*
-         * Deliberately low threshold while calibrating.
+         * Deliberately permissive.
          */
-
         var threshold =
-            0.105;
+            0.075;
+
+        var cloudThreshold =
+            0.38;
 
         var precipitating =
-            potential >
-            threshold &&
-            cloud >
-            0.48;
+            (
+                potential >
+                threshold
+            ) &&
+            (
+                cloud >
+                cloudThreshold
+            );
 
         var intensity =
             0;
@@ -2802,8 +3285,8 @@
                         potential -
                         threshold
                     ) /
-                    0.50,
-                    0.06,
+                    0.52,
+                    0.05,
                     1
                 );
         }
@@ -2812,9 +3295,9 @@
             clamp(
                 (
                     potential -
-                    0.04
+                    0.025
                 ) /
-                0.38,
+                0.34,
                 0,
                 1
             );
@@ -2843,11 +3326,11 @@
             }
 
             if (
-                maritimeShowers >
+                showers >
                 best
             ) {
                 best =
-                    maritimeShowers;
+                    showers;
 
                 mechanism =
                     "showers";
@@ -2883,11 +3366,6 @@
 
     /* =========================================================
        PRECIPITATION PHASE
-
-       Minecraft rule requested:
-       <= 1.5 C snow
-       <= 3.0 C sleet
-       > 3.0 C rain
     ========================================================= */
 
     function precipitationType(
@@ -2919,70 +3397,86 @@
 
 
     /* =========================================================
-       TEMPERATURE ADVECTION
-
-       Stronger than the previous implementation.
+       BLOCKING NIGHT COOLING
     ========================================================= */
 
-    function advectionCorrection(
-        latitude,
+    function blockingCooling(
         longitude,
         date,
-        wind,
-        localMean
+        regime,
+        cloud,
+        wind
     ) {
         if (
-            averageMode
+            averageMode ||
+            regime.name !==
+                "blocking"
         ) {
             return 0;
         }
 
-        var upstream =
-            upstreamPoint(
-                latitude,
+        var hour =
+            localSolarHour(
                 longitude,
-                wind
-            );
-
-        var upstreamNormal =
-            interpolatedNormals(
-                upstream.lat,
-                upstream.lon,
                 date
             );
 
-        var upstreamMean =
-            (
-                upstreamNormal.high +
-                upstreamNormal.low
-            ) /
-            2;
+        var nightFactor;
 
-        var strength =
+        if (
+            hour >=
+            18
+        ) {
+            nightFactor =
+                smoothstep(
+                    18,
+                    24,
+                    hour
+                );
+        }
+
+        else if (
+            hour <=
+            8
+        ) {
+            nightFactor =
+                1 -
+                smoothstep(
+                    4,
+                    8,
+                    hour
+                );
+        }
+
+        else {
+            nightFactor =
+                0;
+        }
+
+        var clearFactor =
+            1 -
+            cloud;
+
+        var calmFactor =
+            1 -
             clamp(
                 wind.speedMs /
-                14,
+                8,
                 0,
-                0.82
+                1
             );
 
-        var correction =
-            (
-                upstreamMean -
-                localMean
-            ) *
-            strength;
-
-        return clamp(
-            correction,
-            -10,
-            10
+        return (
+            -4.0 *
+            nightFactor *
+            clearFactor *
+            calmFactor
         );
     }
 
 
     /* =========================================================
-       MAIN SIMULATION
+       SIMULATE
     ========================================================= */
 
     function simulate(
@@ -3007,7 +3501,8 @@
         if (
             !options
         ) {
-            options = {};
+            options =
+                {};
         }
 
         var landFraction =
@@ -3036,6 +3531,11 @@
                     landFraction:
                         landFraction
                 }
+            );
+
+        var regime =
+            currentRegime(
+                d
             );
 
         var pressureValue =
@@ -3100,13 +3600,13 @@
                 climate
             );
 
-        var preliminaryTemperature =
-            dailyTemperature(
-                normals.low,
-                normals.high,
+        var regimeAnomaly =
+            regimeTemperatureAnomaly(
+                latitude,
                 longitude,
                 d,
-                0.25
+                regime,
+                wind
             );
 
         var advection =
@@ -3118,16 +3618,41 @@
                 normalMean
             );
 
+        var synopticAnomaly =
+            synopticTemperatureAnomaly(
+                latitude,
+                longitude,
+                d,
+                pressureValue
+            );
+
+        /*
+         * First-pass temperature for cloud physics.
+         */
+        var preliminaryTemperature =
+            dailyTemperature(
+                normals.low,
+                normals.high,
+                longitude,
+                d,
+                0.25
+            );
+
+        preliminaryTemperature +=
+            regimeAnomaly;
+
         preliminaryTemperature +=
             advection;
 
-        /*
-         * Ocean cells approach SST.
-         */
+        preliminaryTemperature +=
+            synopticAnomaly;
 
+        /*
+         * Open sea air trends toward SST.
+         */
         if (
             landFraction <
-            0.7
+            0.70
         ) {
             var seaCoupling =
                 (
@@ -3135,11 +3660,11 @@
                     landFraction
                 ) *
                 clamp(
-                    0.20 +
+                    0.22 +
                     wind.speedMs /
-                    35,
-                    0.20,
-                    0.72
+                    32,
+                    0.22,
+                    0.78
                 );
 
             preliminaryTemperature =
@@ -3183,6 +3708,9 @@
                 sst
             );
 
+        /*
+         * Recalculate temperature using actual cloud.
+         */
         var temperature =
             dailyTemperature(
                 normals.low,
@@ -3193,34 +3721,29 @@
             );
 
         temperature +=
+            regimeAnomaly;
+
+        temperature +=
             advection;
 
-        /*
-         * Small synoptic thermal response.
-         */
+        temperature +=
+            synopticAnomaly;
 
-        if (
-            !averageMode
-        ) {
-            temperature +=
-                clamp(
-                    (
-                        pressureValue -
-                        1015
-                    ) *
-                    0.025,
-                    -1,
-                    1
-                );
-        }
+        temperature +=
+            blockingCooling(
+                longitude,
+                d,
+                regime,
+                cloud,
+                wind
+            );
 
         /*
          * Final SST coupling over sea.
          */
-
         if (
             landFraction <
-            0.7
+            0.70
         ) {
             var finalSeaCoupling =
                 (
@@ -3228,11 +3751,11 @@
                     landFraction
                 ) *
                 clamp(
-                    0.20 +
+                    0.22 +
                     wind.speedMs /
-                    35,
-                    0.20,
-                    0.72
+                    32,
+                    0.22,
+                    0.78
                 );
 
             temperature =
@@ -3265,16 +3788,17 @@
 
         var humidity =
             clamp(
-                32 +
+                30 +
                 moisture *
                 58 +
                 cloud *
-                10,
+                12,
                 20,
                 100
             );
 
         return {
+
             date:
                 d.toISOString(),
 
@@ -3284,11 +3808,14 @@
             lon:
                 longitude,
 
+            simulationSeed:
+                simulationSeed,
+
             averageMode:
                 averageMode,
 
             regime:
-                currentRegime(d).name,
+                regime.name,
 
             climate:
                 climate,
@@ -3311,8 +3838,14 @@
             baselineTemperatureC:
                 normalMean,
 
+            regimeTemperatureAnomalyC:
+                regimeAnomaly,
+
             advectionTemperatureC:
                 advection,
+
+            synopticTemperatureAnomalyC:
+                synopticAnomaly,
 
             seaSurfaceTemperatureC:
                 sst,
@@ -3354,7 +3887,46 @@
 
 
     /* =========================================================
-       MODE CONTROL
+       RANDOMIZATION CONTROL
+    ========================================================= */
+
+    function rerollWeather() {
+        simulationSeed =
+            Math.floor(
+                Math.random() *
+                1000000000
+            );
+
+        return simulationSeed;
+    }
+
+
+    function setSimulationSeed(seed) {
+        var n =
+            Number(seed);
+
+        if (
+            !isFinite(n)
+        ) {
+            return simulationSeed;
+        }
+
+        simulationSeed =
+            Math.floor(
+                Math.abs(n)
+            );
+
+        return simulationSeed;
+    }
+
+
+    function getSimulationSeed() {
+        return simulationSeed;
+    }
+
+
+    /* =========================================================
+       CLIMATOLOGICAL AVERAGE MODE
     ========================================================= */
 
     function setAverageMode(enabled) {
@@ -3364,9 +3936,11 @@
         return averageMode;
     }
 
+
     function getAverageMode() {
         return averageMode;
     }
+
 
     function toggleAverageMode() {
         averageMode =
@@ -3383,7 +3957,7 @@
     window.EuropaWeather = {
 
         version:
-            "4.0-regime-weather",
+            "5.0-random-synoptic",
 
         pressure:
             pressure,
@@ -3406,6 +3980,15 @@
         currentRegime:
             currentRegime,
 
+        rerollWeather:
+            rerollWeather,
+
+        setSimulationSeed:
+            setSimulationSeed,
+
+        getSimulationSeed:
+            getSimulationSeed,
+
         setAverageMode:
             setAverageMode,
 
@@ -3416,9 +3999,12 @@
             toggleAverageMode
     };
 
+
     console.log(
         "EuropaCraft Weather Engine loaded:",
-        window.EuropaWeather.version
+        window.EuropaWeather.version,
+        "Seed:",
+        simulationSeed
     );
 
 })();
