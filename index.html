@@ -1,798 +1,532 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+<meta charset="UTF-8">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
 
-    <title>EuropaCraft Weather Simulator</title>
+<title>EuropaCraft Climate</title>
 
-    <style>
+<style>
 
-        * {
-            box-sizing: border-box;
-        }
-
-        html,
-        body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            min-height: 100%;
-            background: #101418;
-            color: #e8edf1;
-            font-family:
-                Inter,
-                system-ui,
-                -apple-system,
-                BlinkMacSystemFont,
-                "Segoe UI",
-                sans-serif;
-        }
-
-        body {
-            overflow-x: hidden;
-        }
-
-        button,
-        select,
-        input {
-            font: inherit;
-        }
-
-        button {
-            cursor: pointer;
-        }
+    * {
+        box-sizing: border-box;
+    }
 
 
-        /* ================================================================
-           HEADER
-           ================================================================ */
-
-        #header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 20px;
-
-            padding: 13px 18px;
-
-            background: #171d22;
-
-            border-bottom:
-                1px solid #303941;
-        }
-
-        #title-area {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-
-        #main-title {
-            margin: 0;
-
-            font-size: 20px;
-            font-weight: 700;
-
-            letter-spacing: 0.2px;
-        }
-
-        #subtitle {
-            color: #9eabb5;
-
-            font-size: 12px;
-        }
-
-        #status-area {
-            display: flex;
-            align-items: center;
-            gap: 9px;
-
-            font-size: 12px;
-        }
-
-        #status-dot {
-            width: 10px;
-            height: 10px;
-
-            border-radius: 50%;
-
-            background: #d5a93a;
-        }
-
-        #status-text {
-            color: #bfc8cf;
-        }
+    :root {
+        color-scheme: dark;
+    }
 
 
-        /* ================================================================
-           MAIN
-           ================================================================ */
+    html,
+    body {
+        margin: 0;
+        padding: 0;
+        min-height: 100%;
+        background: #101619;
+        color: #e8eeee;
+        font-family:
+            Arial,
+            Helvetica,
+            sans-serif;
+    }
 
-        #app {
-            width: 100%;
 
-            display: grid;
+    body {
+        padding: 12px;
+    }
 
+
+    button,
+    input,
+    select {
+        font: inherit;
+    }
+
+
+    button {
+        border: 1px solid #445257;
+        background: #202b2f;
+        color: #e8eeee;
+        border-radius: 5px;
+        padding: 7px 10px;
+        cursor: pointer;
+    }
+
+
+    button:hover {
+        background: #2c393e;
+    }
+
+
+    button.active {
+        background: #4b7d39;
+        border-color: #7baa61;
+        color: white;
+    }
+
+
+    button.danger {
+        background: #562b2b;
+    }
+
+
+    input,
+    select {
+        border: 1px solid #445257;
+        background: #172024;
+        color: #e8eeee;
+        border-radius: 4px;
+        padding: 6px;
+    }
+
+
+    input[type="number"] {
+        width: 92px;
+    }
+
+
+    .page {
+        max-width: 1600px;
+        margin: 0 auto;
+    }
+
+
+    .title-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 10px;
+    }
+
+
+    .title-row h1 {
+        font-size: 21px;
+        margin: 0;
+        font-weight: 600;
+    }
+
+
+    .status {
+        font-size: 13px;
+        color: #b8c7c7;
+    }
+
+
+    .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid #344247;
+        background: #151e22;
+        padding: 8px;
+        border-radius: 6px;
+        margin-bottom: 9px;
+    }
+
+
+    .toolbar-group {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 5px;
+        padding-right: 8px;
+        margin-right: 4px;
+        border-right: 1px solid #354246;
+    }
+
+
+    .toolbar-group:last-child {
+        border-right: none;
+    }
+
+
+    .main-grid {
+        display: grid;
+        grid-template-columns:
+            minmax(0, 1fr)
+            330px;
+        gap: 10px;
+    }
+
+
+    .map-panel {
+        min-width: 0;
+    }
+
+
+    .map-wrapper {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid #38494e;
+        border-radius: 6px;
+        background: #1a2428;
+    }
+
+
+    #weather-map {
+        display: block;
+        width: 100%;
+        height: auto;
+        touch-action: none;
+        user-select: none;
+    }
+
+
+    .map-label {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        z-index: 5;
+        padding: 5px 7px;
+        border-radius: 4px;
+        background: rgba(10, 18, 18, 0.79);
+        border: 1px solid rgba(210, 230, 225, 0.25);
+        font-size: 12px;
+        pointer-events: none;
+    }
+
+
+    .time-label {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        z-index: 5;
+        padding: 5px 7px;
+        border-radius: 4px;
+        background: rgba(10, 18, 18, 0.79);
+        border: 1px solid rgba(210, 230, 225, 0.25);
+        font-size: 12px;
+        pointer-events: none;
+    }
+
+
+    .hover-label {
+        position: absolute;
+        bottom: 8px;
+        left: 8px;
+        z-index: 5;
+        max-width: calc(100% - 16px);
+        padding: 5px 7px;
+        border-radius: 4px;
+        background: rgba(10, 18, 18, 0.82);
+        border: 1px solid rgba(210, 230, 225, 0.22);
+        font-size: 12px;
+        pointer-events: none;
+        white-space: nowrap;
+    }
+
+
+    .drag-banner {
+        position: absolute;
+        left: 50%;
+        bottom: 8px;
+        transform: translateX(-50%);
+        z-index: 6;
+        padding: 6px 10px;
+        border-radius: 5px;
+        background: rgba(49, 83, 38, 0.92);
+        border: 1px solid rgba(164, 212, 135, 0.75);
+        font-size: 12px;
+        display: none;
+        pointer-events: none;
+    }
+
+
+    .sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 9px;
+    }
+
+
+    .panel {
+        border: 1px solid #344247;
+        background: #151e22;
+        border-radius: 6px;
+        padding: 10px;
+    }
+
+
+    .panel h2 {
+        margin: 0 0 8px 0;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+
+    .panel p {
+        margin: 5px 0;
+        font-size: 12px;
+        line-height: 1.4;
+        color: #c4cece;
+    }
+
+
+    .field-row {
+        display: grid;
+        grid-template-columns:
+            1fr
+            1fr;
+        gap: 6px;
+        align-items: center;
+        margin-bottom: 6px;
+        font-size: 12px;
+    }
+
+
+    .field-row label {
+        color: #c5d0d0;
+    }
+
+
+    .field-row input,
+    .field-row select {
+        width: 100%;
+    }
+
+
+    .button-row {
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+        margin-top: 7px;
+    }
+
+
+    .layer-buttons {
+        display: grid;
+        grid-template-columns:
+            repeat(3, 1fr);
+        gap: 5px;
+    }
+
+
+    .layer-buttons button {
+        padding: 6px 4px;
+        font-size: 11px;
+    }
+
+
+    .toggle-grid {
+        display: grid;
+        grid-template-columns:
+            1fr
+            1fr;
+        gap: 5px;
+    }
+
+
+    .toggle-grid button {
+        font-size: 11px;
+    }
+
+
+    .steering-panel {
+        border-color: #597248;
+    }
+
+
+    .steering-note {
+        background: #182519;
+        border: 1px solid #3f5c36;
+        padding: 7px;
+        border-radius: 5px;
+        margin: 7px 0;
+        font-size: 11px;
+        color: #cad9c4;
+        line-height: 1.45;
+    }
+
+
+    .arrow-list {
+        max-height: 160px;
+        overflow-y: auto;
+        margin-top: 8px;
+        font-size: 11px;
+    }
+
+
+    .arrow-item {
+        border-top: 1px solid #354246;
+        padding: 6px 0;
+    }
+
+
+    .diagnostics {
+        font-family:
+            Consolas,
+            "Courier New",
+            monospace;
+        white-space: pre-wrap;
+        font-size: 11px;
+        line-height: 1.45;
+        max-height: 220px;
+        overflow-y: auto;
+        color: #bad0c9;
+    }
+
+
+    .error {
+        color: #ff9696;
+    }
+
+
+    .good {
+        color: #9edf85;
+    }
+
+
+    .muted {
+        color: #8f9e9e;
+    }
+
+
+    @media (
+        max-width: 1050px
+    ) {
+
+        .main-grid {
             grid-template-columns:
-                minmax(0, 1fr)
-                300px;
-
-            min-height:
-                calc(100vh - 57px);
+                1fr;
         }
 
 
-        /* ================================================================
-           LEFT / MAP
-           ================================================================ */
-
-        #map-section {
-            min-width: 0;
-
-            padding: 12px;
-
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-
-        /* ================================================================
-           CONTROL TOOLBAR
-           ================================================================ */
-
-        #toolbar {
-            display: flex;
-            align-items: center;
-            gap: 7px;
-            flex-wrap: wrap;
-
-            padding: 8px;
-
-            background: #171d22;
-
-            border:
-                1px solid #303941;
-
-            border-radius: 6px;
-        }
-
-        .toolbar-group {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .toolbar-separator {
-            width: 1px;
-            height: 27px;
-
-            background: #344049;
-
-            margin:
-                0 4px;
-        }
-
-        .button {
-            border:
-                1px solid #3d4851;
-
-            background: #222a30;
-            color: #e6ebef;
-
-            border-radius: 4px;
-
-            padding:
-                6px 10px;
-
-            min-height: 32px;
-        }
-
-        .button:hover {
-            background: #2c363e;
-        }
-
-        .button.active {
-            background: #36546b;
-
-            border-color: #5d8099;
-        }
-
-        .button.danger {
-            background: #4a292c;
-
-            border-color: #6b3b40;
-        }
-
-        select,
-        input[type="number"],
-        input[type="datetime-local"],
-        input[type="text"] {
-            border:
-                1px solid #3d4851;
-
-            background: #20272c;
-            color: #e8edf1;
-
-            border-radius: 4px;
-
-            padding:
-                6px 7px;
-        }
-
-        select {
-            min-height: 32px;
-        }
-
-
-        /* ================================================================
-           MAP CONTAINER
-           ================================================================ */
-
-        #map-container {
-            position: relative;
-
-            width: 100%;
-
-            background: #080b0d;
-
-            border:
-                1px solid #303941;
-
-            border-radius: 6px;
-
-            overflow: hidden;
-
-            line-height: 0;
-        }
-
-        #weather-map {
-            display: block;
-
-            width: 100%;
-            height: auto;
-
-            image-rendering: auto;
-        }
-
-
-        /* ================================================================
-           MAP LABELS
-           ================================================================ */
-
-        #layer-label {
-            position: absolute;
-
-            top: 9px;
-            left: 10px;
-
-            padding:
-                5px 7px;
-
-            background:
-                rgba(
-                    10,
-                    14,
-                    17,
-                    0.72
+        .sidebar {
+            display: grid;
+            grid-template-columns:
+                repeat(
+                    auto-fit,
+                    minmax(
+                        280px,
+                        1fr
+                    )
                 );
-
-            border-radius: 4px;
-
-            font-size: 12px;
-            line-height: normal;
-
-            pointer-events: none;
         }
+    }
 
-        #time-label {
-            position: absolute;
-
-            top: 9px;
-            right: 10px;
-
-            padding:
-                5px 7px;
-
-            background:
-                rgba(
-                    10,
-                    14,
-                    17,
-                    0.72
-                );
-
-            border-radius: 4px;
-
-            font-size: 12px;
-            line-height: normal;
-
-            pointer-events: none;
-        }
-
-
-        /* ================================================================
-           HOVER
-           ================================================================ */
-
-        #hover-panel {
-            position: absolute;
-
-            display: none;
-
-            min-width: 185px;
-
-            padding: 8px;
-
-            background:
-                rgba(
-                    10,
-                    14,
-                    17,
-                    0.92
-                );
-
-            border:
-                1px solid #50606c;
-
-            border-radius: 5px;
-
-            line-height: 1.35;
-
-            font-size: 11px;
-
-            pointer-events: none;
-
-            z-index: 20;
-        }
-
-        #hover-panel strong {
-            font-size: 13px;
-        }
-
-
-        /* ================================================================
-           TIMELINE
-           ================================================================ */
-
-        #timeline-panel {
-            padding: 9px;
-
-            background: #171d22;
-
-            border:
-                1px solid #303941;
-
-            border-radius: 6px;
-        }
-
-        #timeline-top {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-
-            margin-bottom: 8px;
-        }
-
-        #timeline-date {
-            font-size: 13px;
-            font-weight: 600;
-        }
-
-        #timeline-subtext {
-            font-size: 11px;
-            color: #98a5ae;
-        }
-
-        #timeline-controls {
-            display: flex;
-            gap: 5px;
-            flex-wrap: wrap;
-        }
-
-
-        /* ================================================================
-           SIDE PANEL
-           ================================================================ */
-
-        #sidebar {
-            border-left:
-                1px solid #303941;
-
-            background: #14191d;
-
-            padding: 11px;
-
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .panel {
-            background: #1a2025;
-
-            border:
-                1px solid #303941;
-
-            border-radius: 6px;
-
-            padding: 10px;
-        }
-
-        .panel-title {
-            margin:
-                0 0 9px 0;
-
-            font-size: 13px;
-            font-weight: 700;
-        }
-
-        .data-grid {
-            display: grid;
-
-            grid-template-columns:
-                1fr auto;
-
-            gap:
-                5px 10px;
-
-            font-size: 11px;
-        }
-
-        .data-name {
-            color: #9eabb5;
-        }
-
-        .data-value {
-            text-align: right;
-
-            font-variant-numeric:
-                tabular-nums;
-        }
-
-
-        /* ================================================================
-           LAYER BUTTONS
-           ================================================================ */
-
-        #layer-buttons {
-            display: grid;
-
-            grid-template-columns:
-                1fr 1fr;
-
-            gap: 5px;
-        }
-
-        #layer-buttons .button {
-            font-size: 11px;
-        }
-
-
-        /* ================================================================
-           OVERLAYS
-           ================================================================ */
-
-        .toggle-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-
-            gap: 8px;
-
-            margin-bottom: 7px;
-
-            font-size: 11px;
-        }
-
-
-        /* ================================================================
-           STATIONS
-           ================================================================ */
-
-        #station-form {
-            display: grid;
-
-            grid-template-columns:
-                1fr 1fr;
-
-            gap: 5px;
-        }
-
-        #station-name {
-            grid-column:
-                1 / -1;
-        }
-
-        #add-station-button {
-            grid-column:
-                1 / -1;
-        }
-
-        #station-list {
-            margin-top: 8px;
-
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-
-            max-height: 170px;
-
-            overflow-y: auto;
-        }
-
-        .station-item {
-            padding: 6px;
-
-            background: #20272c;
-
-            border-radius: 4px;
-
-            font-size: 11px;
-        }
-
-
-        /* ================================================================
-           SYSTEM INFO
-           ================================================================ */
-
-        #system-message {
-            white-space: pre-wrap;
-
-            max-height: 180px;
-
-            overflow-y: auto;
-
-            font-family:
-                Consolas,
-                monospace;
-
-            font-size: 10px;
-
-            color: #aeb9c1;
-        }
-
-
-        /* ================================================================
-           RESPONSIVE
-           ================================================================ */
-
-        @media (
-            max-width: 1050px
-        ) {
-
-            #app {
-                grid-template-columns:
-                    1fr;
-            }
-
-            #sidebar {
-                border-left: none;
-
-                border-top:
-                    1px solid #303941;
-
-                display: grid;
-
-                grid-template-columns:
-                    repeat(
-                        2,
-                        minmax(
-                            0,
-                            1fr
-                        )
-                    );
-            }
-        }
-
-        @media (
-            max-width: 650px
-        ) {
-
-            #sidebar {
-                grid-template-columns:
-                    1fr;
-            }
-
-            #header {
-                align-items: flex-start;
-
-                flex-direction: column;
-            }
-        }
-
-    </style>
+</style>
 </head>
-
 
 <body>
 
+<div class="page">
 
-    <!-- ================================================================
-         HEADER
-         ================================================================ -->
+    <div class="title-row">
 
-    <header id="header">
+        <h1>
+            EuropaCraft Climate
+        </h1>
 
-        <div id="title-area">
+        <div
+            id="startup-status"
+            class="status"
+        >
+            Starting simulation…
+        </div>
 
-            <h1 id="main-title">
-                EuropaCraft Weather Simulator
-            </h1>
+    </div>
 
-            <div id="subtitle">
-                Persistent European atmosphere
-            </div>
+
+    <div class="toolbar">
+
+        <div class="toolbar-group">
+
+            <button id="play-button">
+                Play
+            </button>
+
+            <button id="step-button">
+                +4 min
+            </button>
+
+            <select
+                id="speed-select"
+                title="Simulation speed"
+            >
+                <option value="1">
+                    1×
+                </option>
+
+                <option value="10">
+                    10×
+                </option>
+
+                <option value="60" selected>
+                    60×
+                </option>
+
+                <option value="240">
+                    240×
+                </option>
+
+                <option value="1440">
+                    1440×
+                </option>
+            </select>
 
         </div>
 
 
-        <div id="status-area">
+        <div class="toolbar-group">
 
-            <div id="status-dot"></div>
+            <button id="minus-hour">
+                −1 h
+            </button>
 
-            <span id="status-text">
-                Loading simulation…
-            </span>
+            <button id="plus-hour">
+                +1 h
+            </button>
+
+            <button id="minus-day">
+                −1 day
+            </button>
+
+            <button id="plus-day">
+                +1 day
+            </button>
 
         </div>
 
-    </header>
+
+        <div class="toolbar-group">
+
+            <button
+                id="drag-tool-button"
+                title="Drag on the map from the source region toward the destination"
+            >
+                Air-flow drag tool
+            </button>
+
+            <button id="clear-arrows-button">
+                Clear arrows
+            </button>
+
+        </div>
 
 
-    <!-- ================================================================
-         APPLICATION
-         ================================================================ -->
+        <div class="toolbar-group">
 
-    <main id="app">
+            <button id="snapshot-button">
+                Snapshot
+            </button>
 
+        </div>
 
-        <!-- ============================================================
-             MAP SIDE
-             ============================================================ -->
-
-        <section id="map-section">
+    </div>
 
 
-            <!-- ========================================================
-                 TOOLBAR
-                 ======================================================== -->
+    <div class="main-grid">
 
-            <div id="toolbar">
+        <main class="map-panel">
 
-                <div class="toolbar-group">
-
-                    <button
-                        id="play-button"
-                        class="button"
-                        type="button"
-                    >
-                        ▶ Play
-                    </button>
-
-                    <button
-                        id="step-button"
-                        class="button"
-                        type="button"
-                    >
-                        +4 min
-                    </button>
-
-                </div>
-
-
-                <div class="toolbar-separator"></div>
-
-
-                <div class="toolbar-group">
-
-                    <label for="speed-select">
-                        Speed
-                    </label>
-
-                    <select id="speed-select">
-
-                        <option value="1">
-                            Real time
-                        </option>
-
-                        <option
-                            value="60"
-                            selected
-                        >
-                            1 min/sec
-                        </option>
-
-                        <option value="600">
-                            10 min/sec
-                        </option>
-
-                        <option value="3600">
-                            1 hour/sec
-                        </option>
-
-                        <option value="21600">
-                            6 hours/sec
-                        </option>
-
-                        <option value="86400">
-                            1 day/sec
-                        </option>
-
-                    </select>
-
-                </div>
-
-
-                <div class="toolbar-separator"></div>
-
-
-                <div class="toolbar-group">
-
-                    <button
-                        id="minus-hour-button"
-                        class="button"
-                        type="button"
-                    >
-                        −1h
-                    </button>
-
-                    <button
-                        id="plus-hour-button"
-                        class="button"
-                        type="button"
-                    >
-                        +1h
-                    </button>
-
-                    <button
-                        id="minus-day-button"
-                        class="button"
-                        type="button"
-                    >
-                        −1d
-                    </button>
-
-                    <button
-                        id="plus-day-button"
-                        class="button"
-                        type="button"
-                    >
-                        +1d
-                    </button>
-
-                </div>
-
-
-                <div class="toolbar-separator"></div>
-
-
-                <div class="toolbar-group">
-
-                    <button
-                        id="snapshot-button"
-                        class="button"
-                        type="button"
-                    >
-                        Snapshot
-                    </button>
-
-                </div>
-
-            </div>
-
-
-            <!-- ========================================================
-                 MAP
-                 ======================================================== -->
-
-            <div id="map-container">
+            <div class="map-wrapper">
 
                 <canvas
                     id="weather-map"
@@ -801,253 +535,112 @@
                 ></canvas>
 
 
-                <div id="layer-label">
+                <div
+                    id="layer-label"
+                    class="map-label"
+                >
                     Actual temperature
                 </div>
 
 
-                <div id="time-label">
+                <div
+                    id="time-label"
+                    class="time-label"
+                >
                     —
                 </div>
 
 
-                <div id="hover-panel"></div>
-
-            </div>
-
-
-            <!-- ========================================================
-                 TIMELINE
-                 ======================================================== -->
-
-            <div id="timeline-panel">
-
-                <div id="timeline-top">
-
-                    <div>
-
-                        <div id="timeline-date">
-                            —
-                        </div>
-
-                        <div id="timeline-subtext">
-                            Physics timestep: —
-                        </div>
-
-                    </div>
-
-
-                    <input
-                        id="datetime-input"
-                        type="datetime-local"
-                        step="60"
-                    >
-
+                <div
+                    id="hover-label"
+                    class="hover-label"
+                >
+                    Move over the map for weather values
                 </div>
 
 
-                <div id="timeline-controls">
-
-                    <button
-                        id="seek-button"
-                        class="button"
-                        type="button"
-                    >
-                        Go to time
-                    </button>
-
-                    <button
-                        id="now-reset-button"
-                        class="button"
-                        type="button"
-                    >
-                        Reset simulation
-                    </button>
-
+                <div
+                    id="drag-banner"
+                    class="drag-banner"
+                >
+                    Drag from source air mass → destination
                 </div>
 
             </div>
 
-        </section>
+        </main>
 
 
-        <!-- ============================================================
-             SIDEBAR
-             ============================================================ -->
-
-        <aside id="sidebar">
-
-
-            <!-- ========================================================
-                 CURRENT STATE
-                 ======================================================== -->
+        <aside class="sidebar">
 
             <section class="panel">
 
-                <h2 class="panel-title">
-                    Simulation
+                <h2>
+                    Weather layer
                 </h2>
 
 
-                <div class="data-grid">
-
-                    <span class="data-name">
-                        Physics step
-                    </span>
-
-                    <span
-                        class="data-value"
-                        id="info-step"
-                    >
-                        —
-                    </span>
-
-
-                    <span class="data-name">
-                        Total steps
-                    </span>
-
-                    <span
-                        class="data-value"
-                        id="info-total-steps"
-                    >
-                        —
-                    </span>
-
-
-                    <span class="data-name">
-                        Systems
-                    </span>
-
-                    <span
-                        class="data-value"
-                        id="info-systems"
-                    >
-                        —
-                    </span>
-
-
-                    <span class="data-name">
-                        Steering arrows
-                    </span>
-
-                    <span
-                        class="data-value"
-                        id="info-arrows"
-                    >
-                        —
-                    </span>
-
-
-                    <span class="data-name">
-                        Snapshots
-                    </span>
-
-                    <span
-                        class="data-value"
-                        id="info-snapshots"
-                    >
-                        —
-                    </span>
-
-
-                    <span class="data-name">
-                        Render time
-                    </span>
-
-                    <span
-                        class="data-value"
-                        id="info-render"
-                    >
-                        —
-                    </span>
-
-                </div>
-
-            </section>
-
-
-            <!-- ========================================================
-                 MAP LAYERS
-                 ======================================================== -->
-
-            <section class="panel">
-
-                <h2 class="panel-title">
-                    Map Layer
-                </h2>
-
-
-                <div id="layer-buttons">
+                <div class="layer-buttons">
 
                     <button
-                        class="button active"
+                        class="layer-button active"
                         data-layer="temperature"
-                        type="button"
                     >
                         Temperature
                     </button>
 
                     <button
-                        class="button"
+                        class="layer-button"
                         data-layer="anomaly"
-                        type="button"
                     >
                         Anomaly
                     </button>
 
                     <button
-                        class="button"
+                        class="layer-button"
                         data-layer="pressure"
-                        type="button"
                     >
                         Pressure
                     </button>
 
                     <button
-                        class="button"
+                        class="layer-button"
                         data-layer="wind"
-                        type="button"
                     >
                         Wind
                     </button>
 
                     <button
-                        class="button"
+                        class="layer-button"
                         data-layer="cloud"
-                        type="button"
                     >
                         Cloud
                     </button>
 
                     <button
-                        class="button"
+                        class="layer-button"
                         data-layer="precipitation"
-                        type="button"
                     >
                         Precipitation
                     </button>
 
                     <button
-                        class="button"
+                        class="layer-button"
                         data-layer="snow"
-                        type="button"
                     >
                         Snow
                     </button>
 
                     <button
-                        class="button"
+                        class="layer-button"
                         data-layer="sst"
-                        type="button"
                     >
                         SST
                     </button>
 
                     <button
-                        class="button"
+                        class="layer-button"
                         data-layer="fronts"
-                        type="button"
                     >
                         Fronts
                     </button>
@@ -1057,1816 +650,2176 @@
             </section>
 
 
-            <!-- ========================================================
-                 OVERLAYS
-                 ======================================================== -->
-
             <section class="panel">
 
-                <h2 class="panel-title">
-                    Overlays
+                <h2>
+                    Map overlays
                 </h2>
 
 
-                <label class="toggle-row">
-
-                    <span>
-                        Isobars
-                    </span>
-
-                    <input
-                        id="isobar-toggle"
-                        type="checkbox"
-                        checked
-                    >
-
-                </label>
-
-
-                <label class="toggle-row">
-
-                    <span>
-                        Wind vectors
-                    </span>
-
-                    <input
-                        id="wind-vector-toggle"
-                        type="checkbox"
-                    >
-
-                </label>
-
-
-                <label class="toggle-row">
-
-                    <span>
-                        Front overlay
-                    </span>
-
-                    <input
-                        id="front-toggle"
-                        type="checkbox"
-                    >
-
-                </label>
-
-
-                <label class="toggle-row">
-
-                    <span>
-                        Synoptic systems
-                    </span>
-
-                    <input
-                        id="system-toggle"
-                        type="checkbox"
-                        checked
-                    >
-
-                </label>
-
-
-                <label class="toggle-row">
-
-                    <span>
-                        Steering arrows
-                    </span>
-
-                    <input
-                        id="arrow-toggle"
-                        type="checkbox"
-                        checked
-                    >
-
-                </label>
-
-            </section>
-
-
-            <!-- ========================================================
-                 WEATHER STATIONS
-                 ======================================================== -->
-
-            <section class="panel">
-
-                <h2 class="panel-title">
-                    Weather Stations
-                </h2>
-
-
-                <div id="station-form">
-
-                    <input
-                        id="station-name"
-                        type="text"
-                        placeholder="Station name"
-                    >
-
-
-                    <input
-                        id="station-lat"
-                        type="number"
-                        step="0.01"
-                        min="30"
-                        max="74"
-                        value="51.27"
-                        placeholder="Latitude"
-                    >
-
-
-                    <input
-                        id="station-lon"
-                        type="number"
-                        step="0.01"
-                        min="-26"
-                        max="52"
-                        value="0.52"
-                        placeholder="Longitude"
-                    >
-
+                <div class="toggle-grid">
 
                     <button
-                        id="add-station-button"
-                        class="button"
-                        type="button"
+                        id="coastline-toggle"
+                        class="active"
                     >
-                        Add Station
+                        Coastline
+                    </button>
+
+                    <button
+                        id="land-toggle"
+                        class="active"
+                    >
+                        Land shading
+                    </button>
+
+                    <button
+                        id="isobar-toggle"
+                        class="active"
+                    >
+                        Isobars
+                    </button>
+
+                    <button id="wind-toggle">
+                        Wind vectors
+                    </button>
+
+                    <button id="front-toggle">
+                        Front overlay
+                    </button>
+
+                    <button
+                        id="systems-toggle"
+                        class="active"
+                    >
+                        L / H markers
+                    </button>
+
+                    <button
+                        id="arrows-toggle"
+                        class="active"
+                    >
+                        Air arrows
                     </button>
 
                 </div>
 
+            </section>
 
-                <div id="station-list"></div>
+
+            <section class="panel steering-panel">
+
+                <h2>
+                    Air-flow steering
+                </h2>
+
+
+                <div class="steering-note">
+
+                    Enable <strong>Air-flow drag tool</strong>,
+                    then drag directly on the map.
+
+                    <br><br>
+
+                    Start where the source air is located and release where
+                    you want the broad steering flow to head.
+
+                    <br><br>
+
+                    This does not paint cold or warm temperature directly.
+                    It changes the steering flow and lets the atmosphere
+                    transport and modify the air naturally.
+
+                </div>
+
+
+                <div class="field-row">
+
+                    <label for="arrow-speed">
+                        Speed
+                    </label>
+
+                    <div>
+                        <input
+                            id="arrow-speed"
+                            type="number"
+                            min="1"
+                            max="140"
+                            step="1"
+                            value="40"
+                        >
+                        km/h
+                    </div>
+
+                </div>
+
+
+                <div class="field-row">
+
+                    <label for="arrow-strength">
+                        Strength
+                    </label>
+
+                    <input
+                        id="arrow-strength"
+                        type="number"
+                        min="0.05"
+                        max="1"
+                        step="0.05"
+                        value="0.75"
+                    >
+
+                </div>
+
+
+                <div class="field-row">
+
+                    <label for="arrow-width">
+                        Width
+                    </label>
+
+                    <div>
+                        <input
+                            id="arrow-width"
+                            type="number"
+                            min="50"
+                            max="2500"
+                            step="50"
+                            value="600"
+                        >
+                        km
+                    </div>
+
+                </div>
+
+
+                <div id="drag-preview-text">
+                    No drag selected.
+                </div>
+
+
+                <div
+                    id="arrow-list"
+                    class="arrow-list"
+                >
+                    No steering arrows.
+                </div>
 
             </section>
 
 
-            <!-- ========================================================
-                 DIAGNOSTICS
-                 ======================================================== -->
+            <section class="panel">
+
+                <h2>
+                    Timeline
+                </h2>
+
+
+                <div class="field-row">
+
+                    <label for="date-input">
+                        Date
+                    </label>
+
+                    <input
+                        id="date-input"
+                        type="date"
+                    >
+
+                </div>
+
+
+                <div class="field-row">
+
+                    <label for="time-input">
+                        UTC time
+                    </label>
+
+                    <input
+                        id="time-input"
+                        type="time"
+                        step="60"
+                    >
+
+                </div>
+
+
+                <div class="button-row">
+
+                    <button id="goto-time-button">
+                        Go to time
+                    </button>
+
+                    <button id="reset-button">
+                        Reset
+                    </button>
+
+                </div>
+
+            </section>
+
 
             <section class="panel">
 
-                <h2 class="panel-title">
+                <h2>
+                    Simulation
+                </h2>
+
+
+                <div id="simulation-info">
+                    Starting…
+                </div>
+
+            </section>
+
+
+            <section class="panel">
+
+                <h2>
                     Diagnostics
                 </h2>
 
 
-                <div id="system-message">
-                    Waiting for simulator…
+                <div
+                    id="diagnostics"
+                    class="diagnostics"
+                >
+                    Waiting for startup…
                 </div>
 
             </section>
 
         </aside>
 
-    </main>
+    </div>
+
+</div>
 
 
-    <!-- ================================================================
-         EUROPAcraft WEATHER MODULES
+<!-- =======================================================================
+     MODULE LOAD ORDER
+======================================================================= -->
 
-         LOAD ORDER IS IMPORTANT.
+<script src="config.js"></script>
 
-         null1.js IS INTENTIONALLY NOT LOADED.
-         ================================================================ -->
+<script src="europacraft-utils.js"></script>
 
+<script src="europacraft-terrain.js"></script>
 
-    <script src="config.js"></script>
+<script src="europacraft-climate-v3.js"></script>
 
-    <script src="europacraft-utils.js"></script>
+<script src="europacraft-ocean.js"></script>
 
-    <script src="europacraft-terrain.js"></script>
+<script src="europacraft-synoptic.js"></script>
 
-    <script src="europacraft-climate-v3.js"></script>
+<script src="europacraft-atmosphere.js"></script>
 
-    <script src="europacraft-ocean.js"></script>
+<script src="europacraft-physics.js"></script>
 
-    <script src="europacraft-synoptic.js"></script>
+<script src="europacraft-history.js"></script>
 
-    <script src="europacraft-atmosphere.js"></script>
+<script src="europacraft-weather.js"></script>
 
-    <script src="europacraft-physics.js"></script>
-
-    <script src="europacraft-history.js"></script>
-
-    <script src="europacraft-weather.js"></script>
-
-    <script src="europacraft-renderer.js"></script>
+<script src="europacraft-renderer.js"></script>
 
 
-    <!-- ================================================================
-         APPLICATION BOOT
-         ================================================================ -->
+<script>
 
-    <script>
-
-    (function () {
-    "use strict";
+(function () {
+"use strict";
 
 
-    /* ====================================================================
-       ELEMENTS
-       ==================================================================== */
+/* ============================================================================
+   ELEMENTS
+============================================================================ */
 
-    const $ = id =>
-        document.getElementById(
-            id
-        );
-
-
-    const statusDot =
-        $("status-dot");
-
-    const statusText =
-        $("status-text");
-
-    const diagnostics =
-        $("system-message");
+const startupStatus = (
+    document.getElementById(
+        "startup-status"
+    )
+);
 
 
-    let weather = null;
+const diagnostics = (
+    document.getElementById(
+        "diagnostics"
+    )
+);
 
-    let renderer = null;
+
+const simulationInfo = (
+    document.getElementById(
+        "simulation-info"
+    )
+);
 
 
-    /* ====================================================================
-       STATUS
-       ==================================================================== */
+const timeLabel = (
+    document.getElementById(
+        "time-label"
+    )
+);
 
-    function setStatus(
-        text,
-        state = "loading"
-    ) {
 
-        statusText.textContent = (
-            text
-        );
+const layerLabel = (
+    document.getElementById(
+        "layer-label"
+    )
+);
 
+
+const hoverLabel = (
+    document.getElementById(
+        "hover-label"
+    )
+);
+
+
+const dragBanner = (
+    document.getElementById(
+        "drag-banner"
+    )
+);
+
+
+const dragPreviewText = (
+    document.getElementById(
+        "drag-preview-text"
+    )
+);
+
+
+const arrowList = (
+    document.getElementById(
+        "arrow-list"
+    )
+);
+
+
+const playButton = (
+    document.getElementById(
+        "play-button"
+    )
+);
+
+
+const dragToolButton = (
+    document.getElementById(
+        "drag-tool-button"
+    )
+);
+
+
+const speedInput = (
+    document.getElementById(
+        "arrow-speed"
+    )
+);
+
+
+const strengthInput = (
+    document.getElementById(
+        "arrow-strength"
+    )
+);
+
+
+const widthInput = (
+    document.getElementById(
+        "arrow-width"
+    )
+);
+
+
+let weather = null;
+
+let renderer = null;
+
+let dragToolEnabled = false;
+
+
+/* ============================================================================
+   ERROR DISPLAY
+============================================================================ */
+
+function showError(
+    error
+) {
+
+    console.error(
+        error
+    );
+
+
+    startupStatus.textContent = (
+        "EuropaCraft failed to start"
+    );
+
+
+    startupStatus.className = (
+        "status error"
+    );
+
+
+    diagnostics.className = (
+        "diagnostics error"
+    );
+
+
+    diagnostics.textContent = (
+
+        "EuropaCraft failed to start.\n\n" +
+
+        (
+            error &&
+            error.stack
+
+                ? error.stack
+
+                : String(
+                    error
+                )
+        )
+    );
+}
+
+
+window.addEventListener(
+    "error",
+    event => {
 
         if (
-            state ===
-            "good"
+            event.error
         ) {
 
-            statusDot.style.background = (
-                "#4db878"
-            );
-        }
-
-        else if (
-            state ===
-            "bad"
-        ) {
-
-            statusDot.style.background = (
-                "#d95c5c"
-            );
-        }
-
-        else {
-
-            statusDot.style.background = (
-                "#d5a93a"
+            showError(
+                event.error
             );
         }
     }
+);
 
 
-    function log(
-        text
-    ) {
+window.addEventListener(
+    "unhandledrejection",
+    event => {
 
-        diagnostics.textContent = (
-            text
+        showError(
+            event.reason ||
+            event
         );
     }
+);
 
 
-    /* ====================================================================
-       DATE DISPLAY
-       ==================================================================== */
+/* ============================================================================
+   MODULE CHECK
+============================================================================ */
 
-    function formatDate(
-        date
+function checkModules() {
+
+    const required = [
+
+        "EuropaConfig",
+
+        "EuropaUtils",
+
+        "EuropaTerrain",
+
+        "EuropaClimate",
+
+        "EuropaOcean",
+
+        "EuropaSynoptic",
+
+        "EuropaAtmosphere",
+
+        "EuropaPhysics",
+
+        "EuropaHistory",
+
+        "EuropaWeather",
+
+        "EuropaRenderer"
+    ];
+
+
+    const missing = required.filter(
+        name => !window[name]
+    );
+
+
+    if (
+        missing.length
     ) {
 
-        return new Intl.DateTimeFormat(
+        throw new Error(
 
-            "en-GB",
-
-            {
-                year:
-                    "numeric",
-
-                month:
-                    "short",
-
-                day:
-                    "2-digit",
-
-                hour:
-                    "2-digit",
-
-                minute:
-                    "2-digit",
-
-                second:
-                    "2-digit",
-
-                hour12:
-                    false,
-
-                timeZone:
-                    "UTC"
-            }
-
-        ).format(
-            date
-        ) + " UTC";
-    }
-
-
-    function localInputValue(
-        date
-    ) {
-
-        function pad(
-            value
-        ) {
-
-            return String(
-                value
-            ).padStart(
-                2,
-                "0"
-            );
-        }
-
-
-        return (
-
-            date.getUTCFullYear() +
-            "-" +
-
-            pad(
-                date.getUTCMonth() +
-                1
-            ) +
-            "-" +
-
-            pad(
-                date.getUTCDate()
-            ) +
-            "T" +
-
-            pad(
-                date.getUTCHours()
-            ) +
-            ":" +
-
-            pad(
-                date.getUTCMinutes()
+            "Missing modules: " +
+            missing.join(
+                ", "
             )
         );
     }
+}
 
 
-    function dateFromInput(
+/* ============================================================================
+   DATE HELPERS
+============================================================================ */
+
+function pad2(
+    value
+) {
+
+    return String(
         value
+    ).padStart(
+        2,
+        "0"
+    );
+}
+
+
+function setDateInputs(
+    date
+) {
+
+    document.getElementById(
+        "date-input"
+    ).value = (
+
+        date.getUTCFullYear() +
+        "-" +
+        pad2(
+            date.getUTCMonth() +
+            1
+        ) +
+        "-" +
+        pad2(
+            date.getUTCDate()
+        )
+    );
+
+
+    document.getElementById(
+        "time-input"
+    ).value = (
+
+        pad2(
+            date.getUTCHours()
+        ) +
+        ":" +
+        pad2(
+            date.getUTCMinutes()
+        )
+    );
+}
+
+
+function readDateInputs() {
+
+    const dateValue = (
+        document.getElementById(
+            "date-input"
+        ).value
+    );
+
+
+    const timeValue = (
+        document.getElementById(
+            "time-input"
+        ).value ||
+        "00:00"
+    );
+
+
+    if (
+        !dateValue
     ) {
 
+        return null;
+    }
+
+
+    return new Date(
+
+        dateValue +
+        "T" +
+        timeValue +
+        ":00Z"
+    );
+}
+
+
+/* ============================================================================
+   WEATHER ACCESS HELPERS
+============================================================================ */
+
+function getArrows() {
+
+    try {
+
         if (
-            !value
+            weather &&
+            typeof weather.getSteeringArrows ===
+            "function"
         ) {
 
-            return null;
+            return (
+                weather.getSteeringArrows() ||
+                []
+            );
         }
 
 
-        const parts = (
-            value.split(
-                "T"
-            )
-        );
-
-
         if (
-            parts.length !==
-            2
+            weather &&
+            weather.synoptic &&
+            Array.isArray(
+                weather.synoptic.arrows
+            )
         ) {
 
-            return null;
+            return (
+                weather.synoptic.arrows
+            );
         }
 
+    } catch (error) {
 
-        const dateParts = (
-            parts[0]
-                .split(
-                    "-"
-                )
-                .map(
-                    Number
-                )
-        );
-
-
-        const timeParts = (
-            parts[1]
-                .split(
-                    ":"
-                )
-                .map(
-                    Number
-                )
-        );
-
-
-        if (
-            dateParts.length <
-            3 ||
-            timeParts.length <
-            2
-        ) {
-
-            return null;
-        }
-
-
-        return new Date(
-
-            Date.UTC(
-
-                dateParts[0],
-
-                dateParts[1] - 1,
-
-                dateParts[2],
-
-                timeParts[0],
-
-                timeParts[1],
-
-                0,
-
-                0
-            )
+        console.warn(
+            error
         );
     }
 
 
-    /* ====================================================================
-       STATE DISPLAY
-       ==================================================================== */
-
-    function updateInformation() {
-
-        if (
-            !weather ||
-            !renderer
-        ) {
-
-            return;
-        }
+    return [];
+}
 
 
-        const state = (
-            weather.getStateSummary()
-        );
+function addSteeringArrow(
+    sourceLat,
+    sourceLon,
+    targetLat,
+    targetLon,
+    options
+) {
 
+    /*
+     * First try the public WeatherController API.
+     */
 
-        const renderInfo = (
-            renderer.getInfo()
-        );
+    if (
+        weather &&
+        typeof weather.addSteeringArrow ===
+        "function"
+    ) {
 
+        return weather.addSteeringArrow(
 
-        $("time-label").textContent = (
-            formatDate(
-                state.date
-            )
-        );
+            sourceLat,
 
+            sourceLon,
 
-        $("timeline-date").textContent = (
-            formatDate(
-                state.date
-            )
-        );
+            targetLat,
 
+            targetLon,
 
-        $("timeline-subtext").textContent = (
-
-            "Physics timestep: " +
-            state.physicsStepMinutes +
-            " minutes"
-        );
-
-
-        $("datetime-input").value = (
-            localInputValue(
-                state.date
-            )
-        );
-
-
-        $("info-step").textContent = (
-
-            state.physicsStepMinutes +
-            " min"
-        );
-
-
-        $("info-total-steps").textContent = (
-            state.totalPhysicsSteps
-        );
-
-
-        $("info-systems").textContent = (
-            state.systems
-        );
-
-
-        $("info-arrows").textContent = (
-            state.steeringArrows
-        );
-
-
-        $("info-snapshots").textContent = (
-            state.snapshots
-        );
-
-
-        $("info-render").textContent = (
-
-            renderInfo.lastRenderMs.toFixed(
-                1
-            ) +
-            " ms"
-        );
-
-
-        $("play-button").textContent = (
-
-            state.playing
-                ? "❚❚ Pause"
-                : "▶ Play"
-        );
-
-
-        $("play-button").classList.toggle(
-
-            "active",
-
-            state.playing
+            options
         );
     }
 
 
-    /* ====================================================================
-       RENDER
-       ==================================================================== */
+    /*
+     * Compatibility fallback to Synoptic directly.
+     */
 
-    function redraw() {
+    if (
+        weather &&
+        weather.synoptic &&
+        typeof weather.synoptic.addArrow ===
+        "function"
+    ) {
 
-        if (
-            !renderer
-        ) {
+        return weather.synoptic.addArrow(
 
-            return;
-        }
+            sourceLat,
 
+            sourceLon,
 
-        renderer.render();
+            targetLat,
 
-        updateInformation();
-    }
+            targetLon,
 
-
-    /* ====================================================================
-       HOVER
-       ==================================================================== */
-
-    function configureHover() {
-
-        renderer.options.onHover = data => {
-
-            const panel = (
-                $("hover-panel")
-            );
-
-
-            if (
-                !data ||
-                !data.sample
-            ) {
-
-                panel.style.display = (
-                    "none"
-                );
-
-
-                return;
-            }
-
-
-            const sample = (
-                data.sample
-            );
-
-
-            const temperature = (
-                Number(
-                    sample.temperatureC
-                )
-            );
-
-
-            const anomaly = (
-                Number(
-                    sample.anomalyC
-                )
-            );
-
-
-            const pressure = (
-                Number(
-                    sample.pressureHpa
-                )
-            );
-
-
-            const wind = (
-                Number(
-                    sample.windSpeed
-                )
-            );
-
-
-            const rh = (
-
-                Number(
-                    sample.relativeHumidity
-                ) *
-                100
-            );
-
-
-            const precip = (
-                Number(
-                    sample.precipRateMmHr
-                )
-            );
-
-
-            const snow = (
-                Number(
-                    sample.snowDepthCm
-                )
-            );
-
-
-            panel.innerHTML = (
-
-                "<strong>" +
-
-                data.lat.toFixed(
-                    2
-                ) +
-
-                "°N, " +
-
-                data.lon.toFixed(
-                    2
-                ) +
-
-                "°</strong>" +
-
-                "<br>" +
-
-                "Temperature: " +
-
-                temperature.toFixed(
-                    1
-                ) +
-
-                " °C" +
-
-                "<br>" +
-
-                "Anomaly: " +
-
-                (
-                    anomaly >= 0
-                        ? "+"
-                        : ""
-                ) +
-
-                anomaly.toFixed(
-                    1
-                ) +
-
-                " °C" +
-
-                "<br>" +
-
-                "Pressure: " +
-
-                pressure.toFixed(
-                    0
-                ) +
-
-                " hPa" +
-
-                "<br>" +
-
-                "Humidity: " +
-
-                rh.toFixed(
-                    0
-                ) +
-
-                "%" +
-
-                "<br>" +
-
-                "Wind: " +
-
-                wind.toFixed(
-                    1
-                ) +
-
-                " m/s" +
-
-                "<br>" +
-
-                "Precip: " +
-
-                precip.toFixed(
-                    2
-                ) +
-
-                " mm/h" +
-
-                "<br>" +
-
-                "Snow: " +
-
-                snow.toFixed(
-                    1
-                ) +
-
-                " cm"
-            );
-
-
-            panel.style.display = (
-                "block"
-            );
-
-
-            let left = (
-                data.x +
-                14
-            );
-
-
-            let top = (
-                data.y +
-                14
-            );
-
-
-            if (
-                left >
-                renderer.width -
-                205
-            ) {
-
-                left = (
-                    data.x -
-                    200
-                );
-            }
-
-
-            if (
-                top >
-                renderer.height -
-                165
-            ) {
-
-                top = (
-                    data.y -
-                    160
-                );
-            }
-
-
-            panel.style.left = (
-                left +
-                "px"
-            );
-
-
-            panel.style.top = (
-                top +
-                "px"
-            );
-        };
-    }
-
-
-    /* ====================================================================
-       LAYERS
-       ==================================================================== */
-
-    const layerNames = {
-
-        temperature:
-            "Actual temperature",
-
-        anomaly:
-            "Temperature anomaly",
-
-        pressure:
-            "Sea-level pressure",
-
-        wind:
-            "Wind speed",
-
-        cloud:
-            "Cloud",
-
-        precipitation:
-            "Precipitation",
-
-        snow:
-            "Snow depth",
-
-        sst:
-            "Sea-surface temperature",
-
-        fronts:
-            "Front strength"
-    };
-
-
-    function configureLayers() {
-
-        const buttons = (
-            document.querySelectorAll(
-                "[data-layer]"
-            )
-        );
-
-
-        buttons.forEach(
-            button => {
-
-                button.addEventListener(
-
-                    "click",
-
-                    () => {
-
-                        const layer = (
-                            button.dataset.layer
-                        );
-
-
-                        renderer.setLayer(
-                            layer
-                        );
-
-
-                        buttons.forEach(
-                            other => {
-
-                                other.classList.toggle(
-
-                                    "active",
-
-                                    other ===
-                                    button
-                                );
-                            }
-                        );
-
-
-                        $("layer-label").textContent = (
-
-                            layerNames[layer] ||
-                            layer
-                        );
-
-
-                        updateInformation();
-                    }
-                );
-            }
+            options
         );
     }
 
 
-    /* ====================================================================
-       PLAYBACK
-       ==================================================================== */
+    throw new Error(
+        "No steering-arrow creation method is available."
+    );
+}
 
-    function configurePlayback() {
 
-        $("play-button").addEventListener(
+function clearSteeringArrows() {
 
-            "click",
+    if (
+        weather &&
+        typeof weather.clearSteeringArrows ===
+        "function"
+    ) {
 
-            () => {
+        weather.clearSteeringArrows();
 
-                weather.togglePlay();
-
-                updateInformation();
-            }
-        );
-
-
-        $("step-button").addEventListener(
-
-            "click",
-
-            () => {
-
-                weather.step();
-
-                redraw();
-            }
-        );
-
-
-        $("speed-select").addEventListener(
-
-            "change",
-
-            event => {
-
-                weather.setTimeScale(
-
-                    Number(
-                        event.target.value
-                    )
-                );
-
-
-                updateInformation();
-            }
-        );
-
-
-        $("minus-hour-button").addEventListener(
-
-            "click",
-
-            () => {
-
-                weather.seekHours(
-                    -1
-                );
-
-
-                redraw();
-            }
-        );
-
-
-        $("plus-hour-button").addEventListener(
-
-            "click",
-
-            () => {
-
-                weather.seekHours(
-                    1
-                );
-
-
-                redraw();
-            }
-        );
-
-
-        $("minus-day-button").addEventListener(
-
-            "click",
-
-            () => {
-
-                weather.seekDays(
-                    -1
-                );
-
-
-                redraw();
-            }
-        );
-
-
-        $("plus-day-button").addEventListener(
-
-            "click",
-
-            () => {
-
-                weather.seekDays(
-                    1
-                );
-
-
-                redraw();
-            }
-        );
-
-
-        $("snapshot-button").addEventListener(
-
-            "click",
-
-            () => {
-
-                weather.saveSnapshot();
-
-                updateInformation();
-            }
-        );
-
-
-        $("seek-button").addEventListener(
-
-            "click",
-
-            () => {
-
-                const date = (
-                    dateFromInput(
-                        $("datetime-input").value
-                    )
-                );
-
-
-                if (
-                    !date
-                ) {
-
-                    return;
-                }
-
-
-                weather.seek(
-                    date
-                );
-
-
-                redraw();
-            }
-        );
-
-
-        $("now-reset-button").addEventListener(
-
-            "click",
-
-            () => {
-
-                weather.reset(
-                    new Date()
-                );
-
-
-                redraw();
-            }
-        );
+        return;
     }
 
 
-    /* ====================================================================
-       OVERLAYS
-       ==================================================================== */
+    if (
+        weather &&
+        weather.synoptic &&
+        typeof weather.synoptic.clearArrows ===
+        "function"
+    ) {
 
-    function configureOverlays() {
+        weather.synoptic.clearArrows();
 
-        $("isobar-toggle").addEventListener(
-
-            "change",
-
-            event => {
-
-                renderer.setIsobars(
-                    event.target.checked
-                );
-            }
-        );
-
-
-        $("wind-vector-toggle").addEventListener(
-
-            "change",
-
-            event => {
-
-                renderer.setWindVectors(
-                    event.target.checked
-                );
-            }
-        );
-
-
-        $("front-toggle").addEventListener(
-
-            "change",
-
-            event => {
-
-                renderer.setFrontOverlay(
-                    event.target.checked
-                );
-            }
-        );
-
-
-        $("system-toggle").addEventListener(
-
-            "change",
-
-            event => {
-
-                renderer.setSystemMarkers(
-                    event.target.checked
-                );
-            }
-        );
-
-
-        $("arrow-toggle").addEventListener(
-
-            "change",
-
-            event => {
-
-                renderer.setSteeringArrows(
-                    event.target.checked
-                );
-            }
-        );
+        return;
     }
 
 
-    /* ====================================================================
-       STATIONS
-       ==================================================================== */
+    throw new Error(
+        "No steering-arrow clearing method is available."
+    );
+}
 
-    function updateStationList() {
 
-        const list = (
-            $("station-list")
+/* ============================================================================
+   SEEK HELPERS
+
+   Uses the general seek() API rather than assuming seekHours()/seekDays()
+   exist.
+============================================================================ */
+
+async function seekByMilliseconds(
+    milliseconds
+) {
+
+    if (
+        !weather ||
+        typeof weather.seek !==
+        "function"
+    ) {
+
+        return;
+    }
+
+
+    const target = new Date(
+
+        weather.getTimeMs() +
+        milliseconds
+    );
+
+
+    await weather.seek(
+        target
+    );
+
+
+    refreshAll();
+}
+
+
+/* ============================================================================
+   DISPLAY
+============================================================================ */
+
+const LAYER_NAMES = {
+
+    temperature:
+        "Actual temperature",
+
+    anomaly:
+        "Temperature anomaly",
+
+    pressure:
+        "Pressure",
+
+    wind:
+        "Wind speed",
+
+    cloud:
+        "Cloud cover",
+
+    precipitation:
+        "Precipitation",
+
+    snow:
+        "Snow depth",
+
+    sst:
+        "Sea-surface temperature",
+
+    fronts:
+        "Front strength"
+};
+
+
+function refreshArrowList() {
+
+    const arrows = (
+        getArrows()
+    );
+
+
+    if (
+        !arrows.length
+    ) {
+
+        arrowList.textContent = (
+            "No steering arrows."
         );
 
-
-        list.innerHTML = "";
-
-
-        const stations = (
-            weather.getStations()
-        );
+        return;
+    }
 
 
-        for (
-            const station
-            of stations
-        ) {
+    arrowList.innerHTML = "";
 
-            const item = (
+
+    arrows.forEach(
+        (
+            arrow,
+            index
+        ) => {
+
+            const sourceLat = Number(
+
+                arrow.sourceLat !== undefined
+                    ? arrow.sourceLat
+                    : arrow.lat1
+            );
+
+
+            const sourceLon = Number(
+
+                arrow.sourceLon !== undefined
+                    ? arrow.sourceLon
+                    : arrow.lon1
+            );
+
+
+            const targetLat = Number(
+
+                arrow.targetLat !== undefined
+                    ? arrow.targetLat
+                    : arrow.lat2
+            );
+
+
+            const targetLon = Number(
+
+                arrow.targetLon !== undefined
+                    ? arrow.targetLon
+                    : arrow.lon2
+            );
+
+
+            const speed = Number(
+
+                arrow.speedKmh !== undefined
+                    ? arrow.speedKmh
+                    : arrow.speed
+            );
+
+
+            const width = Number(
+
+                arrow.widthKm !== undefined
+                    ? arrow.widthKm
+                    : arrow.width
+            );
+
+
+            const strength = Number(
+                arrow.strength
+            );
+
+
+            const div = (
                 document.createElement(
                     "div"
                 )
             );
 
 
-            item.className = (
-                "station-item"
+            div.className = (
+                "arrow-item"
             );
 
 
-            const latest = (
-                station.sampleAt(
-                    weather.getDate()
-                )
-            );
+            div.textContent = (
 
+                `#${index + 1}  ` +
 
-            let text = (
+                `${sourceLat.toFixed(1)}°, ${sourceLon.toFixed(1)}° → ` +
 
-                station.name +
-                " — " +
+                `${targetLat.toFixed(1)}°, ${targetLon.toFixed(1)}°` +
 
-                station.lat.toFixed(
-                    2
+                (
+                    Number.isFinite(
+                        speed
+                    )
+                        ? ` | ${speed.toFixed(0)} km/h`
+                        : ""
                 ) +
 
-                ", " +
+                (
+                    Number.isFinite(
+                        strength
+                    )
+                        ? ` | strength ${strength.toFixed(2)}`
+                        : ""
+                ) +
 
-                station.lon.toFixed(
-                    2
+                (
+                    Number.isFinite(
+                        width
+                    )
+                        ? ` | ${width.toFixed(0)} km wide`
+                        : ""
                 )
             );
 
 
-            if (
-                latest &&
-                Number.isFinite(
-                    latest.temperatureC
-                )
-            ) {
-
-                text += (
-
-                    " — " +
-
-                    latest.temperatureC.toFixed(
-                        1
-                    ) +
-
-                    " °C"
-                );
-            }
-
-
-            item.textContent = (
-                text
-            );
-
-
-            list.appendChild(
-                item
+            arrowList.appendChild(
+                div
             );
         }
+    );
+}
+
+
+function refreshSimulationInfo() {
+
+    if (
+        !weather
+    ) {
+
+        return;
     }
 
 
-    function configureStations() {
+    let summary = {};
 
-        $("add-station-button").addEventListener(
 
-            "click",
+    try {
 
+        if (
+            typeof weather.getStateSummary ===
+            "function"
+        ) {
+
+            summary = (
+                weather.getStateSummary() ||
+                {}
+            );
+        }
+
+    } catch (error) {
+
+        summary = {};
+    }
+
+
+    const date = (
+        weather.getDate()
+    );
+
+
+    const rendererInfo = (
+        renderer
+            ? renderer.getInfo()
+            : {}
+    );
+
+
+    const systems = (
+
+        summary.systems !== undefined
+
+            ? summary.systems
+
+            : (
+                weather.synoptic &&
+                Array.isArray(
+                    weather.synoptic.systems
+                )
+
+                    ? weather.synoptic.systems.length
+
+                    : "?"
+            )
+    );
+
+
+    const arrows = (
+        getArrows().length
+    );
+
+
+    simulationInfo.innerHTML = (
+
+        `<p><strong>Physics step:</strong> ${
+            weather.getPhysicsStepMinutes()
+        } min</p>` +
+
+        `<p><strong>UTC:</strong> ${
+            date.toISOString()
+        }</p>` +
+
+        `<p><strong>Systems:</strong> ${
+            systems
+        }</p>` +
+
+        `<p><strong>Steering arrows:</strong> ${
+            arrows
+        }</p>` +
+
+        `<p><strong>Render:</strong> ${
+            Number(
+                rendererInfo.lastRenderMs ||
+                0
+            ).toFixed(
+                1
+            )
+        } ms</p>`
+    );
+
+
+    timeLabel.textContent = (
+        date.toLocaleString(
+            "en-GB",
+            {
+                timeZone:
+                    "UTC",
+                day:
+                    "2-digit",
+                month:
+                    "short",
+                year:
+                    "numeric",
+                hour:
+                    "2-digit",
+                minute:
+                    "2-digit",
+                second:
+                    "2-digit"
+            }
+        ) +
+        " UTC"
+    );
+
+
+    setDateInputs(
+        date
+    );
+}
+
+
+function refreshDiagnostics() {
+
+    if (
+        !weather
+    ) {
+
+        return;
+    }
+
+
+    const fields = (
+        weather.getFields()
+    );
+
+
+    const lines = [
+
+        "Simulation ready.",
+
+        "",
+
+        `Grid: ${fields.nx} × ${fields.ny}`,
+
+        `Physics step: ${weather.getPhysicsStepMinutes()} minutes`,
+
+        `Layer: ${renderer ? renderer.layer : "?"}`,
+
+        `Coastline: ${renderer && renderer.options.coastline ? "on" : "off"}`,
+
+        `Drag steering: ${dragToolEnabled ? "enabled" : "disabled"}`,
+
+        `Steering arrows: ${getArrows().length}`
+    ];
+
+
+    diagnostics.className = (
+        "diagnostics good"
+    );
+
+
+    diagnostics.textContent = (
+        lines.join(
+            "\n"
+        )
+    );
+}
+
+
+function refreshAll() {
+
+    if (
+        renderer
+    ) {
+
+        renderer.render();
+    }
+
+
+    refreshSimulationInfo();
+
+    refreshArrowList();
+
+    refreshDiagnostics();
+}
+
+
+/* ============================================================================
+   HOVER TEXT
+============================================================================ */
+
+function hoverText(
+    data
+) {
+
+    if (
+        !data
+    ) {
+
+        return (
+            "Move over the map for weather values"
+        );
+    }
+
+
+    const sample = (
+        data.sample ||
+        {}
+    );
+
+
+    const parts = [
+
+        `${data.lat.toFixed(2)}°N`,
+
+        `${
+            data.lon >= 0
+                ? data.lon.toFixed(2) + "°E"
+                : Math.abs(
+                    data.lon
+                ).toFixed(2) + "°W"
+        }`
+    ];
+
+
+    if (
+        Number.isFinite(
+            sample.temperatureC
+        )
+    ) {
+
+        parts.push(
+
+            `${sample.temperatureC.toFixed(1)}°C`
+        );
+    }
+
+
+    if (
+        Number.isFinite(
+            sample.anomalyC
+        )
+    ) {
+
+        parts.push(
+
+            `anom ${
+                sample.anomalyC >= 0
+                    ? "+"
+                    : ""
+            }${sample.anomalyC.toFixed(1)}°C`
+        );
+    }
+
+
+    if (
+        Number.isFinite(
+            sample.pressureHpa
+        )
+    ) {
+
+        parts.push(
+
+            `${sample.pressureHpa.toFixed(0)} hPa`
+        );
+    }
+
+
+    if (
+        Number.isFinite(
+            sample.windSpeed
+        )
+    ) {
+
+        parts.push(
+
+            `wind ${sample.windSpeed.toFixed(1)} m/s`
+        );
+    }
+
+
+    if (
+        Number.isFinite(
+            sample.cloudFraction
+        )
+    ) {
+
+        parts.push(
+
+            `cloud ${
+                Math.round(
+                    sample.cloudFraction *
+                    100
+                )
+            }%`
+        );
+    }
+
+
+    if (
+        Number.isFinite(
+            sample.precipRateMmHr
+        )
+    ) {
+
+        parts.push(
+
+            `precip ${sample.precipRateMmHr.toFixed(2)} mm/h`
+        );
+    }
+
+
+    if (
+        Number.isFinite(
+            sample.snowDepthCm
+        )
+    ) {
+
+        parts.push(
+
+            `snow ${sample.snowDepthCm.toFixed(1)} cm`
+        );
+    }
+
+
+    return parts.join(
+        " | "
+    );
+}
+
+
+/* ============================================================================
+   STEERING DRAG
+============================================================================ */
+
+function handleSteeringDrag(
+    data
+) {
+
+    const speedKmh = Math.max(
+
+        1,
+
+        Math.min(
+            140,
+            Number(
+                speedInput.value
+            ) ||
+            40
+        )
+    );
+
+
+    const strength = Math.max(
+
+        0.05,
+
+        Math.min(
+            1,
+            Number(
+                strengthInput.value
+            ) ||
+            0.75
+        )
+    );
+
+
+    const widthKm = Math.max(
+
+        50,
+
+        Math.min(
+            2500,
+            Number(
+                widthInput.value
+            ) ||
+            600
+        )
+    );
+
+
+    try {
+
+        addSteeringArrow(
+
+            data.sourceLat,
+
+            data.sourceLon,
+
+            data.targetLat,
+
+            data.targetLon,
+
+            {
+                speedKmh,
+
+                strength,
+
+                widthKm
+            }
+        );
+
+
+        dragPreviewText.textContent = (
+
+            `Added ${Math.round(
+                data.distanceKm
+            )} km steering path | ` +
+
+            `${speedKmh} km/h | ` +
+
+            `strength ${strength.toFixed(2)} | ` +
+
+            `${widthKm} km wide`
+        );
+
+
+        refreshAll();
+
+    } catch (error) {
+
+        showError(
+            error
+        );
+    }
+}
+
+
+/* ============================================================================
+   BOOT
+============================================================================ */
+
+function boot() {
+
+    try {
+
+        checkModules();
+
+
+        weather = window.EuropaWeather.create({
+
+            startDate:
+                new Date(),
+
+            seed:
+                20261001,
+
+            timeScale:
+                60,
+
+            maxPhysicsStepsPerFrame:
+                24
+        });
+
+
+        renderer = new window.EuropaRenderer(
+
+            weather,
+
+            "weather-map",
+
+            {
+                width:
+                    780,
+
+                height:
+                    440,
+
+                layer:
+                    "temperature",
+
+                isobars:
+                    true,
+
+                windVectors:
+                    false,
+
+                frontOverlay:
+                    false,
+
+                systemMarkers:
+                    true,
+
+                steeringArrows:
+                    true,
+
+                coastline:
+                    true,
+
+                landShading:
+                    true,
+
+                dragToolEnabled:
+                    false,
+
+                onHover:
+                    data => {
+
+                        hoverLabel.textContent = (
+                            hoverText(
+                                data
+                            )
+                        );
+                    },
+
+                onSteeringPreview:
+                    data => {
+
+                        dragPreviewText.textContent = (
+
+                            `Source ${data.sourceLat.toFixed(1)}°, ` +
+
+                            `${data.sourceLon.toFixed(1)}° → ` +
+
+                            `${data.targetLat.toFixed(1)}°, ` +
+
+                            `${data.targetLon.toFixed(1)}° | ` +
+
+                            `${Math.round(
+                                data.distanceKm
+                            )} km`
+                        );
+                    },
+
+                onSteeringDrag:
+                    handleSteeringDrag
+            }
+        );
+
+
+        /*
+         * Expose for debugging.
+         */
+
+        window.europaWeather = (
+            weather
+        );
+
+
+        window.europaRenderer = (
+            renderer
+        );
+
+
+        startupStatus.textContent = (
+            "Simulation ready"
+        );
+
+
+        startupStatus.className = (
+            "status good"
+        );
+
+
+        refreshAll();
+
+
+        /*
+         * If the controller emits frames, use them.
+         */
+
+        if (
+            typeof weather.on ===
+            "function"
+        ) {
+
+            try {
+
+                weather.on(
+                    "frame",
+                    () => {
+
+                        if (
+                            weather.getStateSummary &&
+                            weather.getStateSummary().playing
+                        ) {
+
+                            refreshAll();
+                        }
+                    }
+                );
+
+            } catch (error) {
+
+                console.warn(
+                    "Frame subscription unavailable:",
+                    error
+                );
+            }
+        }
+
+
+        /*
+         * Independent modest UI refresh while playing.
+
+         * This is only presentation.
+         * Physics remains controlled by EuropaWeather.
+         */
+
+        setInterval(
             () => {
 
-                const name = (
+                if (
+                    weather &&
+                    renderer
+                ) {
 
-                    $("station-name").value.trim() ||
-                    null
-                );
-
-
-                const lat = Number(
-                    $("station-lat").value
-                );
+                    let playing = false;
 
 
-                const lon = Number(
-                    $("station-lon").value
-                );
+                    try {
 
+                        playing = (
+                            weather.getStateSummary &&
+                            !!weather.getStateSummary().playing
+                        );
+
+                    } catch (error) {
+
+                        playing = false;
+                    }
+
+
+                    if (
+                        playing
+                    ) {
+
+                        refreshAll();
+                    }
+                }
+            },
+            250
+        );
+
+    } catch (error) {
+
+        showError(
+            error
+        );
+    }
+}
+
+
+/* ============================================================================
+   LAYER BUTTONS
+============================================================================ */
+
+document.querySelectorAll(
+    ".layer-button"
+).forEach(
+    button => {
+
+        button.addEventListener(
+            "click",
+            () => {
 
                 if (
-                    !Number.isFinite(
-                        lat
-                    ) ||
-                    !Number.isFinite(
-                        lon
-                    )
+                    !renderer
                 ) {
 
                     return;
                 }
 
 
-                weather.addStation(
+                document.querySelectorAll(
+                    ".layer-button"
+                ).forEach(
+                    item => {
 
-                    lat,
-
-                    lon,
-
-                    name
+                        item.classList.remove(
+                            "active"
+                        );
+                    }
                 );
 
 
-                $("station-name").value = "";
+                button.classList.add(
+                    "active"
+                );
 
 
-                updateStationList();
+                const layer = (
+                    button.dataset.layer
+                );
 
-                updateInformation();
+
+                renderer.setLayer(
+                    layer
+                );
+
+
+                layerLabel.textContent = (
+
+                    LAYER_NAMES[layer] ||
+                    layer
+                );
+
+
+                refreshDiagnostics();
             }
         );
     }
+);
 
 
-    /* ====================================================================
-       WEATHER EVENTS
-       ==================================================================== */
+/* ============================================================================
+   PLAYBACK
+============================================================================ */
 
-    function configureWeatherEvents() {
+playButton.addEventListener(
+    "click",
+    () => {
 
-        weather.on(
+        if (
+            !weather
+        ) {
 
-            "frame",
+            return;
+        }
 
-            () => {
 
-                renderer.render();
+        let playing = false;
 
-                updateInformation();
 
-                updateStationList();
+        try {
+
+            if (
+                typeof weather.togglePlay ===
+                "function"
+            ) {
+
+                playing = (
+                    weather.togglePlay()
+                );
+
+
+                /*
+                 * Some implementations return nothing.
+                 */
+
+                if (
+                    typeof playing !==
+                    "boolean"
+                ) {
+
+                    const summary = (
+                        weather.getStateSummary
+                            ? weather.getStateSummary()
+                            : {}
+                    );
+
+
+                    playing = (
+                        !!summary.playing
+                    );
+                }
+
+            } else {
+
+                const summary = (
+                    weather.getStateSummary
+                        ? weather.getStateSummary()
+                        : {}
+                );
+
+
+                if (
+                    summary.playing
+                ) {
+
+                    weather.pause();
+
+                    playing = (
+                        false
+                    );
+
+                } else {
+
+                    weather.play();
+
+                    playing = (
+                        true
+                    );
+                }
             }
+
+        } catch (error) {
+
+            showError(
+                error
+            );
+
+            return;
+        }
+
+
+        playButton.textContent = playing
+            ? "Pause"
+            : "Play";
+
+
+        playButton.classList.toggle(
+            "active",
+            playing
         );
 
 
-        weather.on(
-
-            "step",
-
-            () => {
-
-                updateInformation();
-
-                updateStationList();
-            }
-        );
-
-
-        weather.on(
-
-            "seek",
-
-            () => {
-
-                updateInformation();
-
-                updateStationList();
-            }
-        );
-
-
-        weather.on(
-
-            "reset",
-
-            () => {
-
-                updateInformation();
-
-                updateStationList();
-            }
-        );
+        refreshAll();
     }
+);
 
 
-    /* ====================================================================
-       BOOT CHECK
-       ==================================================================== */
+document.getElementById(
+    "step-button"
+).addEventListener(
+    "click",
+    () => {
 
-    function checkModules() {
+        try {
 
-        const modules = [
+            weather.step();
 
-            [
-                "EuropaConfig",
-                window.EuropaConfig
-            ],
+            refreshAll();
 
-            [
-                "EuropaUtils",
-                window.EuropaUtils
-            ],
+        } catch (error) {
 
-            [
-                "EuropaTerrain",
-                window.EuropaTerrain
-            ],
-
-            [
-                "EuropaClimate",
-                window.EuropaClimate
-            ],
-
-            [
-                "EuropaOcean",
-                window.EuropaOcean
-            ],
-
-            [
-                "EuropaSynoptic",
-                window.EuropaSynoptic
-            ],
-
-            [
-                "EuropaAtmosphere",
-                window.EuropaAtmosphere
-            ],
-
-            [
-                "EuropaPhysics",
-                window.EuropaPhysics
-            ],
-
-            [
-                "EuropaHistory",
-                window.EuropaHistory
-            ],
-
-            [
-                "EuropaWeather",
-                window.EuropaWeather
-            ],
-
-            [
-                "EuropaRenderer",
-                window.EuropaRenderer
-            ]
-        ];
+            showError(
+                error
+            );
+        }
+    }
+);
 
 
-        const missing = (
-            modules
-                .filter(
-                    entry =>
-                        !entry[1]
+document.getElementById(
+    "speed-select"
+).addEventListener(
+    "change",
+    event => {
+
+        if (
+            weather &&
+            typeof weather.setTimeScale ===
+            "function"
+        ) {
+
+            weather.setTimeScale(
+
+                Number(
+                    event.target.value
                 )
-                .map(
-                    entry =>
-                        entry[0]
-                )
+            );
+        }
+    }
+);
+
+
+/* ============================================================================
+   SEEK BUTTONS
+============================================================================ */
+
+document.getElementById(
+    "minus-hour"
+).addEventListener(
+    "click",
+    () => seekByMilliseconds(
+        -3600000
+    )
+);
+
+
+document.getElementById(
+    "plus-hour"
+).addEventListener(
+    "click",
+    () => seekByMilliseconds(
+        3600000
+    )
+);
+
+
+document.getElementById(
+    "minus-day"
+).addEventListener(
+    "click",
+    () => seekByMilliseconds(
+        -86400000
+    )
+);
+
+
+document.getElementById(
+    "plus-day"
+).addEventListener(
+    "click",
+    () => seekByMilliseconds(
+        86400000
+    )
+);
+
+
+/* ============================================================================
+   DRAG TOOL
+============================================================================ */
+
+dragToolButton.addEventListener(
+    "click",
+    () => {
+
+        if (
+            !renderer
+        ) {
+
+            return;
+        }
+
+
+        dragToolEnabled = (
+            !dragToolEnabled
+        );
+
+
+        renderer.setDragToolEnabled(
+            dragToolEnabled
+        );
+
+
+        dragToolButton.classList.toggle(
+            "active",
+            dragToolEnabled
+        );
+
+
+        dragBanner.style.display = dragToolEnabled
+            ? "block"
+            : "none";
+
+
+        dragPreviewText.textContent = dragToolEnabled
+            ? "Drag from the source region toward the destination."
+            : "No drag selected.";
+
+
+        refreshDiagnostics();
+    }
+);
+
+
+document.getElementById(
+    "clear-arrows-button"
+).addEventListener(
+    "click",
+    () => {
+
+        try {
+
+            clearSteeringArrows();
+
+            refreshAll();
+
+        } catch (error) {
+
+            showError(
+                error
+            );
+        }
+    }
+);
+
+
+/* ============================================================================
+   OVERLAY TOGGLES
+============================================================================ */
+
+function bindToggle(
+    id,
+    initial,
+    callback
+) {
+
+    const button = (
+        document.getElementById(
+            id
+        )
+    );
+
+
+    let enabled = (
+        initial
+    );
+
+
+    button.classList.toggle(
+        "active",
+        enabled
+    );
+
+
+    button.addEventListener(
+        "click",
+        () => {
+
+            enabled = (
+                !enabled
+            );
+
+
+            button.classList.toggle(
+                "active",
+                enabled
+            );
+
+
+            callback(
+                enabled
+            );
+        }
+    );
+}
+
+
+bindToggle(
+    "coastline-toggle",
+    true,
+    enabled => renderer.setCoastline(
+        enabled
+    )
+);
+
+
+bindToggle(
+    "land-toggle",
+    true,
+    enabled => renderer.setLandShading(
+        enabled
+    )
+);
+
+
+bindToggle(
+    "isobar-toggle",
+    true,
+    enabled => renderer.setIsobars(
+        enabled
+    )
+);
+
+
+bindToggle(
+    "wind-toggle",
+    false,
+    enabled => renderer.setWindVectors(
+        enabled
+    )
+);
+
+
+bindToggle(
+    "front-toggle",
+    false,
+    enabled => renderer.setFrontOverlay(
+        enabled
+    )
+);
+
+
+bindToggle(
+    "systems-toggle",
+    true,
+    enabled => renderer.setSystemMarkers(
+        enabled
+    )
+);
+
+
+bindToggle(
+    "arrows-toggle",
+    true,
+    enabled => renderer.setSteeringArrows(
+        enabled
+    )
+);
+
+
+/* ============================================================================
+   SNAPSHOT
+============================================================================ */
+
+document.getElementById(
+    "snapshot-button"
+).addEventListener(
+    "click",
+    () => {
+
+        try {
+
+            if (
+                typeof weather.saveSnapshot ===
+                "function"
+            ) {
+
+                weather.saveSnapshot();
+
+                refreshDiagnostics();
+            }
+
+        } catch (error) {
+
+            showError(
+                error
+            );
+        }
+    }
+);
+
+
+/* ============================================================================
+   DATE/TIME SEEK
+============================================================================ */
+
+document.getElementById(
+    "goto-time-button"
+).addEventListener(
+    "click",
+    async () => {
+
+        const date = (
+            readDateInputs()
         );
 
 
         if (
-            missing.length >
-            0
+            !date ||
+            Number.isNaN(
+                date.getTime()
+            )
         ) {
 
-            throw new Error(
-
-                "Missing modules: " +
-                missing.join(
-                    ", "
-                )
-            );
+            return;
         }
-    }
 
-
-    /* ====================================================================
-       GLOBAL ERROR DISPLAY
-       ==================================================================== */
-
-    window.addEventListener(
-
-        "error",
-
-        event => {
-
-            setStatus(
-                "Simulation error",
-                "bad"
-            );
-
-
-            log(
-
-                "JavaScript error\n\n" +
-
-                (
-                    event.message ||
-                    "Unknown error"
-                ) +
-
-                "\n\n" +
-
-                (
-                    event.filename ||
-                    ""
-                ) +
-
-                ":" +
-
-                (
-                    event.lineno ||
-                    ""
-                )
-            );
-        }
-    );
-
-
-    window.addEventListener(
-
-        "unhandledrejection",
-
-        event => {
-
-            setStatus(
-                "Simulation error",
-                "bad"
-            );
-
-
-            log(
-
-                "Unhandled error\n\n" +
-
-                String(
-                    event.reason
-                )
-            );
-        }
-    );
-
-
-    /* ====================================================================
-       START
-       ==================================================================== */
-
-    function boot() {
 
         try {
 
-            setStatus(
-                "Checking modules…",
-                "loading"
+            await weather.seek(
+                date
             );
 
 
-            checkModules();
+            refreshAll();
 
+        } catch (error) {
 
-            setStatus(
-                "Building terrain and atmosphere…",
-                "loading"
-            );
-
-
-            weather = (
-                window.EuropaWeather.create({
-
-                    startDate:
-                        new Date(),
-
-                    seed:
-                        20261001,
-
-                    timeScale:
-                        60,
-
-                    maxPhysicsStepsPerFrame:
-                        24
-                })
-            );
-
-
-            renderer = (
-                new window.EuropaRenderer(
-
-                    weather,
-
-                    "weather-map",
-
-                    {
-                        width:
-                            window.EuropaConfig.display
-                                ? window.EuropaConfig.display.width
-                                : 780,
-
-                        height:
-                            window.EuropaConfig.display
-                                ? window.EuropaConfig.display.height
-                                : 440,
-
-                        layer:
-                            "temperature",
-
-                        isobars:
-                            true,
-
-                        windVectors:
-                            false,
-
-                        frontOverlay:
-                            false,
-
-                        steeringArrows:
-                            true,
-
-                        systems:
-                            true,
-
-                        autoRender:
-                            false
-                    }
-                )
-            );
-
-
-            configureHover();
-
-            configureLayers();
-
-            configurePlayback();
-
-            configureOverlays();
-
-            configureStations();
-
-            configureWeatherEvents();
-
-
-            /*
-             * A few useful starter stations.
-             */
-
-            weather.addStation(
-
-                51.27,
-
-                0.52,
-
-                "Maidstone"
-            );
-
-
-            weather.addStation(
-
-                60.05,
-
-                -19.95,
-
-                "EuropaCraft Spawn"
-            );
-
-
-            weather.addStation(
-
-                54.35,
-
-                18.65,
-
-                "Gdańsk"
-            );
-
-
-            weather.addStation(
-
-                43.51,
-
-                16.44,
-
-                "Split"
-            );
-
-
-            weather.addStation(
-
-                45.81,
-
-                15.98,
-
-                "Zagreb"
-            );
-
-
-            weather.addStation(
-
-                46.77,
-
-                23.59,
-
-                "Transylvania"
-            );
-
-
-            renderer.render();
-
-
-            updateStationList();
-
-            updateInformation();
-
-
-            setStatus(
-                "Simulation ready",
-                "good"
-            );
-
-
-            log(
-
-                "EuropaCraft Weather " +
-                window.EuropaWeather.version +
-
-                "\n\n" +
-
-                "Physics grid: " +
-
-                weather.nx +
-                " × " +
-                weather.ny +
-
-                "\n" +
-
-                "Physics timestep: " +
-
-                weather.getPhysicsStepMinutes() +
-                " minutes" +
-
-                "\n" +
-
-                "Display grid: " +
-
-                renderer.width +
-                " × " +
-                renderer.height +
-
-                "\n\n" +
-
-                "Persistent atmosphere initialized."
-            );
-
-
-            /*
-             * Expose instances for browser console testing.
-             */
-
-            window.europaWeather = (
-                weather
-            );
-
-
-            window.europaRenderer = (
-                renderer
-            );
-
-        }
-
-        catch (
-            error
-        ) {
-
-            console.error(
+            showError(
                 error
             );
+        }
+    }
+);
 
 
-            setStatus(
-                "Startup failed",
-                "bad"
-            );
+/* ============================================================================
+   RESET
+============================================================================ */
+
+document.getElementById(
+    "reset-button"
+).addEventListener(
+    "click",
+    () => {
+
+        try {
+
+            if (
+                typeof weather.reset ===
+                "function"
+            ) {
+
+                weather.reset(
+                    new Date()
+                );
 
 
-            log(
+                refreshAll();
 
-                "EuropaCraft failed to start.\n\n" +
+            } else {
 
-                (
-                    error &&
-                    error.stack
-                        ? error.stack
-                        : String(
-                            error
-                        )
-                )
+                location.reload();
+            }
+
+        } catch (error) {
+
+            showError(
+                error
             );
         }
     }
+);
 
 
-    if (
-        document.readyState ===
-        "loading"
-    ) {
+/* ============================================================================
+   START
+============================================================================ */
 
-        document.addEventListener(
+document.addEventListener(
+    "DOMContentLoaded",
+    boot
+);
 
-            "DOMContentLoaded",
-
-            boot
-        );
-    }
-
-    else {
-
-        boot();
-    }
-
-
-    })();
-
-    </script>
+})();
+</script>
 
 </body>
 </html>
