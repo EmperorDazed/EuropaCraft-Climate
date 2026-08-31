@@ -4,74 +4,46 @@
     /*
     ============================================================
     EuropaCraft Stateful Weather Engine
-    Version 6.0
+    Version 6.1 OPTIMISED
 
-    Atmospheric grid:
+    Atmospheric physics:
         195 × 110
         0.4 degree
 
-    Climate / map grid may remain:
-        780 × 440
-        0.1 degree
+    Main optimisations:
+        - climate geography cached once
+        - land/sea cached once
+        - monthly climatology cached
+        - no climate lookups inside hourly transport
+        - pressure/wind calculated once per hour
+        - cloud/precipitation calculated once per hour
+        - direct array access available to renderer
+        - particle movement uses nearest wind cell
+        - multi-hour stepping renders only after completion
 
-    MODEL PHILOSOPHY
-
-    Climate = long-term boundary condition.
-    Weather = evolving atmospheric state.
-
-    Each hourly step transports:
+    Persistent fields:
         temperature anomaly
         moisture
         air-mass tracer
-
-    Wind comes from:
-        pressure gradients
-        prevailing circulation
-        weak synoptic steering
-
-    Cloud comes from:
-        moisture
-        saturation tendency
-        ascent/convergence
-        cyclone structure
-        instability
-
-    Precipitation requires:
-        moisture
-        cloud
-        lift/saturation
-
-    SST modifies:
-        temperature
-        moisture
-        instability
 
     ============================================================
     */
 
 
     var VERSION =
-        "6.0-persistent-transport";
+        "6.1-persistent-transport-optimised";
 
 
     /* ============================================================
        DOMAIN
     ============================================================ */
 
-    var WEST =
-        -26;
+    var WEST = -26;
+    var EAST = 52;
+    var SOUTH = 30;
+    var NORTH = 74;
 
-    var EAST =
-        52;
-
-    var SOUTH =
-        30;
-
-    var NORTH =
-        74;
-
-    var STEP =
-        0.4;
+    var STEP = 0.4;
 
     var WIDTH =
         Math.round(
@@ -103,18 +75,24 @@
     ============================================================ */
 
     var simulationSeed =
-        randomSeed();
+        makeRandomSeed();
 
     var climatologicalMode =
         false;
 
+    var surfaceProvider =
+        null;
 
-    function randomSeed() {
 
-        return Math.floor(
-            Math.random() *
-            2147483646
-        ) + 1;
+    function makeRandomSeed() {
+
+        return (
+            Math.floor(
+                Math.random() *
+                2147483646
+            ) +
+            1
+        );
     }
 
 
@@ -128,13 +106,21 @@
         maximum
     ) {
 
-        return Math.max(
-            minimum,
-            Math.min(
-                maximum,
-                value
-            )
-        );
+        if (
+            value <
+            minimum
+        ) {
+            return minimum;
+        }
+
+        if (
+            value >
+            maximum
+        ) {
+            return maximum;
+        }
+
+        return value;
     }
 
 
@@ -175,15 +161,18 @@
         }
 
         var t =
+            (
+                value -
+                minimum
+            ) /
+            (
+                maximum -
+                minimum
+            );
+
+        t =
             clamp(
-                (
-                    value -
-                    minimum
-                ) /
-                (
-                    maximum -
-                    minimum
-                ),
+                t,
                 0,
                 1
             );
@@ -256,9 +245,7 @@
     ) {
 
         return (
-            validDate(
-                date
-            ).getTime() /
+            date.getTime() /
             86400000
         );
     }
@@ -268,23 +255,18 @@
         date
     ) {
 
-        var d =
-            validDate(
-                date
-            );
-
         var start =
             Date.UTC(
-                d.getUTCFullYear(),
+                date.getUTCFullYear(),
                 0,
                 0
             );
 
         var current =
             Date.UTC(
-                d.getUTCFullYear(),
-                d.getUTCMonth(),
-                d.getUTCDate()
+                date.getUTCFullYear(),
+                date.getUTCMonth(),
+                date.getUTCDate()
             );
 
         return Math.floor(
@@ -293,42 +275,6 @@
                 start
             ) /
             86400000
-        );
-    }
-
-
-    function hash(
-        number
-    ) {
-
-        var x =
-            Math.sin(
-                number *
-                12.9898 +
-                simulationSeed *
-                0.000173
-            ) *
-            43758.5453123;
-
-        return fract(
-            x
-        );
-    }
-
-
-    function hashXY(
-        x,
-        y,
-        salt
-    ) {
-
-        return hash(
-            x *
-            127.1 +
-            y *
-            311.7 +
-            salt *
-            74.7
         );
     }
 
@@ -406,11 +352,75 @@
     }
 
 
-    /* ============================================================
-       VALUE NOISE
+    function localSolarHour(
+        longitude,
+        date
+    ) {
 
-       Non-periodic spatially coherent random field.
+        var hour =
+            date.getUTCHours() +
+            date.getUTCMinutes() /
+            60 +
+            longitude /
+            15;
+
+        while (
+            hour <
+            0
+        ) {
+            hour += 24;
+        }
+
+        while (
+            hour >=
+            24
+        ) {
+            hour -= 24;
+        }
+
+        return hour;
+    }
+
+
+    /* ============================================================
+       SEEDED RANDOMNESS
     ============================================================ */
+
+    function hash(
+        number
+    ) {
+
+        var x =
+            Math.sin(
+                number *
+                12.9898 +
+                simulationSeed *
+                0.000173
+            ) *
+            43758.5453123;
+
+        return fract(
+            x
+        );
+    }
+
+
+    function hashXY(
+        x,
+        y,
+        salt
+    ) {
+
+        return hash(
+            x *
+            127.1 +
+            y *
+            311.7 +
+            salt *
+            74.7
+        );
+    }
+
 
     function valueNoise(
         longitude,
@@ -419,32 +429,32 @@
         scale
     ) {
 
-        var x =
+        var sx =
             longitude /
             scale;
 
-        var y =
+        var sy =
             latitude /
             scale;
 
         var x0 =
             Math.floor(
-                x
+                sx
             );
 
         var y0 =
             Math.floor(
-                y
+                sy
             );
 
         var fx =
             fract(
-                x
+                sx
             );
 
         var fy =
             fract(
-                y
+                sy
             );
 
         fx =
@@ -515,7 +525,7 @@
         date
     ) {
 
-        var temporalSeed =
+        var temporal =
             Math.floor(
                 dayNumber(
                     date
@@ -523,50 +533,34 @@
                 2
             );
 
-        var broad =
-            valueNoise(
-                longitude,
-                latitude,
-                temporalSeed +
-                17,
-                8
-            );
-
-        var medium =
-            valueNoise(
-                longitude,
-                latitude,
-                temporalSeed +
-                103,
-                3.2
-            );
-
-        var fine =
-            valueNoise(
-                longitude,
-                latitude,
-                temporalSeed +
-                317,
-                1.4
-            );
-
         return (
-            broad *
+            valueNoise(
+                longitude,
+                latitude,
+                temporal + 17,
+                8
+            ) *
             0.55 +
-            medium *
+            valueNoise(
+                longitude,
+                latitude,
+                temporal + 103,
+                3.2
+            ) *
             0.30 +
-            fine *
+            valueNoise(
+                longitude,
+                latitude,
+                temporal + 317,
+                1.4
+            ) *
             0.15
         );
     }
 
 
     /* ============================================================
-       TEMPERATURE NORMALS
-
-       Representative lowland climatological anchors.
-
-       Jan ... Dec average maximum and minimum.
+       TEMPERATURE CLIMATOLOGY ANCHORS
     ============================================================ */
 
     var TEMP_ANCHORS = [
@@ -773,20 +767,20 @@
             high: [16,17,20,23,27,31,35,35,31,26,21,17],
             low:  [7,8,10,13,17,21,24,24,21,17,12,8]
         }
+
     ];
 
+
+    /* ============================================================
+       MONTH INTERPOLATION
+    ============================================================ */
 
     function monthPosition(
         date
     ) {
 
-        var d =
-            validDate(
-                date
-            );
-
         var month =
-            d.getUTCMonth();
+            date.getUTCMonth();
 
         var nextMonth =
             (
@@ -797,7 +791,7 @@
 
         var start =
             Date.UTC(
-                d.getUTCFullYear(),
+                date.getUTCFullYear(),
                 month,
                 1
             );
@@ -811,7 +805,7 @@
 
             next =
                 Date.UTC(
-                    d.getUTCFullYear() + 1,
+                    date.getUTCFullYear() + 1,
                     0,
                     1
                 );
@@ -820,27 +814,14 @@
 
             next =
                 Date.UTC(
-                    d.getUTCFullYear(),
+                    date.getUTCFullYear(),
                     month + 1,
                     1
                 );
         }
 
-        var amount =
-            clamp(
-                (
-                    d.getTime() -
-                    start
-                ) /
-                (
-                    next -
-                    start
-                ),
-                0,
-                1
-            );
-
         return {
+
             month:
                 month,
 
@@ -848,130 +829,24 @@
                 nextMonth,
 
             amount:
-                amount
-        };
-    }
-
-
-    function interpolatedNormals(
-        latitude,
-        longitude,
-        date
-    ) {
-
-        var month =
-            monthPosition(
-                date
-            );
-
-        var high =
-            0;
-
-        var low =
-            0;
-
-        var total =
-            0;
-
-        var i;
-
-        for (
-            i = 0;
-            i <
-            TEMP_ANCHORS.length;
-            i++
-        ) {
-
-            var anchor =
-                TEMP_ANCHORS[i];
-
-            var dy =
-                latitude -
-                anchor.lat;
-
-            var dx =
-                (
-                    longitude -
-                    anchor.lon
-                ) *
-                Math.cos(
-                    latitude *
-                    DEG
-                );
-
-            var distance =
-                Math.sqrt(
-                    dx *
-                    dx +
-                    dy *
-                    dy
-                );
-
-            var weight =
-                1 /
-                Math.pow(
-                    distance +
-                    1.4,
-                    2.2
-                );
-
-            if (
-                distance <
-                2
-            ) {
-
-                weight *=
-                    3;
-            }
-
-            var anchorHigh =
-                lerp(
-                    anchor.high[
-                        month.month
-                    ],
-                    anchor.high[
-                        month.next
-                    ],
-                    month.amount
-                );
-
-            var anchorLow =
-                lerp(
-                    anchor.low[
-                        month.month
-                    ],
-                    anchor.low[
-                        month.next
-                    ],
-                    month.amount
-                );
-
-            high +=
-                anchorHigh *
-                weight;
-
-            low +=
-                anchorLow *
-                weight;
-
-            total +=
-                weight;
-        }
-
-        return {
-            high:
-                high /
-                total,
-
-            low:
-                low /
-                total
+                clamp(
+                    (
+                        date.getTime() -
+                        start
+                    ) /
+                    (
+                        next -
+                        start
+                    ),
+                    0,
+                    1
+                )
         };
     }
 
 
     /* ============================================================
-       LOCAL CLIMATE
+       CLIMATE ACCESS
     ============================================================ */
 
     function getClimate(
@@ -981,31 +856,31 @@
     ) {
 
         if (
-            window.EuropaClimate &&
-            typeof window.EuropaClimate.getIndices ===
+            !window.EuropaClimate ||
+            typeof window.EuropaClimate.getIndices !==
                 "function"
         ) {
 
-            try {
-
-                return window.EuropaClimate.getIndices(
-                    latitude,
-                    longitude,
-                    {
-                        landFraction:
-                            landFraction
-                    }
-                );
-
-            } catch (
-                error
-            ) {
-
-                return null;
-            }
+            return null;
         }
 
-        return null;
+        try {
+
+            return window.EuropaClimate.getIndices(
+                latitude,
+                longitude,
+                {
+                    landFraction:
+                        landFraction
+                }
+            );
+
+        } catch (
+            error
+        ) {
+
+            return null;
+        }
     }
 
 
@@ -1055,306 +930,8 @@
 
 
     /* ============================================================
-       SST
-    ============================================================ */
-
-    function seaSurfaceTemperature(
-        latitude,
-        longitude,
-        date,
-        climate
-    ) {
-
-        var phase =
-            Math.cos(
-                TWO_PI *
-                (
-                    dayOfYear(
-                        date
-                    ) -
-                    238
-                ) /
-                365.2422
-            );
-
-        var atlantic =
-            climateWeight(
-                climate,
-                "Atlantic"
-            ) +
-            climateWeight(
-                climate,
-                "Polar Maritime"
-            );
-
-        var northSea =
-            climateWeight(
-                climate,
-                "North Sea"
-            );
-
-        var baltic =
-            climateWeight(
-                climate,
-                "Baltic Maritime"
-            );
-
-        var mediterranean =
-            climateWeight(
-                climate,
-                "Mediterranean"
-            );
-
-        var blackSea =
-            climateWeight(
-                climate,
-                "Black Sea"
-            );
-
-        var caspian =
-            climateWeight(
-                climate,
-                "Caspian Maritime"
-            );
-
-        var total =
-            atlantic +
-            northSea +
-            baltic +
-            mediterranean +
-            blackSea +
-            caspian;
-
-        if (
-            total <
-            0.05
-        ) {
-
-            atlantic =
-                1;
-
-            total =
-                1;
-        }
-
-        var atlanticMean =
-            14 -
-            Math.max(
-                0,
-                latitude -
-                40
-            ) *
-            0.22;
-
-        var atlanticAmplitude =
-            3.5 +
-            Math.max(
-                0,
-                latitude -
-                45
-            ) *
-            0.04;
-
-        var result =
-            atlantic *
-            (
-                atlanticMean +
-                atlanticAmplitude *
-                phase
-            );
-
-        result +=
-            northSea *
-            (
-                10.7 +
-                5.9 *
-                phase
-            );
-
-        result +=
-            baltic *
-            (
-                8.0 +
-                9.2 *
-                phase
-            );
-
-        result +=
-            mediterranean *
-            (
-                19.0 +
-                6.5 *
-                phase
-            );
-
-        result +=
-            blackSea *
-            (
-                13.5 +
-                9.5 *
-                phase
-            );
-
-        result +=
-            caspian *
-            (
-                13.0 +
-                10.5 *
-                phase
-            );
-
-        return (
-            result /
-            total
-        );
-    }
-
-
-    /* ============================================================
-       DAILY CLIMATOLOGICAL TEMPERATURE
-    ============================================================ */
-
-    function localSolarHour(
-        longitude,
-        date
-    ) {
-
-        var d =
-            validDate(
-                date
-            );
-
-        var hour =
-            d.getUTCHours() +
-            d.getUTCMinutes() /
-            60 +
-            longitude /
-            15;
-
-        return (
-            (
-                hour %
-                24
-            ) +
-            24
-        ) %
-        24;
-    }
-
-
-    function climatologicalTemperature(
-        latitude,
-        longitude,
-        date,
-        climate,
-        landFraction
-    ) {
-
-        var normal =
-            interpolatedNormals(
-                latitude,
-                longitude,
-                date
-            );
-
-        var maritime =
-            climateIndex(
-                climate,
-                "maritime"
-            );
-
-        var continental =
-            climateIndex(
-                climate,
-                "continental"
-            );
-
-        var mean =
-            (
-                normal.high +
-                normal.low
-            ) /
-            2;
-
-        var range =
-            normal.high -
-            normal.low;
-
-        /*
-         * Maritime regions have smaller diurnal range.
-         */
-        range *=
-            clamp(
-                1 -
-                maritime *
-                0.22,
-                0.70,
-                1
-            );
-
-        /*
-         * Continental regions slightly larger.
-         */
-        range *=
-            (
-                1 +
-                continental *
-                0.12
-            );
-
-        if (
-            landFraction <
-            0.5
-        ) {
-
-            range *=
-                lerp(
-                    0.22,
-                    1,
-                    landFraction *
-                    2
-                );
-        }
-
-        var hour =
-            localSolarHour(
-                longitude,
-                date
-            );
-
-        /*
-         * Approx. maximum 14:30 solar time.
-         */
-        var phase =
-            (
-                hour -
-                14.5
-            ) /
-            24 *
-            TWO_PI;
-
-        return (
-            mean +
-            Math.cos(
-                phase
-            ) *
-            range /
-            2
-        );
-    }
-
-
-    /* ============================================================
        SURFACE PROVIDER
-
-       The UI can install a real land / sea callback.
-
-       Without one, climate weights provide an estimate.
     ============================================================ */
-
-    var surfaceProvider =
-        null;
-
 
     function setSurfaceProvider(
         provider
@@ -1376,7 +953,7 @@
     }
 
 
-    function estimatedLandFraction(
+    function getLandFraction(
         latitude,
         longitude
     ) {
@@ -1407,55 +984,12 @@
             }
         }
 
-        /*
-         * Fallback:
-         * infer broadly from climate mix.
-         */
-
-        var climate =
-            getClimate(
-                latitude,
-                longitude,
-                0.5
-            );
-
-        var sea =
-            climateWeight(
-                climate,
-                "Atlantic"
-            ) +
-            climateWeight(
-                climate,
-                "North Sea"
-            ) +
-            climateWeight(
-                climate,
-                "Baltic Maritime"
-            ) +
-            climateWeight(
-                climate,
-                "Mediterranean"
-            ) +
-            climateWeight(
-                climate,
-                "Black Sea"
-            ) +
-            climateWeight(
-                climate,
-                "Caspian Maritime"
-            );
-
-        return clamp(
-            1 -
-            sea,
-            0,
-            1
-        );
+        return 1;
     }
 
 
     /* ============================================================
-       SYNOPTIC SYSTEM GENERATION
+       SYNOPTIC SYSTEMS
     ============================================================ */
 
     function systemCycle(
@@ -1488,7 +1022,7 @@
     }
 
 
-    function synopticSystems(
+    function createSynopticSystems(
         date
     ) {
 
@@ -1515,15 +1049,11 @@
         var systems =
             [];
 
-        var count =
-            3;
-
         var i;
 
         for (
             i = 0;
-            i <
-            count;
+            i < 3;
             i++
         ) {
 
@@ -1554,9 +1084,6 @@
                 ) *
                 19;
 
-            /*
-             * Gentle curved track.
-             */
             latitude +=
                 Math.sin(
                     progress *
@@ -1572,24 +1099,22 @@
                 ) *
                 8;
 
-            var longitude =
-                lerp(
-                    startLon,
-                    endLon,
-                    progress
-                ) +
-                i *
-                12;
-
             systems.push({
+
                 type:
-                    "low",
+                    0,
 
                 lat:
                     latitude,
 
                 lon:
-                    longitude,
+                    lerp(
+                        startLon,
+                        endLon,
+                        progress
+                    ) +
+                    i *
+                    12,
 
                 depth:
                     10 +
@@ -1611,12 +1136,10 @@
             });
         }
 
-        /*
-         * High pressure centre.
-         */
         systems.push({
+
             type:
-                "high",
+                1,
 
             lat:
                 40 +
@@ -1659,23 +1182,17 @@
     }
 
 
-    /* ============================================================
-       PRESSURE
-    ============================================================ */
-
-    function pressureAt(
+    function pressureFromSystems(
         latitude,
         longitude,
-        date
+        date,
+        systems
     ) {
 
         if (
             climatologicalMode
         ) {
 
-            /*
-             * Quiet climatological background.
-             */
             return (
                 1015 -
                 (
@@ -1689,9 +1206,10 @@
         var pressure =
             1015;
 
-        var systems =
-            synopticSystems(
-                date
+        var cosLatitude =
+            Math.cos(
+                latitude *
+                DEG
             );
 
         var i;
@@ -1715,10 +1233,7 @@
                     longitude -
                     system.lon
                 ) *
-                Math.cos(
-                    latitude *
-                    DEG
-                );
+                cosLatitude;
 
             var distanceSquared =
                 dx *
@@ -1726,19 +1241,22 @@
                 dy *
                 dy;
 
+            var radiusSquared =
+                system.radius *
+                system.radius;
+
             var influence =
                 Math.exp(
                     -distanceSquared /
                     (
                         2 *
-                        system.radius *
-                        system.radius
+                        radiusSquared
                     )
                 );
 
             if (
                 system.type ===
-                "low"
+                0
             ) {
 
                 pressure -=
@@ -1753,9 +1271,6 @@
             }
         }
 
-        /*
-         * Weak irregular background pressure structure.
-         */
         pressure +=
             (
                 atmosphericNoise(
@@ -1765,203 +1280,9 @@
                 ) -
                 0.5
             ) *
-            3;
+            2.5;
 
         return pressure;
-    }
-
-
-    /* ============================================================
-       WIND
-    ============================================================ */
-
-    function pressureGradient(
-        latitude,
-        longitude,
-        date
-    ) {
-
-        var delta =
-            0.3;
-
-        var north =
-            pressureAt(
-                latitude +
-                delta,
-                longitude,
-                date
-            );
-
-        var south =
-            pressureAt(
-                latitude -
-                delta,
-                longitude,
-                date
-            );
-
-        var east =
-            pressureAt(
-                latitude,
-                longitude +
-                delta,
-                date
-            );
-
-        var west =
-            pressureAt(
-                latitude,
-                longitude -
-                delta,
-                date
-            );
-
-        return {
-            northSouth:
-                (
-                    north -
-                    south
-                ) /
-                (
-                    2 *
-                    delta
-                ),
-
-            eastWest:
-                (
-                    east -
-                    west
-                ) /
-                (
-                    2 *
-                    delta
-                )
-        };
-    }
-
-
-    function windAt(
-        latitude,
-        longitude,
-        date
-    ) {
-
-        var gradient =
-            pressureGradient(
-                latitude,
-                longitude,
-                date
-            );
-
-        /*
-         * Mid-latitude background westerlies.
-         */
-        var westerly =
-            2.2 *
-            smoothstep(
-                35,
-                48,
-                latitude
-            ) *
-            (
-                1 -
-                smoothstep(
-                    70,
-                    75,
-                    latitude
-                )
-            );
-
-        /*
-         * Atmospheric pressure-gradient contribution.
-         *
-         * Chosen for useful surface-scale winds rather than
-         * literal free-atmosphere geostrophic wind.
-         */
-        var u =
-            -gradient.northSouth *
-            10.5 +
-            westerly;
-
-        var v =
-            gradient.eastWest *
-            10.5;
-
-        /*
-         * Small spatial irregularity.
-         */
-        if (
-            !climatologicalMode
-        ) {
-
-            var variation =
-                atmosphericNoise(
-                    longitude,
-                    latitude,
-                    date
-                ) -
-                0.5;
-
-            u +=
-                variation *
-                1.0;
-
-            v +=
-                variation *
-                0.6;
-        }
-
-        var speed =
-            Math.sqrt(
-                u *
-                u +
-                v *
-                v
-            );
-
-        if (
-            speed >
-            30
-        ) {
-
-            var scale =
-                30 /
-                speed;
-
-            u *=
-                scale;
-
-            v *=
-                scale;
-
-            speed =
-                30;
-        }
-
-        var direction =
-            (
-                Math.atan2(
-                    -u,
-                    -v
-                ) /
-                DEG +
-                360
-            ) %
-            360;
-
-        return {
-            uMs:
-                u,
-
-            vMs:
-                v,
-
-            speedMs:
-                speed,
-
-            directionDeg:
-                direction
-        };
     }
 
 
@@ -1992,26 +1313,34 @@
             );
 
         var x0 =
-            Math.floor(
-                x
-            );
+            x | 0;
 
         var y0 =
-            Math.floor(
-                y
-            );
+            y | 0;
 
         var x1 =
-            Math.min(
-                WIDTH - 1,
-                x0 + 1
-            );
+            x0 + 1;
 
         var y1 =
-            Math.min(
-                HEIGHT - 1,
-                y0 + 1
-            );
+            y0 + 1;
+
+        if (
+            x1 >=
+            WIDTH
+        ) {
+            x1 =
+                WIDTH -
+                1;
+        }
+
+        if (
+            y1 >=
+            HEIGHT
+        ) {
+            y1 =
+                HEIGHT -
+                1;
+        }
 
         var fx =
             x -
@@ -2053,17 +1382,30 @@
                 )
             ];
 
-        return lerp(
-            lerp(
-                a,
-                b,
+        return (
+            a *
+            (
+                1 -
                 fx
-            ),
-            lerp(
-                c,
-                d,
+            ) *
+            (
+                1 -
+                fy
+            ) +
+            b *
+            fx *
+            (
+                1 -
+                fy
+            ) +
+            c *
+            (
+                1 -
                 fx
-            ),
+            ) *
+            fy +
+            d *
+            fx *
             fy
         );
     }
@@ -2082,17 +1424,101 @@
                 startDate
             );
 
-        this.startDate =
-            new Date(
-                this.date.getTime()
-            );
-
         this.hoursElapsed =
             0;
 
-        /*
-         * Persistent atmospheric fields.
-         */
+        this.lastClimatologyDay =
+            -1;
+
+
+        /* STATIC GEOGRAPHY */
+
+        this.latitude =
+            new Float32Array(
+                CELL_COUNT
+            );
+
+        this.longitude =
+            new Float32Array(
+                CELL_COUNT
+            );
+
+        this.landFraction =
+            new Float32Array(
+                CELL_COUNT
+            );
+
+        this.maritime =
+            new Float32Array(
+                CELL_COUNT
+            );
+
+        this.continental =
+            new Float32Array(
+                CELL_COUNT
+            );
+
+
+        /* SEA WEIGHTS */
+
+        this.wAtlantic =
+            new Float32Array(
+                CELL_COUNT
+            );
+
+        this.wNorthSea =
+            new Float32Array(
+                CELL_COUNT
+            );
+
+        this.wBaltic =
+            new Float32Array(
+                CELL_COUNT
+            );
+
+        this.wMediterranean =
+            new Float32Array(
+                CELL_COUNT
+            );
+
+        this.wBlackSea =
+            new Float32Array(
+                CELL_COUNT
+            );
+
+        this.wCaspian =
+            new Float32Array(
+                CELL_COUNT
+            );
+
+
+        /* MONTHLY CLIMATOLOGY */
+
+        this.monthlyHigh =
+            new Float32Array(
+                CELL_COUNT *
+                12
+            );
+
+        this.monthlyLow =
+            new Float32Array(
+                CELL_COUNT *
+                12
+            );
+
+        this.normalHigh =
+            new Float32Array(
+                CELL_COUNT
+            );
+
+        this.normalLow =
+            new Float32Array(
+                CELL_COUNT
+            );
+
+
+        /* DYNAMIC ATMOSPHERE */
+
         this.temperature =
             new Float32Array(
                 CELL_COUNT
@@ -2108,12 +1534,12 @@
                 CELL_COUNT
             );
 
-        this.cloud =
+        this.airMass =
             new Float32Array(
                 CELL_COUNT
             );
 
-        this.precipitation =
+        this.sst =
             new Float32Array(
                 CELL_COUNT
             );
@@ -2133,21 +1559,24 @@
                 CELL_COUNT
             );
 
-        /*
-         * Air-mass tracer:
-         *
-         * -1 = cold-origin air
-         *  0 = climatological/local
-         * +1 = warm-origin air
-         */
-        this.airMass =
+        this.windSpeed =
             new Float32Array(
                 CELL_COUNT
             );
 
-        /*
-         * Scratch arrays.
-         */
+        this.cloud =
+            new Float32Array(
+                CELL_COUNT
+            );
+
+        this.precipitation =
+            new Float32Array(
+                CELL_COUNT
+            );
+
+
+        /* TRANSPORT SCRATCH */
+
         this.nextAnomaly =
             new Float32Array(
                 CELL_COUNT
@@ -2163,25 +1592,19 @@
                 CELL_COUNT
             );
 
-        this.landFraction =
-            new Float32Array(
-                CELL_COUNT
-            );
 
-        this.sst =
-            new Float32Array(
-                CELL_COUNT
-            );
-
-        this.initialize();
+        this.buildStaticGeography();
+        this.buildMonthlyClimatology();
+        this.updateDailyClimatology();
+        this.initializeAtmosphere();
     }
 
 
     /* ============================================================
-       WORLD INITIALIZATION
+       STATIC GEOGRAPHY CACHE
     ============================================================ */
 
-    WeatherWorld.prototype.initialize =
+    WeatherWorld.prototype.buildStaticGeography =
         function () {
 
             var x;
@@ -2193,7 +1616,7 @@
                 y++
             ) {
 
-                var latitude =
+                var lat =
                     latitudeForY(
                         y
                     );
@@ -2204,7 +1627,7 @@
                     x++
                 ) {
 
-                    var longitude =
+                    var lon =
                         longitudeForX(
                             x
                         );
@@ -2215,10 +1638,20 @@
                             y
                         );
 
+                    this.latitude[
+                        index
+                    ] =
+                        lat;
+
+                    this.longitude[
+                        index
+                    ] =
+                        lon;
+
                     var land =
-                        estimatedLandFraction(
-                            latitude,
-                            longitude
+                        getLandFraction(
+                            lat,
+                            lon
                         );
 
                     this.landFraction[
@@ -2228,157 +1661,823 @@
 
                     var climate =
                         getClimate(
-                            latitude,
-                            longitude,
+                            lat,
+                            lon,
                             land
                         );
 
-                    var normal =
-                        climatologicalTemperature(
-                            latitude,
-                            longitude,
-                            this.date,
-                            climate,
-                            land
-                        );
-
-                    var seaTemperature =
-                        seaSurfaceTemperature(
-                            latitude,
-                            longitude,
-                            this.date,
-                            climate
-                        );
-
-                    this.sst[
+                    this.maritime[
                         index
                     ] =
-                        seaTemperature;
-
-                    /*
-                     * Initial run anomaly.
-                     *
-                     * Moderate, not V5's huge fixed regime
-                     * departures.
-                     */
-                    var noise =
-                        atmosphericNoise(
-                            longitude,
-                            latitude,
-                            this.date
-                        );
-
-                    var seasonalContrast =
-                        1.2 +
-                        1.5 *
-                        Math.abs(
-                            Math.cos(
-                                TWO_PI *
-                                (
-                                    dayOfYear(
-                                        this.date
-                                    ) -
-                                    15
-                                ) /
-                                365.2422
-                            )
-                        );
-
-                    var anomaly =
-                        (
-                            noise -
-                            0.5
-                        ) *
-                        seasonalContrast *
-                        2.2;
-
-                    if (
-                        climatologicalMode
-                    ) {
-
-                        anomaly =
-                            0;
-                    }
-
-                    this.temperatureAnomaly[
-                        index
-                    ] =
-                        anomaly;
-
-                    this.temperature[
-                        index
-                    ] =
-                        normal +
-                        anomaly;
-
-                    /*
-                     * Starting moisture.
-                     */
-                    var maritime =
                         climateIndex(
                             climate,
                             "maritime"
                         );
 
-                    this.moisture[
+                    this.continental[
                         index
                     ] =
-                        clamp(
-                            0.38 +
-                            maritime *
-                            0.30 +
-                            (
-                                1 -
-                                land
-                            ) *
-                            0.18 +
-                            (
-                                noise -
-                                0.5
-                            ) *
-                            0.12,
-                            0.12,
-                            0.95
+                        climateIndex(
+                            climate,
+                            "continental"
                         );
 
-                    this.airMass[
+                    this.wAtlantic[
                         index
                     ] =
-                        clamp(
-                            anomaly /
-                            6,
-                            -1,
-                            1
+                        climateWeight(
+                            climate,
+                            "Atlantic"
+                        ) +
+                        climateWeight(
+                            climate,
+                            "Polar Maritime"
+                        );
+
+                    this.wNorthSea[
+                        index
+                    ] =
+                        climateWeight(
+                            climate,
+                            "North Sea"
+                        );
+
+                    this.wBaltic[
+                        index
+                    ] =
+                        climateWeight(
+                            climate,
+                            "Baltic Maritime"
+                        );
+
+                    this.wMediterranean[
+                        index
+                    ] =
+                        climateWeight(
+                            climate,
+                            "Mediterranean"
+                        );
+
+                    this.wBlackSea[
+                        index
+                    ] =
+                        climateWeight(
+                            climate,
+                            "Black Sea"
+                        );
+
+                    this.wCaspian[
+                        index
+                    ] =
+                        climateWeight(
+                            climate,
+                            "Caspian Maritime"
                         );
                 }
             }
-
-            this.recalculateDiagnosticFields();
         };
 
 
     /* ============================================================
-       DIAGNOSTIC FIELDS
+       MONTHLY CLIMATOLOGY CACHE
     ============================================================ */
 
-    WeatherWorld.prototype.recalculateDiagnosticFields =
+    WeatherWorld.prototype.buildMonthlyClimatology =
         function () {
+
+            var index;
+            var month;
+            var anchorIndex;
+
+            for (
+                index = 0;
+                index <
+                CELL_COUNT;
+                index++
+            ) {
+
+                var lat =
+                    this.latitude[
+                        index
+                    ];
+
+                var lon =
+                    this.longitude[
+                        index
+                    ];
+
+                var cosLat =
+                    Math.cos(
+                        lat *
+                        DEG
+                    );
+
+                var weights =
+                    [];
+
+                var totalWeight =
+                    0;
+
+                for (
+                    anchorIndex = 0;
+                    anchorIndex <
+                    TEMP_ANCHORS.length;
+                    anchorIndex++
+                ) {
+
+                    var anchor =
+                        TEMP_ANCHORS[
+                            anchorIndex
+                        ];
+
+                    var dy =
+                        lat -
+                        anchor.lat;
+
+                    var dx =
+                        (
+                            lon -
+                            anchor.lon
+                        ) *
+                        cosLat;
+
+                    var distance =
+                        Math.sqrt(
+                            dx *
+                            dx +
+                            dy *
+                            dy
+                        );
+
+                    var weight =
+                        1 /
+                        Math.pow(
+                            distance +
+                            1.4,
+                            2.2
+                        );
+
+                    if (
+                        distance <
+                        2
+                    ) {
+                        weight *= 3;
+                    }
+
+                    weights[
+                        anchorIndex
+                    ] =
+                        weight;
+
+                    totalWeight +=
+                        weight;
+                }
+
+                for (
+                    month = 0;
+                    month < 12;
+                    month++
+                ) {
+
+                    var high =
+                        0;
+
+                    var low =
+                        0;
+
+                    for (
+                        anchorIndex = 0;
+                        anchorIndex <
+                        TEMP_ANCHORS.length;
+                        anchorIndex++
+                    ) {
+
+                        var a =
+                            TEMP_ANCHORS[
+                                anchorIndex
+                            ];
+
+                        var w =
+                            weights[
+                                anchorIndex
+                            ];
+
+                        high +=
+                            a.high[
+                                month
+                            ] *
+                            w;
+
+                        low +=
+                            a.low[
+                                month
+                            ] *
+                            w;
+                    }
+
+                    high /=
+                        totalWeight;
+
+                    low /=
+                        totalWeight;
+
+
+                    /* CLIMATE CORRECTIONS */
+
+                    var maritime =
+                        this.maritime[
+                            index
+                        ];
+
+                    var continental =
+                        this.continental[
+                            index
+                        ];
+
+                    var seasonal =
+                        Math.cos(
+                            TWO_PI *
+                            (
+                                month -
+                                6
+                            ) /
+                            12
+                        );
+
+                    if (
+                        seasonal >
+                        0
+                    ) {
+
+                        high +=
+                            continental *
+                            seasonal *
+                            0.8;
+
+                        low -=
+                            continental *
+                            seasonal *
+                            0.5;
+
+                        high -=
+                            maritime *
+                            seasonal *
+                            0.4;
+
+                    } else {
+
+                        var winter =
+                            -seasonal;
+
+                        high -=
+                            continental *
+                            winter *
+                            0.6;
+
+                        low -=
+                            continental *
+                            winter *
+                            1.1;
+
+                        low +=
+                            maritime *
+                            winter *
+                            0.6;
+                    }
+
+                    this.monthlyHigh[
+                        index *
+                        12 +
+                        month
+                    ] =
+                        high;
+
+                    this.monthlyLow[
+                        index *
+                        12 +
+                        month
+                    ] =
+                        low;
+                }
+            }
+        };
+
+
+    /* ============================================================
+       DAILY CLIMATOLOGY
+    ============================================================ */
+
+    WeatherWorld.prototype.updateDailyClimatology =
+        function () {
+
+            var dayKey =
+                this.date.getUTCFullYear() *
+                1000 +
+                dayOfYear(
+                    this.date
+                );
+
+            if (
+                dayKey ===
+                this.lastClimatologyDay
+            ) {
+
+                return;
+            }
+
+            this.lastClimatologyDay =
+                dayKey;
+
+            var monthInfo =
+                monthPosition(
+                    this.date
+                );
+
+            var index;
+
+            for (
+                index = 0;
+                index <
+                CELL_COUNT;
+                index++
+            ) {
+
+                var offset =
+                    index *
+                    12;
+
+                this.normalHigh[
+                    index
+                ] =
+                    lerp(
+                        this.monthlyHigh[
+                            offset +
+                            monthInfo.month
+                        ],
+                        this.monthlyHigh[
+                            offset +
+                            monthInfo.next
+                        ],
+                        monthInfo.amount
+                    );
+
+                this.normalLow[
+                    index
+                ] =
+                    lerp(
+                        this.monthlyLow[
+                            offset +
+                            monthInfo.month
+                        ],
+                        this.monthlyLow[
+                            offset +
+                            monthInfo.next
+                        ],
+                        monthInfo.amount
+                    );
+            }
+        };
+
+
+    /* ============================================================
+       CLIMATOLOGICAL TEMPERATURE FOR CELL
+    ============================================================ */
+
+    WeatherWorld.prototype.normalTemperatureForCell =
+        function (
+            index
+        ) {
+
+            var high =
+                this.normalHigh[
+                    index
+                ];
+
+            var low =
+                this.normalLow[
+                    index
+                ];
+
+            var mean =
+                (
+                    high +
+                    low
+                ) *
+                0.5;
+
+            var range =
+                high -
+                low;
+
+            range *=
+                clamp(
+                    1 -
+                    this.maritime[
+                        index
+                    ] *
+                    0.22,
+                    0.70,
+                    1
+                );
+
+            range *=
+                (
+                    1 +
+                    this.continental[
+                        index
+                    ] *
+                    0.12
+                );
+
+            var land =
+                this.landFraction[
+                    index
+                ];
+
+            if (
+                land <
+                0.5
+            ) {
+
+                range *=
+                    lerp(
+                        0.22,
+                        1,
+                        land *
+                        2
+                    );
+            }
+
+            var hour =
+                localSolarHour(
+                    this.longitude[
+                        index
+                    ],
+                    this.date
+                );
+
+            var phase =
+                (
+                    hour -
+                    14.5
+                ) /
+                24 *
+                TWO_PI;
+
+            return (
+                mean +
+                Math.cos(
+                    phase
+                ) *
+                range *
+                0.5
+            );
+        };
+
+
+    /* ============================================================
+       SST FOR CELL
+    ============================================================ */
+
+    WeatherWorld.prototype.sstForCell =
+        function (
+            index
+        ) {
+
+            var latitude =
+                this.latitude[
+                    index
+                ];
+
+            var phase =
+                Math.cos(
+                    TWO_PI *
+                    (
+                        dayOfYear(
+                            this.date
+                        ) -
+                        238
+                    ) /
+                    365.2422
+                );
+
+            var atlantic =
+                this.wAtlantic[
+                    index
+                ];
+
+            var northSea =
+                this.wNorthSea[
+                    index
+                ];
+
+            var baltic =
+                this.wBaltic[
+                    index
+                ];
+
+            var mediterranean =
+                this.wMediterranean[
+                    index
+                ];
+
+            var blackSea =
+                this.wBlackSea[
+                    index
+                ];
+
+            var caspian =
+                this.wCaspian[
+                    index
+                ];
+
+            var total =
+                atlantic +
+                northSea +
+                baltic +
+                mediterranean +
+                blackSea +
+                caspian;
+
+            if (
+                total <
+                0.05
+            ) {
+
+                atlantic =
+                    1;
+
+                total =
+                    1;
+            }
+
+            var atlanticMean =
+                14 -
+                Math.max(
+                    0,
+                    latitude -
+                    40
+                ) *
+                0.22;
+
+            var atlanticAmplitude =
+                3.5 +
+                Math.max(
+                    0,
+                    latitude -
+                    45
+                ) *
+                0.04;
+
+            return (
+                atlantic *
+                (
+                    atlanticMean +
+                    atlanticAmplitude *
+                    phase
+                ) +
+
+                northSea *
+                (
+                    10.7 +
+                    5.9 *
+                    phase
+                ) +
+
+                baltic *
+                (
+                    8.0 +
+                    9.2 *
+                    phase
+                ) +
+
+                mediterranean *
+                (
+                    19.0 +
+                    6.5 *
+                    phase
+                ) +
+
+                blackSea *
+                (
+                    13.5 +
+                    9.5 *
+                    phase
+                ) +
+
+                caspian *
+                (
+                    13.0 +
+                    10.5 *
+                    phase
+                )
+            ) /
+            total;
+        };
+
+
+    /* ============================================================
+       INITIAL ATMOSPHERE
+    ============================================================ */
+
+    WeatherWorld.prototype.initializeAtmosphere =
+        function () {
+
+            var index;
+
+            var doy =
+                dayOfYear(
+                    this.date
+                );
+
+            var winterContrast =
+                Math.abs(
+                    Math.cos(
+                        TWO_PI *
+                        (
+                            doy -
+                            15
+                        ) /
+                        365.2422
+                    )
+                );
+
+            var anomalyAmplitude =
+                2.3 +
+                winterContrast *
+                2.0;
+
+            for (
+                index = 0;
+                index <
+                CELL_COUNT;
+                index++
+            ) {
+
+                var lat =
+                    this.latitude[
+                        index
+                    ];
+
+                var lon =
+                    this.longitude[
+                        index
+                    ];
+
+                var noise =
+                    atmosphericNoise(
+                        lon,
+                        lat,
+                        this.date
+                    );
+
+                var anomaly =
+                    (
+                        noise -
+                        0.5
+                    ) *
+                    anomalyAmplitude *
+                    2;
+
+                if (
+                    climatologicalMode
+                ) {
+                    anomaly = 0;
+                }
+
+                anomaly =
+                    clamp(
+                        anomaly,
+                        -6,
+                        6
+                    );
+
+                this.temperatureAnomaly[
+                    index
+                ] =
+                    anomaly;
+
+                this.sst[
+                    index
+                ] =
+                    this.sstForCell(
+                        index
+                    );
+
+                this.temperature[
+                    index
+                ] =
+                    this.normalTemperatureForCell(
+                        index
+                    ) +
+                    anomaly;
+
+                this.moisture[
+                    index
+                ] =
+                    clamp(
+                        0.37 +
+                        this.maritime[
+                            index
+                        ] *
+                        0.28 +
+                        (
+                            1 -
+                            this.landFraction[
+                                index
+                            ]
+                        ) *
+                        0.18 +
+                        (
+                            noise -
+                            0.5
+                        ) *
+                        0.10,
+                        0.10,
+                        0.95
+                    );
+
+                this.airMass[
+                    index
+                ] =
+                    clamp(
+                        anomaly /
+                        6,
+                        -1,
+                        1
+                    );
+            }
+
+            this.updatePressureAndWind();
+            this.updateCloudAndPrecipitation();
+        };
+
+
+    /* ============================================================
+       PRESSURE AND WIND — ONCE PER HOUR
+    ============================================================ */
+
+    WeatherWorld.prototype.updatePressureAndWind =
+        function () {
+
+            var systems =
+                createSynopticSystems(
+                    this.date
+                );
+
+            var index;
+
+            for (
+                index = 0;
+                index <
+                CELL_COUNT;
+                index++
+            ) {
+
+                this.pressure[
+                    index
+                ] =
+                    pressureFromSystems(
+                        this.latitude[
+                            index
+                        ],
+                        this.longitude[
+                            index
+                        ],
+                        this.date,
+                        systems
+                    );
+            }
+
 
             var x;
             var y;
 
-            /*
-             * First pressure / wind.
-             */
             for (
                 y = 0;
                 y < HEIGHT;
                 y++
             ) {
 
-                var latitude =
+                var lat =
                     latitudeForY(
                         y
+                    );
+
+                var background =
+                    2.2 *
+                    smoothstep(
+                        35,
+                        48,
+                        lat
+                    ) *
+                    (
+                        1 -
+                        smoothstep(
+                            70,
+                            75,
+                            lat
+                        )
                     );
 
                 for (
@@ -2387,51 +2486,172 @@
                     x++
                 ) {
 
-                    var longitude =
-                        longitudeForX(
-                            x
-                        );
-
                     var index =
                         indexOf(
                             x,
                             y
                         );
 
-                    var p =
-                        pressureAt(
-                            latitude,
-                            longitude,
-                            this.date
+                    var xWest =
+                        x > 0
+                            ? x - 1
+                            : x;
+
+                    var xEast =
+                        x <
+                        WIDTH - 1
+                            ? x + 1
+                            : x;
+
+                    var yNorth =
+                        y > 0
+                            ? y - 1
+                            : y;
+
+                    var ySouth =
+                        y <
+                        HEIGHT - 1
+                            ? y + 1
+                            : y;
+
+                    var dpdx =
+                        (
+                            this.pressure[
+                                indexOf(
+                                    xEast,
+                                    y
+                                )
+                            ] -
+                            this.pressure[
+                                indexOf(
+                                    xWest,
+                                    y
+                                )
+                            ]
+                        ) /
+                        (
+                            (
+                                xEast -
+                                xWest
+                            ) *
+                            STEP ||
+                            STEP
                         );
 
-                    var wind =
-                        windAt(
-                            latitude,
-                            longitude,
-                            this.date
+                    var dpdy =
+                        (
+                            this.pressure[
+                                indexOf(
+                                    x,
+                                    yNorth
+                                )
+                            ] -
+                            this.pressure[
+                                indexOf(
+                                    x,
+                                    ySouth
+                                )
+                            ]
+                        ) /
+                        (
+                            (
+                                ySouth -
+                                yNorth
+                            ) *
+                            STEP ||
+                            STEP
                         );
 
-                    this.pressure[
-                        index
-                    ] =
-                        p;
+                    var u =
+                        -dpdy *
+                        9.0 +
+                        background;
+
+                    var v =
+                        dpdx *
+                        9.0;
+
+                    if (
+                        !climatologicalMode
+                    ) {
+
+                        var variation =
+                            atmosphericNoise(
+                                this.longitude[
+                                    index
+                                ],
+                                this.latitude[
+                                    index
+                                ],
+                                this.date
+                            ) -
+                            0.5;
+
+                        u +=
+                            variation *
+                            0.8;
+
+                        v +=
+                            variation *
+                            0.45;
+                    }
+
+                    var speed =
+                        Math.sqrt(
+                            u *
+                            u +
+                            v *
+                            v
+                        );
+
+                    if (
+                        speed >
+                        28
+                    ) {
+
+                        var scale =
+                            28 /
+                            speed;
+
+                        u *=
+                            scale;
+
+                        v *=
+                            scale;
+
+                        speed =
+                            28;
+                    }
 
                     this.windU[
                         index
                     ] =
-                        wind.uMs;
+                        u;
 
                     this.windV[
                         index
                     ] =
-                        wind.vMs;
+                        v;
+
+                    this.windSpeed[
+                        index
+                    ] =
+                        speed;
                 }
             }
+        };
 
-            /*
-             * Cloud and precipitation.
-             */
+
+    /* ============================================================
+       CLOUD AND PRECIPITATION — ONCE PER HOUR
+    ============================================================ */
+
+    WeatherWorld.prototype.updateCloudAndPrecipitation =
+        function () {
+
+            var x;
+            var y;
+
             for (
                 y = 0;
                 y < HEIGHT;
@@ -2444,41 +2664,34 @@
                     x++
                 ) {
 
-                    var i =
+                    var index =
                         indexOf(
                             x,
                             y
                         );
 
                     var xWest =
-                        Math.max(
-                            0,
-                            x - 1
-                        );
+                        x > 0
+                            ? x - 1
+                            : x;
 
                     var xEast =
-                        Math.min(
-                            WIDTH - 1,
-                            x + 1
-                        );
+                        x <
+                        WIDTH - 1
+                            ? x + 1
+                            : x;
 
                     var yNorth =
-                        Math.max(
-                            0,
-                            y - 1
-                        );
+                        y > 0
+                            ? y - 1
+                            : y;
 
                     var ySouth =
-                        Math.min(
-                            HEIGHT - 1,
-                            y + 1
-                        );
+                        y <
+                        HEIGHT - 1
+                            ? y + 1
+                            : y;
 
-                    /*
-                     * Wind convergence.
-                     *
-                     * Positive means air is converging.
-                     */
                     var du =
                         this.windU[
                             indexOf(
@@ -2523,7 +2736,7 @@
                             (
                                 1017 -
                                 this.pressure[
-                                    i
+                                    index
                                 ]
                             ) /
                             17,
@@ -2535,10 +2748,10 @@
                         clamp(
                             (
                                 this.sst[
-                                    i
+                                    index
                                 ] -
                                 this.temperature[
-                                    i
+                                    index
                                 ] -
                                 1
                             ) /
@@ -2547,76 +2760,62 @@
                             1
                         );
 
-                    /*
-                     * Cloud only forms readily once there
-                     * is substantial atmospheric moisture.
-                     */
+                    var moisture =
+                        this.moisture[
+                            index
+                        ];
+
                     var saturation =
                         smoothstep(
                             0.48,
                             0.78,
-                            this.moisture[
-                                i
-                            ]
+                            moisture
                         );
 
                     var cloud =
                         saturation *
-                        0.52;
+                        0.48;
 
                     cloud +=
                         lowLift *
-                        this.moisture[
-                            i
-                        ] *
+                        moisture *
                         0.42;
 
                     cloud +=
                         convergence *
-                        this.moisture[
-                            i
-                        ] *
-                        0.72;
+                        moisture *
+                        0.68;
 
                     cloud +=
                         seaInstability *
                         (
                             1 -
                             this.landFraction[
-                                i
+                                index
                             ]
                         ) *
-                        this.moisture[
-                            i
-                        ] *
-                        0.42;
+                        moisture *
+                        0.40;
 
-                    /*
-                     * Break cloud edges slightly, but noise
-                     * cannot create cloud by itself.
-                     */
-                    var localNoise =
+                    var noise =
                         atmosphericNoise(
-                            longitudeForX(
-                                x
-                            ),
-                            latitudeForY(
-                                y
-                            ),
+                            this.longitude[
+                                index
+                            ],
+                            this.latitude[
+                                index
+                            ],
                             this.date
                         );
 
                     cloud *=
-                        0.86 +
-                        localNoise *
-                        0.22;
+                        0.90 +
+                        noise *
+                        0.16;
 
-                    /*
-                     * Strong anticyclonic subsidence.
-                     */
                     if (
                         this.pressure[
-                            i
+                            index
                         ] >
                         1023
                     ) {
@@ -2633,77 +2832,82 @@
                         );
 
                     this.cloud[
-                        i
+                        index
                     ] =
                         cloud;
 
-                    /*
-                     * Precipitation.
 
-                     * Requires both condensate and a lifting
-                     * mechanism.
-                     */
                     var lift =
-                        Math.max(
-                            convergence,
-                            lowLift *
-                            0.72,
-                            seaInstability *
-                            (
-                                1 -
-                                this.landFraction[
-                                    i
-                                ]
-                            ) *
-                            0.60
-                        );
+                        convergence;
 
-                    var precipPotential =
-                        this.moisture[
-                            i
-                        ] *
+                    if (
+                        lowLift *
+                        0.72 >
+                        lift
+                    ) {
+
+                        lift =
+                            lowLift *
+                            0.72;
+                    }
+
+                    var showerLift =
+                        seaInstability *
+                        (
+                            1 -
+                            this.landFraction[
+                                index
+                            ]
+                        ) *
+                        0.60;
+
+                    if (
+                        showerLift >
+                        lift
+                    ) {
+
+                        lift =
+                            showerLift;
+                    }
+
+                    var potential =
+                        moisture *
                         cloud *
                         (
-                            0.30 +
+                            0.28 +
                             lift
                         );
 
-                    var precip =
+                    var precipitation =
                         smoothstep(
-                            0.16,
-                            0.48,
-                            precipPotential
+                            0.15,
+                            0.47,
+                            potential
                         );
 
-                    /*
-                     * Broad low-pressure rain can still occur
-                     * without extreme convergence.
-                     */
                     if (
                         lowLift >
                         0.35 &&
                         cloud >
                         0.60 &&
-                        this.moisture[
-                            i
-                        ] >
+                        moisture >
                         0.55
                     ) {
 
-                        precip =
+                        precipitation =
                             Math.max(
-                                precip,
+                                precipitation,
                                 lowLift *
                                 cloud *
-                                0.55
+                                0.52
                             );
                     }
 
                     this.precipitation[
-                        i
+                        index
                     ] =
                         clamp(
-                            precip,
+                            precipitation,
                             0,
                             1
                         );
@@ -2713,483 +2917,347 @@
 
 
     /* ============================================================
-       ONE-HOUR ATMOSPHERIC STEP
+       ONE-HOUR TRANSPORT
     ============================================================ */
-
-    WeatherWorld.prototype.step =
-        function (
-            hours
-        ) {
-
-            var count =
-                Math.max(
-                    1,
-                    Math.floor(
-                        Number(
-                            hours
-                        ) ||
-                        1
-                    )
-                );
-
-            var step;
-
-            for (
-                step = 0;
-                step < count;
-                step++
-            ) {
-
-                this.stepOneHour();
-            }
-        };
-
 
     WeatherWorld.prototype.stepOneHour =
         function () {
 
-            var x;
-            var y;
+            var index;
 
             /*
-             * Update synoptic pressure and winds at current
-             * atmospheric time.
+             * Pressure/wind for current hour.
              */
-            this.recalculateDiagnosticFields();
+            this.updatePressureAndWind();
 
-            /*
-             * TRANSPORT PASS
-             *
-             * Semi-Lagrangian advection:
-             *
-             * For every destination cell we trace backward
-             * along the wind and sample where the air came
-             * from one hour earlier.
-             */
+
+            /* ====================================================
+               TRANSPORT
+            ==================================================== */
+
             for (
-                y = 0;
-                y < HEIGHT;
-                y++
+                index = 0;
+                index <
+                CELL_COUNT;
+                index++
             ) {
 
-                var latitude =
-                    latitudeForY(
-                        y
-                    );
+                var lat =
+                    this.latitude[
+                        index
+                    ];
 
-                var cosLatitude =
+                var lon =
+                    this.longitude[
+                        index
+                    ];
+
+                var u =
+                    this.windU[
+                        index
+                    ];
+
+                var v =
+                    this.windV[
+                        index
+                    ];
+
+                var cosLat =
                     Math.max(
                         0.25,
                         Math.cos(
-                            latitude *
+                            lat *
                             DEG
                         )
                     );
 
-                for (
-                    x = 0;
-                    x < WIDTH;
-                    x++
-                ) {
+                var sourceLat =
+                    lat -
+                    (
+                        v *
+                        3600 /
+                        111000
+                    );
 
-                    var longitude =
-                        longitudeForX(
-                            x
-                        );
-
-                    var index =
-                        indexOf(
-                            x,
-                            y
-                        );
-
-                    var u =
-                        this.windU[
-                            index
-                        ];
-
-                    var v =
-                        this.windV[
-                            index
-                        ];
-
-                    /*
-                     * Approximate degree displacement in one hour.
-
-                     * 1 degree latitude approx 111 km.
-                     */
-                    var northDegrees =
-                        (
-                            v *
-                            3600
-                        ) /
-                        111000;
-
-                    var eastDegrees =
-                        (
-                            u *
-                            3600
-                        ) /
+                var sourceLon =
+                    lon -
+                    (
+                        u *
+                        3600 /
                         (
                             111000 *
-                            cosLatitude
-                        );
+                            cosLat
+                        )
+                    );
+
+                var sourceX =
+                    gridX(
+                        sourceLon
+                    );
+
+                var sourceY =
+                    gridY(
+                        sourceLat
+                    );
+
+                var anomaly =
+                    sampleArray(
+                        this.temperatureAnomaly,
+                        sourceX,
+                        sourceY
+                    );
+
+                var moisture =
+                    sampleArray(
+                        this.moisture,
+                        sourceX,
+                        sourceY
+                    );
+
+                var airMass =
+                    sampleArray(
+                        this.airMass,
+                        sourceX,
+                        sourceY
+                    );
+
+
+                if (
+                    climatologicalMode
+                ) {
+
+                    anomaly =
+                        0;
+
+                } else {
 
                     /*
-                     * Backtrace.
+                     * Slow anomaly decay.
+                     *
+                     * Air mass persists for days rather
+                     * than disappearing in hours.
                      */
-                    var sourceLat =
-                        latitude -
-                        northDegrees;
-
-                    var sourceLon =
-                        longitude -
-                        eastDegrees;
-
-                    var sourceX =
-                        gridX(
-                            sourceLon
-                        );
-
-                    var sourceY =
-                        gridY(
-                            sourceLat
-                        );
-
-                    var transportedAnomaly =
-                        sampleArray(
-                            this.temperatureAnomaly,
-                            sourceX,
-                            sourceY
-                        );
-
-                    var transportedMoisture =
-                        sampleArray(
-                            this.moisture,
-                            sourceX,
-                            sourceY
-                        );
-
-                    var transportedAirMass =
-                        sampleArray(
-                            this.airMass,
-                            sourceX,
-                            sourceY
-                        );
+                    anomaly *=
+                        0.994;
 
                     var land =
                         this.landFraction[
                             index
                         ];
 
-                    var climate =
-                        getClimate(
-                            latitude,
-                            longitude,
-                            land
-                        );
-
-                    var normal =
-                        climatologicalTemperature(
-                            latitude,
-                            longitude,
-                            this.date,
-                            climate,
-                            land
-                        );
-
-                    var sst =
-                        seaSurfaceTemperature(
-                            latitude,
-                            longitude,
-                            this.date,
-                            climate
-                        );
-
-                    this.sst[
-                        index
-                    ] =
-                        sst;
-
-                    /*
-                     * ==================================================
-                     * AIR / SURFACE TEMPERATURE EXCHANGE
-                     * ==================================================
-                     */
-
-                    var anomaly =
-                        transportedAnomaly;
-
-                    if (
-                        climatologicalMode
-                    ) {
-
-                        anomaly =
-                            0;
-
-                    } else {
-
-                        /*
-                         * Relax anomalies slowly toward zero.
-
-                         * About ~6 day e-folding rather than
-                         * instantly losing air-mass identity.
-                         */
-                        anomaly *=
-                            0.993;
-
-                        /*
-                         * Sea modifies passing air.
-                         */
-                        if (
-                            land <
-                            0.45
-                        ) {
-
-                            var transportedTemperature =
-                                normal +
-                                anomaly;
-
-                            var seaDifference =
-                                sst -
-                                transportedTemperature;
-
-                            anomaly +=
-                                seaDifference *
-                                (
-                                    0.018 +
-                                    (
-                                        1 -
-                                        land
-                                    ) *
-                                    0.030
-                                );
-                        }
-
-                        /*
-                         * Land responds more quickly to local
-                         * climatological surface temperature.
-                         */
-                        if (
-                            land >
-                            0.55
-                        ) {
-
-                            anomaly *=
-                                0.996;
-                        }
-
-                        /*
-                         * Clear calm nighttime continental
-                         * radiative cooling.
-                         */
-                        var localHour =
-                            localSolarHour(
-                                longitude,
-                                this.date
-                            );
-
-                        var night =
-                            (
-                                localHour >
-                                18 ||
-                                localHour <
-                                7
-                            );
-
-                        var speed =
-                            Math.sqrt(
-                                u *
-                                u +
-                                v *
-                                v
-                            );
-
-                        if (
-                            night &&
-                            land >
-                            0.65 &&
-                            this.cloud[
-                                index
-                            ] <
-                            0.30 &&
-                            speed <
-                            3
-                        ) {
-
-                            anomaly -=
-                                0.035;
-                        }
-
-                        /*
-                         * Clear daytime land heating.
-                         */
-                        if (
-                            !night &&
-                            land >
-                            0.65 &&
-                            this.cloud[
-                                index
-                            ] <
-                            0.30
-                        ) {
-
-                            anomaly +=
-                                0.020;
-                        }
-                    }
-
-
-                    /* ==================================================
-                       MOISTURE TRANSPORT / SOURCES
-                       ================================================== */
-
-                    var moisture =
-                        transportedMoisture;
-
-                    /*
-                     * Moisture evaporates from sea.
-                     */
                     if (
                         land <
                         0.45
                     ) {
 
-                        var evaporation =
-                            0.004 +
+                        var currentAir =
+                            this.normalTemperatureForCell(
+                                index
+                            ) +
+                            anomaly;
+
+                        var difference =
+                            this.sst[
+                                index
+                            ] -
+                            currentAir;
+
+                        anomaly +=
+                            difference *
                             (
-                                1 -
-                                land
-                            ) *
-                            0.010;
-
-                        /*
-                         * Stronger wind increases sea-air exchange.
-                         */
-                        evaporation *=
-                            clamp(
-                                0.7 +
-                                Math.sqrt(
-                                    u * u +
-                                    v * v
-                                ) /
-                                8,
-                                0.7,
-                                2.2
+                                0.012 +
+                                (
+                                    1 -
+                                    land
+                                ) *
+                                0.022
                             );
-
-                        moisture +=
-                            evaporation;
                     }
 
                     /*
-                     * Slow drying over land.
+                     * Clear calm continental nights.
                      */
+                    var hour =
+                        localSolarHour(
+                            lon,
+                            this.date
+                        );
+
+                    var night =
+                        (
+                            hour >=
+                            18 ||
+                            hour <
+                            7
+                        );
+
                     if (
+                        night &&
                         land >
-                        0.60
+                        0.65 &&
+                        this.cloud[
+                            index
+                        ] <
+                        0.30 &&
+                        this.windSpeed[
+                            index
+                        ] <
+                        3
                     ) {
 
-                        moisture -=
-                            0.0025;
+                        anomaly -=
+                            0.025;
                     }
 
                     /*
-                     * Existing precipitation removes moisture.
+                     * Clear daytime land heating.
                      */
-                    moisture -=
-                        this.precipitation[
+                    if (
+                        !night &&
+                        land >
+                        0.65 &&
+                        this.cloud[
                             index
-                        ] *
-                        0.020;
+                        ] <
+                        0.30
+                    ) {
 
-                    moisture =
-                        clamp(
-                            moisture,
-                            0.05,
-                            1
-                        );
+                        anomaly +=
+                            0.014;
+                    }
+                }
 
-                    /*
-                     * Air-mass tracer changes slowly through
-                     * local modification.
-                     */
-                    var airMass =
-                        transportedAirMass;
 
-                    airMass =
-                        lerp(
-                            airMass,
-                            clamp(
-                                anomaly /
-                                7,
-                                -1,
-                                1
-                            ),
-                            0.015
-                        );
+                /* =================================================
+                   MOISTURE
+                ================================================= */
 
-                    this.nextAnomaly[
+                var localLand =
+                    this.landFraction[
                         index
-                    ] =
-                        clamp(
-                            anomaly,
-                            -10,
-                            10
-                        );
+                    ];
 
-                    this.nextMoisture[
-                        index
-                    ] =
-                        moisture;
+                if (
+                    localLand <
+                    0.45
+                ) {
 
-                    this.nextAirMass[
-                        index
-                    ] =
+                    moisture +=
+                        (
+                            0.0035 +
+                            (
+                                1 -
+                                localLand
+                            ) *
+                            0.007
+                        ) *
                         clamp(
-                            airMass,
-                            -1,
-                            1
+                            0.7 +
+                            this.windSpeed[
+                                index
+                            ] /
+                            10,
+                            0.7,
+                            1.8
                         );
                 }
+
+                if (
+                    localLand >
+                    0.60
+                ) {
+
+                    moisture -=
+                        0.0018;
+                }
+
+                moisture -=
+                    this.precipitation[
+                        index
+                    ] *
+                    0.015;
+
+                moisture =
+                    clamp(
+                        moisture,
+                        0.05,
+                        1
+                    );
+
+
+                airMass =
+                    lerp(
+                        airMass,
+                        clamp(
+                            anomaly /
+                            7,
+                            -1,
+                            1
+                        ),
+                        0.012
+                    );
+
+
+                this.nextAnomaly[
+                    index
+                ] =
+                    clamp(
+                        anomaly,
+                        -9,
+                        9
+                    );
+
+                this.nextMoisture[
+                    index
+                ] =
+                    moisture;
+
+                this.nextAirMass[
+                    index
+                ] =
+                    clamp(
+                        airMass,
+                        -1,
+                        1
+                    );
             }
 
 
-            /* ======================================================
-               SWAP TRANSPORT BUFFERS
-            ====================================================== */
+            /* SWAP BUFFERS */
 
-            var oldAnomaly =
+            var swap;
+
+            swap =
                 this.temperatureAnomaly;
 
             this.temperatureAnomaly =
                 this.nextAnomaly;
 
             this.nextAnomaly =
-                oldAnomaly;
+                swap;
 
-            var oldMoisture =
+
+            swap =
                 this.moisture;
 
             this.moisture =
                 this.nextMoisture;
 
             this.nextMoisture =
-                oldMoisture;
+                swap;
 
-            var oldAirMass =
+
+            swap =
                 this.airMass;
 
             this.airMass =
                 this.nextAirMass;
 
             this.nextAirMass =
-                oldAirMass;
+                swap;
 
 
-            /* ======================================================
-               ADVANCE TIME
-            ====================================================== */
+            /* ADVANCE TIME */
 
             this.date =
                 new Date(
@@ -3200,115 +3268,133 @@
             this.hoursElapsed++;
 
 
-            /* ======================================================
-               CALCULATE ACTUAL TEMPERATURE FROM NEW STATE
-            ====================================================== */
+            this.updateDailyClimatology();
+
+
+            /* ACTUAL TEMPERATURE */
 
             for (
-                y = 0;
-                y < HEIGHT;
-                y++
+                index = 0;
+                index <
+                CELL_COUNT;
+                index++
             ) {
 
-                var tempLatitude =
-                    latitudeForY(
-                        y
+                this.sst[
+                    index
+                ] =
+                    this.sstForCell(
+                        index
                     );
 
-                for (
-                    x = 0;
-                    x < WIDTH;
-                    x++
-                ) {
-
-                    var tempLongitude =
-                        longitudeForX(
-                            x
-                        );
-
-                    var tempIndex =
-                        indexOf(
-                            x,
-                            y
-                        );
-
-                    var tempLand =
-                        this.landFraction[
-                            tempIndex
-                        ];
-
-                    var tempClimate =
-                        getClimate(
-                            tempLatitude,
-                            tempLongitude,
-                            tempLand
-                        );
-
-                    var localNormal =
-                        climatologicalTemperature(
-                            tempLatitude,
-                            tempLongitude,
-                            this.date,
-                            tempClimate,
-                            tempLand
-                        );
-
-                    var actual =
-                        localNormal +
-                        this.temperatureAnomaly[
-                            tempIndex
-                        ];
-
-                    /*
-                     * Cloud narrows diurnal departures slightly.
-                     */
-                    if (
-                        this.cloud[
-                            tempIndex
-                        ] >
-                        0.70
-                    ) {
-
-                        var normalMean =
-                            (
-                                interpolatedNormals(
-                                    tempLatitude,
-                                    tempLongitude,
-                                    this.date
-                                ).high +
-                                interpolatedNormals(
-                                    tempLatitude,
-                                    tempLongitude,
-                                    this.date
-                                ).low
-                            ) /
-                            2;
-
-                        actual =
-                            lerp(
-                                actual,
-                                normalMean +
-                                this.temperatureAnomaly[
-                                    tempIndex
-                                ],
-                                0.15
-                            );
-                    }
-
-                    this.temperature[
-                        tempIndex
-                    ] =
-                        actual;
-                }
+                this.temperature[
+                    index
+                ] =
+                    this.normalTemperatureForCell(
+                        index
+                    ) +
+                    this.temperatureAnomaly[
+                        index
+                    ];
             }
 
-            this.recalculateDiagnosticFields();
+
+            /*
+             * New pressure/wind for new hour.
+             */
+            this.updatePressureAndWind();
+
+            /*
+             * Cloud/precip once.
+             */
+            this.updateCloudAndPrecipitation();
         };
 
 
     /* ============================================================
-       GRID SAMPLE
+       MULTI-HOUR STEP
     ============================================================ */
+
+    WeatherWorld.prototype.step =
+        function (
+            hours
+        ) {
+
+            var count =
+                Math.floor(
+                    Number(
+                        hours
+                    )
+                );
+
+            if (
+                !isFinite(
+                    count
+                ) ||
+                count <
+                1
+            ) {
+
+                count = 1;
+            }
+
+            var i;
+
+            for (
+                i = 0;
+                i < count;
+                i++
+            ) {
+
+                this.stepOneHour();
+            }
+        };
+
+
+    /* ============================================================
+       DIRECT CELL ACCESS
+    ============================================================ */
+
+    WeatherWorld.prototype.nearestCell =
+        function (
+            latitude,
+            longitude
+        ) {
+
+            var x =
+                Math.round(
+                    gridX(
+                        longitude
+                    )
+                );
+
+            var y =
+                Math.round(
+                    gridY(
+                        latitude
+                    )
+                );
+
+            x =
+                clamp(
+                    x,
+                    0,
+                    WIDTH - 1
+                );
+
+            y =
+                clamp(
+                    y,
+                    0,
+                    HEIGHT - 1
+                );
+
+            return indexOf(
+                x,
+                y
+            );
+        };
+
 
     WeatherWorld.prototype.sample =
         function (
@@ -3333,37 +3419,9 @@
                     y
                 );
 
-            var anomaly =
-                sampleArray(
-                    this.temperatureAnomaly,
-                    x,
-                    y
-                );
-
-            var moisture =
-                sampleArray(
-                    this.moisture,
-                    x,
-                    y
-                );
-
-            var cloud =
-                sampleArray(
-                    this.cloud,
-                    x,
-                    y
-                );
-
             var precipitation =
                 sampleArray(
                     this.precipitation,
-                    x,
-                    y
-                );
-
-            var pressure =
-                sampleArray(
-                    this.pressure,
                     x,
                     y
                 );
@@ -3384,43 +3442,13 @@
 
             var speed =
                 Math.sqrt(
-                    u * u +
-                    v * v
+                    u *
+                    u +
+                    v *
+                    v
                 );
 
-            var direction =
-                (
-                    Math.atan2(
-                        -u,
-                        -v
-                    ) /
-                    DEG +
-                    360
-                ) %
-                360;
-
-            var land =
-                estimatedLandFraction(
-                    latitude,
-                    longitude
-                );
-
-            var climate =
-                getClimate(
-                    latitude,
-                    longitude,
-                    land
-                );
-
-            var sst =
-                seaSurfaceTemperature(
-                    latitude,
-                    longitude,
-                    this.date,
-                    climate
-                );
-
-            var phase =
+            var precipitationType =
                 "dry";
 
             if (
@@ -3433,7 +3461,7 @@
                     1.5
                 ) {
 
-                    phase =
+                    precipitationType =
                         "snow";
 
                 } else if (
@@ -3441,12 +3469,12 @@
                     3
                 ) {
 
-                    phase =
+                    precipitationType =
                         "sleet";
 
                 } else {
 
-                    phase =
+                    precipitationType =
                         "rain";
                 }
             }
@@ -3456,58 +3484,52 @@
                 date:
                     this.date.toISOString(),
 
-                lat:
-                    latitude,
-
-                lon:
-                    longitude,
-
                 simulationSeed:
                     simulationSeed,
-
-                climatologicalMode:
-                    climatologicalMode,
 
                 temperatureC:
                     temperature,
 
                 temperatureAnomalyC:
-                    anomaly,
+                    sampleArray(
+                        this.temperatureAnomaly,
+                        x,
+                        y
+                    ),
 
                 seaSurfaceTemperatureC:
-                    sst,
+                    sampleArray(
+                        this.sst,
+                        x,
+                        y
+                    ),
 
                 moisture:
-                    moisture,
-
-                humidityPct:
-                    clamp(
-                        25 +
-                        moisture *
-                        72,
-                        20,
-                        100
+                    sampleArray(
+                        this.moisture,
+                        x,
+                        y
                     ),
 
                 pressureHpa:
-                    pressure,
+                    sampleArray(
+                        this.pressure,
+                        x,
+                        y
+                    ),
 
                 cloudFraction:
-                    cloud,
+                    sampleArray(
+                        this.cloud,
+                        x,
+                        y
+                    ),
 
                 precipitationIntensity:
                     precipitation,
 
-                precipitationChance:
-                    clamp(
-                        precipitation *
-                        1.6,
-                        0,
-                        1
-                    ),
-
                 precipitationType:
-                    phase,
+                    precipitationType,
 
                 airMass:
                     sampleArray(
@@ -3528,71 +3550,62 @@
                         speed,
 
                     directionDeg:
-                        direction
+                        (
+                            Math.atan2(
+                                -u,
+                                -v
+                            ) /
+                            DEG +
+                            360
+                        ) %
+                        360
                 }
             };
         };
 
 
     /* ============================================================
-       LEGACY SIMULATE()
-
-       Kept so old UI calls do not crash.
-
-       This creates a short-lived world and samples it.
-    ============================================================ */
-
-    function simulate(
-        latitude,
-        longitude,
-        date,
-        options
-    ) {
-
-        var world =
-            new WeatherWorld(
-                date
-            );
-
-        return world.sample(
-            latitude,
-            longitude
-        );
-    }
-
-
-    /* ============================================================
-       TRACER PARTICLES
+       PARTICLES
     ============================================================ */
 
     function createParticles(
         count
     ) {
 
-        var particles =
+        var result =
             [];
 
-        var maximum =
+        var total =
+            Math.floor(
+                Number(
+                    count
+                )
+            );
+
+        if (
+            !isFinite(
+                total
+            )
+        ) {
+            total = 300;
+        }
+
+        total =
             clamp(
-                Math.floor(
-                    Number(
-                        count
-                    ) ||
-                    250
-                ),
-                10,
-                1500
+                total,
+                20,
+                1000
             );
 
         var i;
 
         for (
             i = 0;
-            i < maximum;
+            i < total;
             i++
         ) {
 
-            particles.push({
+            result.push({
 
                 lat:
                     SOUTH +
@@ -3619,18 +3632,16 @@
                     ),
 
                 age:
-                    Math.floor(
-                        hash(
-                            i *
-                            617 +
-                            43
-                        ) *
-                        48
-                    )
+                    hash(
+                        i *
+                        617 +
+                        43
+                    ) *
+                    72
             });
         }
 
-        return particles;
+        return result;
     }
 
 
@@ -3644,7 +3655,6 @@
             !particles ||
             !world
         ) {
-
             return;
         }
 
@@ -3658,9 +3668,7 @@
                 duration
             )
         ) {
-
-            duration =
-                1;
+            duration = 1;
         }
 
         var i;
@@ -3673,35 +3681,25 @@
         ) {
 
             var particle =
-                particles[i];
+                particles[
+                    i
+                ];
 
-            var weather =
-                world.sample(
+            var cell =
+                world.nearestCell(
                     particle.lat,
                     particle.lon
                 );
 
-            var speed =
-                weather.wind.speedMs;
+            var u =
+                world.windU[
+                    cell
+                ];
 
-            if (
-                speed <
-                0.05
-            ) {
-
-                particle.age +=
-                    duration;
-
-                continue;
-            }
-
-            var latChange =
-                (
-                    weather.wind.vMs *
-                    3600 *
-                    duration
-                ) /
-                111000;
+            var v =
+                world.windV[
+                    cell
+                ];
 
             var cosLat =
                 Math.max(
@@ -3712,9 +3710,17 @@
                     )
                 );
 
-            var lonChange =
+            particle.lat +=
                 (
-                    weather.wind.uMs *
+                    v *
+                    3600 *
+                    duration
+                ) /
+                111000;
+
+            particle.lon +=
+                (
+                    u *
                     3600 *
                     duration
                 ) /
@@ -3723,29 +3729,20 @@
                     cosLat
                 );
 
-            particle.lat +=
-                latChange;
-
-            particle.lon +=
-                lonChange;
-
             particle.age +=
                 duration;
 
-            /*
-             * Respawn particles that leave map or become old.
-             */
             if (
                 particle.lat <
-                SOUTH ||
+                    SOUTH ||
                 particle.lat >
-                NORTH ||
+                    NORTH ||
                 particle.lon <
-                WEST ||
+                    WEST ||
                 particle.lon >
-                EAST ||
+                    EAST ||
                 particle.age >
-                96
+                    96
             ) {
 
                 particle.lat =
@@ -3782,13 +3779,35 @@
 
 
     /* ============================================================
-       RUN CONTROL
+       LEGACY SINGLE-CELL API
+    ============================================================ */
+
+    function simulate(
+        latitude,
+        longitude,
+        date
+    ) {
+
+        var world =
+            new WeatherWorld(
+                date
+            );
+
+        return world.sample(
+            latitude,
+            longitude
+        );
+    }
+
+
+    /* ============================================================
+       SEED AND MODE
     ============================================================ */
 
     function rerollWeather() {
 
         simulationSeed =
-            randomSeed();
+            makeRandomSeed();
 
         return simulationSeed;
     }
@@ -3798,7 +3817,7 @@
         seed
     ) {
 
-        var value =
+        var number =
             Math.floor(
                 Number(
                     seed
@@ -3807,17 +3826,17 @@
 
         if (
             !isFinite(
-                value
+                number
             ) ||
-            value <=
-            0
+            number <
+            1
         ) {
 
             return simulationSeed;
         }
 
         simulationSeed =
-            value;
+            number;
 
         return simulationSeed;
     }
@@ -3891,18 +3910,6 @@
         simulate:
             simulate,
 
-        pressure:
-            pressureAt,
-
-        windAt:
-            windAt,
-
-        interpolatedNormals:
-            interpolatedNormals,
-
-        seaSurfaceTemperature:
-            seaSurfaceTemperature,
-
         createParticles:
             createParticles,
 
@@ -3930,12 +3937,14 @@
 
 
     console.log(
-        "EuropaCraft Stateful Weather Engine loaded:",
+        "EuropaCraft Weather Engine:",
         VERSION,
         "seed:",
         simulationSeed,
-        "atmospheric cells:",
-        CELL_COUNT
+        "grid:",
+        WIDTH +
+        "x" +
+        HEIGHT
     );
 
 })();
