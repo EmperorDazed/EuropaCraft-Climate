@@ -2,154 +2,102 @@
    EuropaCraft Weather Simulator
    Renderer
    File: europacraft-renderer.js
-   Version 7.4
+   Version 7.5
 
-   COMPLETE REPLACEMENT
+   COMPLETE FILE REPLACEMENT
 
-   FEATURES
-
-   - Fast direct rendering from physics-grid arrays
-   - Actual temperature
-   - Temperature anomaly
-   - Pressure
-   - Wind
-   - Cloud
-   - Precipitation
-   - Snow
-   - Sea-surface temperature
-   - Front strength
-   - Permanent coastline overlay
-   - Optional land shading
-   - Pressure isobars
-   - Wind vectors
-   - Pressure-system markers
-   - Steering arrows
-   - Interactive drag-preview arrow
-   - Mouse hover sampling
-
-   IMPORTANT
-
-   Weather is drawn continuously across land and sea.
-
-   Geography is then drawn over the weather as a coastline so Europe remains
-   visible without hiding atmospheric structures.
+   Main changes
+   ------------
+   - Cached land shading and coastline
+   - Reads land mask directly from weather.terrain.land if necessary
+   - Smooth visual interpolation between 4-minute atmospheric states
+   - Curved steering-path drawing
+   - Freehand steering drag capture
+   - Much less repeated geography work
+   - Existing overlay API retained
 ============================================================================ */
 
 (function (global) {
 "use strict";
 
-
 const U = global.EuropaUtils;
 const C = global.EuropaConfig;
 
-
 if (!U) {
-    throw new Error(
-        "europacraft-renderer.js requires EuropaUtils."
-    );
+    throw new Error("EuropaRenderer requires EuropaUtils.");
 }
 
-
 if (!C) {
-    throw new Error(
-        "europacraft-renderer.js requires EuropaConfig."
-    );
+    throw new Error("EuropaRenderer requires EuropaConfig.");
 }
 
 
 /* ============================================================================
-   DEFAULT OPTIONS
+   DEFAULTS
 ============================================================================ */
 
 const DEFAULTS = Object.freeze({
+    width: Number(C.display && C.display.width) || 780,
+    height: Number(C.display && C.display.height) || 440,
 
-    width:
-        Number(
-            C.display &&
-            C.display.width
-        ) || 780,
-
-    height:
-        Number(
-            C.display &&
-            C.display.height
-        ) || 440,
-
-    layer:
-        (
-            C.display &&
-            C.display.defaultLayer
-        ) || "temperature",
+    layer: (C.display && C.display.defaultLayer) || "temperature",
 
     isobars:
-        C.display &&
-        C.display.isobars !== undefined
+        C.display && C.display.isobars !== undefined
             ? !!C.display.isobars
             : true,
 
     isobarIntervalHpa:
-        Number(
-            C.display &&
-            C.display.isobarIntervalHpa
-        ) || 4,
+        Number(C.display && C.display.isobarIntervalHpa) || 4,
 
     windVectors:
-        C.display &&
-        C.display.windVectors !== undefined
+        C.display && C.display.windVectors !== undefined
             ? !!C.display.windVectors
             : false,
 
-    windVectorSpacing:
-        42,
+    windVectorSpacing: 44,
 
-    frontOverlay:
-        false,
+    frontOverlay: false,
+    systemMarkers: true,
+    steeringArrows: true,
 
-    systemMarkers:
-        true,
+    coastline: true,
+    landShading: true,
 
-    steeringArrows:
-        true,
+    dragToolEnabled: false,
 
-    coastline:
-        true,
-
-    landShading:
-        true,
-
-    dragToolEnabled:
-        false,
-
-    dragPreview:
-        true
+    /*
+     * This is visual interpolation only.
+     *
+     * The atmosphere itself continues to solve at the proper 4-minute
+     * physical timestep.
+     */
+    visualTransitionMs: 900
 });
 
 
 /* ============================================================================
-   SMALL HELPERS
+   GENERAL HELPERS
 ============================================================================ */
 
-function clamp255(value) {
+function finite(value, fallback = 0) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+}
 
+
+function clamp255(value) {
     return Math.max(
         0,
         Math.min(
             255,
-            Math.round(
-                value
-            )
+            Math.round(value)
         )
     );
 }
 
 
-function rgba(
-    r,
-    g,
-    b,
-    a = 255
-) {
-
+function rgba(r, g, b, a = 255) {
     return [
         clamp255(r),
         clamp255(g),
@@ -159,39 +107,13 @@ function rgba(
 }
 
 
-function mixColour(
-    a,
-    b,
-    t
-) {
-
-    t = U.clamp(
-        t,
-        0,
-        1
-    );
-
+function mixColour(a, b, t) {
+    t = U.clamp(t, 0, 1);
 
     return rgba(
-
-        U.lerp(
-            a[0],
-            b[0],
-            t
-        ),
-
-        U.lerp(
-            a[1],
-            b[1],
-            t
-        ),
-
-        U.lerp(
-            a[2],
-            b[2],
-            t
-        ),
-
+        U.lerp(a[0], b[0], t),
+        U.lerp(a[1], b[1], t),
+        U.lerp(a[2], b[2], t),
         U.lerp(
             a[3] === undefined ? 255 : a[3],
             b[3] === undefined ? 255 : b[3],
@@ -201,73 +123,23 @@ function mixColour(
 }
 
 
-function colourRamp(
-    value,
-    stops
-) {
-
-    if (
-        value <=
-        stops[0][0]
-    ) {
-
+function colourRamp(value, stops) {
+    if (value <= stops[0][0]) {
         return stops[0][1];
     }
 
+    const last = stops[stops.length - 1];
 
-    const last = (
-        stops[
-            stops.length - 1
-        ]
-    );
-
-
-    if (
-        value >=
-        last[0]
-    ) {
-
+    if (value >= last[0]) {
         return last[1];
     }
 
+    for (let i = 0; i < stops.length - 1; i++) {
+        const a = stops[i];
+        const b = stops[i + 1];
 
-    for (
-        let i = 0;
-        i <
-        stops.length - 1;
-        i++
-    ) {
-
-        const a = (
-            stops[i]
-        );
-
-
-        const b = (
-            stops[i + 1]
-        );
-
-
-        if (
-            value >=
-            a[0] &&
-            value <=
-            b[0]
-        ) {
-
-            const t = (
-
-                (
-                    value -
-                    a[0]
-                ) /
-
-                (
-                    b[0] -
-                    a[0]
-                )
-            );
-
+        if (value >= a[0] && value <= b[0]) {
+            const t = (value - a[0]) / (b[0] - a[0]);
 
             return mixColour(
                 a[1],
@@ -277,165 +149,101 @@ function colourRamp(
         }
     }
 
-
     return last[1];
 }
 
 
-function bilinearSample(
-    field,
-    nx,
-    ny,
-    x,
-    y
-) {
-
-    if (
-        !field ||
-        !field.length
-    ) {
-
+function bilinearSample(field, nx, ny, x, y) {
+    if (!field || !field.length) {
         return 0;
     }
 
+    x = U.clamp(x, 0, nx - 1);
+    y = U.clamp(y, 0, ny - 1);
 
-    x = U.clamp(
-        x,
-        0,
-        nx - 1
+    const x0 = Math.floor(x);
+    const y0 = Math.floor(y);
+
+    const x1 = Math.min(nx - 1, x0 + 1);
+    const y1 = Math.min(ny - 1, y0 + 1);
+
+    const tx = x - x0;
+    const ty = y - y0;
+
+    const i00 = y0 * nx + x0;
+    const i10 = y0 * nx + x1;
+    const i01 = y1 * nx + x0;
+    const i11 = y1 * nx + x1;
+
+    const top = U.lerp(
+        field[i00],
+        field[i10],
+        tx
     );
 
-
-    y = U.clamp(
-        y,
-        0,
-        ny - 1
+    const bottom = U.lerp(
+        field[i01],
+        field[i11],
+        tx
     );
-
-
-    const x0 = Math.floor(
-        x
-    );
-
-
-    const y0 = Math.floor(
-        y
-    );
-
-
-    const x1 = Math.min(
-        nx - 1,
-        x0 + 1
-    );
-
-
-    const y1 = Math.min(
-        ny - 1,
-        y0 + 1
-    );
-
-
-    const tx = (
-        x -
-        x0
-    );
-
-
-    const ty = (
-        y -
-        y0
-    );
-
-
-    const i00 = (
-        y0 *
-        nx +
-        x0
-    );
-
-
-    const i10 = (
-        y0 *
-        nx +
-        x1
-    );
-
-
-    const i01 = (
-        y1 *
-        nx +
-        x0
-    );
-
-
-    const i11 = (
-        y1 *
-        nx +
-        x1
-    );
-
 
     return U.lerp(
-
-        U.lerp(
-            field[i00],
-            field[i10],
-            tx
-        ),
-
-        U.lerp(
-            field[i01],
-            field[i11],
-            tx
-        ),
-
+        top,
+        bottom,
         ty
     );
 }
 
 
+function makeCanvas(width, height) {
+    const canvas = document.createElement("canvas");
+
+    canvas.width = width;
+    canvas.height = height;
+
+    return canvas;
+}
+
+
 /* ============================================================================
-   COLOUR SCALES
+   COLOUR TABLES
 ============================================================================ */
 
 const TEMP_STOPS = [
-
     [-35, rgba(70, 35, 130)],
-    [-25, rgba(72, 75, 180)],
+    [-25, rgba(70, 75, 180)],
     [-15, rgba(65, 135, 220)],
-    [-8,  rgba(75, 190, 230)],
-    [-2,  rgba(150, 225, 225)],
-    [3,   rgba(195, 235, 170)],
-    [8,   rgba(225, 235, 90)],
-    [14,  rgba(245, 205, 75)],
-    [20,  rgba(250, 155, 55)],
-    [26,  rgba(235, 90, 45)],
-    [32,  rgba(195, 45, 45)],
-    [40,  rgba(125, 25, 30)]
+    [-8, rgba(75, 190, 230)],
+    [-2, rgba(150, 225, 225)],
+    [3, rgba(195, 235, 170)],
+    [8, rgba(225, 235, 90)],
+    [14, rgba(245, 205, 75)],
+    [20, rgba(250, 155, 55)],
+    [26, rgba(235, 90, 45)],
+    [32, rgba(195, 45, 45)],
+    [40, rgba(125, 25, 30)]
 ];
 
 
 const ANOMALY_STOPS = [
-
     [-15, rgba(45, 35, 130)],
     [-10, rgba(60, 80, 190)],
-    [-6,  rgba(70, 145, 225)],
-    [-3,  rgba(130, 195, 235)],
-    [-1,  rgba(205, 230, 240)],
-    [0,   rgba(235, 235, 225)],
-    [1,   rgba(245, 220, 185)],
-    [3,   rgba(245, 175, 110)],
-    [6,   rgba(230, 105, 65)],
-    [10,  rgba(185, 50, 50)],
-    [15,  rgba(110, 25, 45)]
+    [-6, rgba(70, 145, 225)],
+    [-3, rgba(130, 195, 235)],
+    [-1, rgba(205, 230, 240)],
+    [0, rgba(235, 235, 225)],
+    [1, rgba(245, 220, 185)],
+    [3, rgba(245, 175, 110)],
+    [6, rgba(230, 105, 65)],
+    [10, rgba(185, 50, 50)],
+    [15, rgba(110, 25, 45)]
 ];
 
 
 const PRESSURE_STOPS = [
-
-    [960,  rgba(70, 60, 150)],
-    [980,  rgba(75, 115, 195)],
-    [995,  rgba(105, 175, 210)],
+    [960, rgba(70, 60, 150)],
+    [980, rgba(75, 115, 195)],
+    [995, rgba(105, 175, 210)],
     [1010, rgba(180, 220, 180)],
     [1020, rgba(225, 225, 125)],
     [1030, rgba(245, 175, 75)],
@@ -444,10 +252,9 @@ const PRESSURE_STOPS = [
 
 
 const WIND_STOPS = [
-
-    [0,  rgba(225, 235, 225)],
-    [3,  rgba(175, 220, 195)],
-    [7,  rgba(100, 190, 185)],
+    [0, rgba(225, 235, 225)],
+    [3, rgba(175, 220, 195)],
+    [7, rgba(100, 190, 185)],
     [12, rgba(65, 145, 190)],
     [18, rgba(85, 100, 175)],
     [25, rgba(120, 65, 155)],
@@ -457,7 +264,6 @@ const WIND_STOPS = [
 
 
 const CLOUD_STOPS = [
-
     [0, rgba(38, 52, 62)],
     [0.15, rgba(72, 84, 92)],
     [0.35, rgba(110, 120, 125)],
@@ -468,7 +274,6 @@ const CLOUD_STOPS = [
 
 
 const PRECIP_STOPS = [
-
     [0, rgba(25, 40, 50)],
     [0.05, rgba(80, 110, 130)],
     [0.2, rgba(70, 160, 185)],
@@ -482,7 +287,6 @@ const PRECIP_STOPS = [
 
 
 const SNOW_STOPS = [
-
     [0, rgba(40, 55, 60)],
     [0.1, rgba(135, 170, 185)],
     [1, rgba(180, 210, 225)],
@@ -494,7 +298,6 @@ const SNOW_STOPS = [
 
 
 const SST_STOPS = [
-
     [-2, rgba(70, 100, 180)],
     [2, rgba(75, 145, 205)],
     [6, rgba(90, 185, 210)],
@@ -507,7 +310,6 @@ const SST_STOPS = [
 
 
 const FRONT_STOPS = [
-
     [0, rgba(40, 50, 55)],
     [0.1, rgba(60, 90, 105)],
     [0.25, rgba(80, 140, 170)],
@@ -518,33 +320,15 @@ const FRONT_STOPS = [
 
 
 const COLOUR_SCALES = Object.freeze({
-
-    temperature:
-        TEMP_STOPS,
-
-    anomaly:
-        ANOMALY_STOPS,
-
-    pressure:
-        PRESSURE_STOPS,
-
-    wind:
-        WIND_STOPS,
-
-    cloud:
-        CLOUD_STOPS,
-
-    precipitation:
-        PRECIP_STOPS,
-
-    snow:
-        SNOW_STOPS,
-
-    sst:
-        SST_STOPS,
-
-    fronts:
-        FRONT_STOPS
+    temperature: TEMP_STOPS,
+    anomaly: ANOMALY_STOPS,
+    pressure: PRESSURE_STOPS,
+    wind: WIND_STOPS,
+    cloud: CLOUD_STOPS,
+    precipitation: PRECIP_STOPS,
+    snow: SNOW_STOPS,
+    sst: SST_STOPS,
+    fronts: FRONT_STOPS
 });
 
 
@@ -554,66 +338,27 @@ const COLOUR_SCALES = Object.freeze({
 
 class EuropaRenderer {
 
-    constructor(
-        weather,
-        canvasOrId,
-        options = {}
-    ) {
-
-        if (
-            !weather
-        ) {
-
-            throw new Error(
-                "EuropaRenderer requires a EuropaWeather controller."
-            );
+    constructor(weather, canvasOrId, options = {}) {
+        if (!weather) {
+            throw new Error("EuropaRenderer requires a weather controller.");
         }
 
+        this.weather = weather;
 
-        this.weather = (
-            weather
-        );
+        this.canvas =
+            typeof canvasOrId === "string"
+                ? document.getElementById(canvasOrId)
+                : canvasOrId;
 
-
-        this.canvas = (
-
-            typeof canvasOrId ===
-            "string"
-
-                ? document.getElementById(
-                    canvasOrId
-                )
-
-                : canvasOrId
-        );
-
-
-        if (
-            !this.canvas
-        ) {
-
-            throw new Error(
-                "EuropaRenderer could not find its canvas."
-            );
+        if (!this.canvas) {
+            throw new Error("EuropaRenderer could not find its canvas.");
         }
 
+        this.ctx = this.canvas.getContext("2d");
 
-        this.ctx = (
-            this.canvas.getContext(
-                "2d"
-            )
-        );
-
-
-        if (
-            !this.ctx
-        ) {
-
-            throw new Error(
-                "EuropaRenderer could not obtain a 2D canvas context."
-            );
+        if (!this.ctx) {
+            throw new Error("EuropaRenderer could not obtain a 2D context.");
         }
-
 
         this.options = Object.assign(
             {},
@@ -621,172 +366,170 @@ class EuropaRenderer {
             options
         );
 
-
-        this.width = (
-            Number(
-                this.options.width
-            ) ||
-            DEFAULTS.width
+        this.width = finite(
+            this.options.width,
+            780
         );
 
-
-        this.height = (
-            Number(
-                this.options.height
-            ) ||
-            DEFAULTS.height
+        this.height = finite(
+            this.options.height,
+            440
         );
 
+        this.canvas.width = this.width;
+        this.canvas.height = this.height;
 
-        this.canvas.width = (
-            this.width
+        this.layer = this.options.layer;
+
+        this.lastRenderMs = 0;
+
+        this.lastWeatherTime = null;
+
+        this.transitionStart = 0;
+
+        this.transitionDuration = Math.max(
+            0,
+            finite(
+                this.options.visualTransitionMs,
+                900
+            )
         );
 
+        this.transitionAnimating = false;
 
-        this.canvas.height = (
+        this.animationFrame = null;
+
+        this.fieldCanvasPrevious = makeCanvas(
+            this.width,
             this.height
         );
 
-
-        this.layer = (
-            this.options.layer
+        this.fieldCanvasCurrent = makeCanvas(
+            this.width,
+            this.height
         );
 
+        this.fieldCtxPrevious =
+            this.fieldCanvasPrevious.getContext("2d");
 
-        this.fields = null;
+        this.fieldCtxCurrent =
+            this.fieldCanvasCurrent.getContext("2d");
 
-
-        this.lastRenderMs = (
-            0
+        this.geographyCanvas = makeCanvas(
+            this.width,
+            this.height
         );
 
+        this.geographyCtx =
+            this.geographyCanvas.getContext("2d");
 
-        this.lastHover = null;
+        this.isobarCanvas = makeCanvas(
+            this.width,
+            this.height
+        );
 
+        this.isobarCtx =
+            this.isobarCanvas.getContext("2d");
 
-        this.drag = {
-
-            active:
-                false,
-
-            startX:
-                0,
-
-            startY:
-                0,
-
-            endX:
-                0,
-
-            endY:
-                0,
-
-            startLat:
-                0,
-
-            startLon:
-                0,
-
-            endLat:
-                0,
-
-            endLon:
-                0
-        };
-
-
-        this._imageData = (
-            this.ctx.createImageData(
+        this._imageData =
+            this.fieldCtxCurrent.createImageData(
                 this.width,
                 this.height
-            )
-        );
+            );
 
-
-        this._displayX = (
+        this._displayX =
             new Float32Array(
                 this.width
-            )
-        );
+            );
 
-
-        this._displayY = (
+        this._displayY =
             new Float32Array(
                 this.height
-            )
-        );
+            );
 
+        this.geographyDirty = true;
+        this.isobarDirty = true;
+
+        this.committedCurves = [];
+
+        this.drag = {
+            active: false,
+            points: [],
+            lastPixelX: 0,
+            lastPixelY: 0
+        };
 
         this._buildLookup();
 
         this._bindPointerEvents();
 
-        this.render();
+        this.rebuildGeography();
+
+        this.render(true);
     }
 
 
     /* ========================================================================
-       PHYSICS LOOKUP
+       GRID
        ======================================================================== */
 
-    _buildLookup() {
-
-        const fields = (
-            this.weather.getFields()
-        );
+    _getFields() {
+        return this.weather.getFields();
+    }
 
 
-        const nx = (
-            fields.nx
-        );
+    _getTerrain() {
+        return this.weather.terrain || null;
+    }
 
 
-        const ny = (
-            fields.ny
-        );
-
-
-        for (
-            let x = 0;
-            x <
-            this.width;
-            x++
+    _getLandArray(fields) {
+        if (
+            fields &&
+            fields.land &&
+            fields.land.length
         ) {
+            return fields.land;
+        }
 
-            this._displayX[x] = (
+        const terrain = this._getTerrain();
 
+        if (
+            terrain &&
+            terrain.land &&
+            terrain.land.length
+        ) {
+            return terrain.land;
+        }
+
+        return null;
+    }
+
+
+    _buildLookup() {
+        const fields = this._getFields();
+
+        const nx = fields.nx;
+        const ny = fields.ny;
+
+        for (let x = 0; x < this.width; x++) {
+            this._displayX[x] =
                 x /
                 Math.max(
                     1,
                     this.width - 1
                 ) *
-
-                (
-                    nx - 1
-                )
-            );
+                (nx - 1);
         }
 
-
-        for (
-            let y = 0;
-            y <
-            this.height;
-            y++
-        ) {
-
-            this._displayY[y] = (
-
+        for (let y = 0; y < this.height; y++) {
+            this._displayY[y] =
                 y /
                 Math.max(
                     1,
                     this.height - 1
                 ) *
-
-                (
-                    ny - 1
-                )
-            );
+                (ny - 1);
         }
     }
 
@@ -795,53 +538,31 @@ class EuropaRenderer {
        COORDINATES
        ======================================================================== */
 
-    pixelToGeo(
-        x,
-        y
-    ) {
-
-        const lon = U.lerp(
-
-            C.bounds.west,
-
-            C.bounds.east,
-
-            x /
-            Math.max(
-                1,
-                this.width
-            )
-        );
-
-
-        const lat = U.lerp(
-
-            C.bounds.north,
-
-            C.bounds.south,
-
-            y /
-            Math.max(
-                1,
-                this.height
-            )
-        );
-
-
+    pixelToGeo(x, y) {
         return {
-            lat,
-            lon
+            lon:
+                C.bounds.west +
+                x /
+                this.width *
+                (
+                    C.bounds.east -
+                    C.bounds.west
+                ),
+
+            lat:
+                C.bounds.north -
+                y /
+                this.height *
+                (
+                    C.bounds.north -
+                    C.bounds.south
+                )
         };
     }
 
 
-    geoToPixel(
-        lat,
-        lon
-    ) {
-
+    geoToPixel(lat, lon) {
         return {
-
             x:
                 (
                     lon -
@@ -867,17 +588,11 @@ class EuropaRenderer {
     }
 
 
-    _eventPosition(
-        event
-    ) {
-
-        const rect = (
-            this.canvas.getBoundingClientRect()
-        );
-
+    _eventPosition(event) {
+        const rect =
+            this.canvas.getBoundingClientRect();
 
         return {
-
             x:
                 (
                     event.clientX -
@@ -898,428 +613,827 @@ class EuropaRenderer {
 
 
     /* ========================================================================
-       POINTER EVENTS
+       FREEHAND / CURVED DRAG
        ======================================================================== */
 
     _bindPointerEvents() {
+        this._pointerDown = event => {
+            const p = this._eventPosition(event);
 
-        this._onPointerDown = event => {
-
-            const p = (
-                this._eventPosition(
-                    event
-                )
-            );
-
-
-            if (
-                this.options.dragToolEnabled
-            ) {
-
-                const geo = (
-                    this.pixelToGeo(
-                        p.x,
-                        p.y
-                    )
-                );
-
-
-                this.drag.active = (
-                    true
-                );
-
-
-                this.drag.startX = (
-                    p.x
-                );
-
-
-                this.drag.startY = (
+            if (!this.options.dragToolEnabled) {
+                this._emitHover(
+                    p.x,
                     p.y
                 );
-
-
-                this.drag.endX = (
-                    p.x
-                );
-
-
-                this.drag.endY = (
-                    p.y
-                );
-
-
-                this.drag.startLat = (
-                    geo.lat
-                );
-
-
-                this.drag.startLon = (
-                    geo.lon
-                );
-
-
-                this.drag.endLat = (
-                    geo.lat
-                );
-
-
-                this.drag.endLon = (
-                    geo.lon
-                );
-
-
-                this.canvas.setPointerCapture(
-                    event.pointerId
-                );
-
-
-                event.preventDefault();
-
-                this.render();
 
                 return;
             }
 
-
-            this._updateHover(
-                p.x,
-                p.y
-            );
-        };
-
-
-        this._onPointerMove = event => {
-
-            const p = (
-                this._eventPosition(
-                    event
-                )
-            );
-
-
-            if (
-                this.drag.active
-            ) {
-
-                const geo = (
-                    this.pixelToGeo(
-                        p.x,
-                        p.y
-                    )
-                );
-
-
-                this.drag.endX = (
-                    p.x
-                );
-
-
-                this.drag.endY = (
-                    p.y
-                );
-
-
-                this.drag.endLat = (
-                    geo.lat
-                );
-
-
-                this.drag.endLon = (
-                    geo.lon
-                );
-
-
-                if (
-                    typeof this.options.onSteeringPreview ===
-                    "function"
-                ) {
-
-                    this.options.onSteeringPreview({
-
-                        sourceLat:
-                            this.drag.startLat,
-
-                        sourceLon:
-                            this.drag.startLon,
-
-                        targetLat:
-                            this.drag.endLat,
-
-                        targetLon:
-                            this.drag.endLon,
-
-                        distanceKm:
-                            U.haversineKm(
-
-                                this.drag.startLat,
-
-                                this.drag.startLon,
-
-                                this.drag.endLat,
-
-                                this.drag.endLon
-                            )
-                    });
-                }
-
-
-                this.render();
-
-                event.preventDefault();
-
-                return;
-            }
-
-
-            this._updateHover(
-                p.x,
-                p.y
-            );
-        };
-
-
-        this._onPointerUp = event => {
-
-            if (
-                !this.drag.active
-            ) {
-
-                return;
-            }
-
-
-            const p = (
-                this._eventPosition(
-                    event
-                )
-            );
-
-
-            const geo = (
+            const geo =
                 this.pixelToGeo(
                     p.x,
                     p.y
-                )
-            );
+                );
 
+            this.drag.active = true;
 
-            this.drag.endX = (
-                p.x
-            );
+            this.drag.points = [{
+                x: p.x,
+                y: p.y,
+                lat: geo.lat,
+                lon: geo.lon
+            }];
 
-
-            this.drag.endY = (
-                p.y
-            );
-
-
-            this.drag.endLat = (
-                geo.lat
-            );
-
-
-            this.drag.endLon = (
-                geo.lon
-            );
-
-
-            const distanceKm = (
-                U.haversineKm(
-
-                    this.drag.startLat,
-
-                    this.drag.startLon,
-
-                    this.drag.endLat,
-
-                    this.drag.endLon
-                )
-            );
-
-
-            const payload = {
-
-                sourceLat:
-                    this.drag.startLat,
-
-                sourceLon:
-                    this.drag.startLon,
-
-                targetLat:
-                    this.drag.endLat,
-
-                targetLon:
-                    this.drag.endLon,
-
-                distanceKm
-            };
-
-
-            this.drag.active = (
-                false
-            );
-
+            this.drag.lastPixelX = p.x;
+            this.drag.lastPixelY = p.y;
 
             try {
-
-                this.canvas.releasePointerCapture(
+                this.canvas.setPointerCapture(
                     event.pointerId
                 );
-
             } catch (error) {
-
-                /*
-                 * Harmless if pointer capture already ended.
-                 */
+                // harmless
             }
 
+            event.preventDefault();
+
+            this._drawComposite();
+        };
+
+
+        this._pointerMove = event => {
+            const p = this._eventPosition(event);
+
+            if (!this.drag.active) {
+                this._emitHover(
+                    p.x,
+                    p.y
+                );
+
+                return;
+            }
+
+            const movement = Math.hypot(
+                p.x - this.drag.lastPixelX,
+                p.y - this.drag.lastPixelY
+            );
+
+            /*
+             * Do not save every single browser mouse event.
+             *
+             * This gives a smooth curve while keeping point count controlled.
+             */
+            if (movement >= 4) {
+                const geo =
+                    this.pixelToGeo(
+                        p.x,
+                        p.y
+                    );
+
+                this.drag.points.push({
+                    x: p.x,
+                    y: p.y,
+                    lat: geo.lat,
+                    lon: geo.lon
+                });
+
+                this.drag.lastPixelX = p.x;
+                this.drag.lastPixelY = p.y;
+            }
 
             if (
-                distanceKm >=
-                40 &&
-                typeof this.options.onSteeringDrag ===
+                typeof this.options.onSteeringPreview ===
                 "function"
             ) {
+                const points =
+                    this.drag.points;
 
-                this.options.onSteeringDrag(
-                    payload
-                );
+                if (points.length >= 2) {
+                    const first = points[0];
+                    const last =
+                        points[
+                            points.length - 1
+                        ];
+
+                    this.options.onSteeringPreview({
+                        points:
+                            points.map(point => ({
+                                lat: point.lat,
+                                lon: point.lon
+                            })),
+
+                        sourceLat:
+                            first.lat,
+
+                        sourceLon:
+                            first.lon,
+
+                        targetLat:
+                            last.lat,
+
+                        targetLon:
+                            last.lon,
+
+                        distanceKm:
+                            this._pathDistanceKm(
+                                points
+                            )
+                    });
+                }
             }
 
-
-            this.render();
+            this._drawComposite();
 
             event.preventDefault();
         };
 
 
-        this._onPointerCancel = () => {
+        this._pointerUp = event => {
+            if (!this.drag.active) {
+                return;
+            }
 
-            this.drag.active = (
-                false
-            );
+            const p =
+                this._eventPosition(
+                    event
+                );
+
+            const geo =
+                this.pixelToGeo(
+                    p.x,
+                    p.y
+                );
+
+            const last =
+                this.drag.points[
+                    this.drag.points.length - 1
+                ];
+
+            if (
+                !last ||
+                Math.hypot(
+                    p.x - last.x,
+                    p.y - last.y
+                ) > 1
+            ) {
+                this.drag.points.push({
+                    x: p.x,
+                    y: p.y,
+                    lat: geo.lat,
+                    lon: geo.lon
+                });
+            }
+
+            const rawPoints =
+                this.drag.points.slice();
+
+            this.drag.active = false;
+
+            try {
+                this.canvas.releasePointerCapture(
+                    event.pointerId
+                );
+            } catch (error) {
+                // harmless
+            }
+
+            const simplified =
+                this._simplifyPath(
+                    rawPoints,
+                    7
+                );
+
+            if (
+                simplified.length >= 2 &&
+                this._pathDistanceKm(
+                    simplified
+                ) >= 40
+            ) {
+                const first = simplified[0];
+
+                const lastPoint =
+                    simplified[
+                        simplified.length - 1
+                    ];
+
+                if (
+                    typeof this.options.onSteeringDrag ===
+                    "function"
+                ) {
+                    this.options.onSteeringDrag({
+                        points:
+                            simplified.map(point => ({
+                                lat: point.lat,
+                                lon: point.lon
+                            })),
+
+                        sourceLat:
+                            first.lat,
+
+                        sourceLon:
+                            first.lon,
+
+                        targetLat:
+                            lastPoint.lat,
+
+                        targetLon:
+                            lastPoint.lon,
+
+                        distanceKm:
+                            this._pathDistanceKm(
+                                simplified
+                            )
+                    });
+                }
+            }
+
+            this.drag.points = [];
+
+            this._drawComposite();
+
+            event.preventDefault();
+        };
 
 
-            this.render();
+        this._pointerCancel = () => {
+            this.drag.active = false;
+            this.drag.points = [];
+
+            this._drawComposite();
         };
 
 
         this.canvas.addEventListener(
             "pointerdown",
-            this._onPointerDown
+            this._pointerDown
         );
-
 
         this.canvas.addEventListener(
             "pointermove",
-            this._onPointerMove
+            this._pointerMove
         );
-
 
         this.canvas.addEventListener(
             "pointerup",
-            this._onPointerUp
+            this._pointerUp
         );
-
 
         this.canvas.addEventListener(
             "pointercancel",
-            this._onPointerCancel
-        );
-
-
-        this.canvas.addEventListener(
-            "pointerleave",
-            () => {
-
-                if (
-                    !this.drag.active
-                ) {
-
-                    this.lastHover = null;
-                }
-            }
+            this._pointerCancel
         );
     }
 
 
-    _updateHover(
-        x,
-        y
-    ) {
+    _pathDistanceKm(points) {
+        let total = 0;
 
-        const geo = (
+        for (
+            let i = 1;
+            i < points.length;
+            i++
+        ) {
+            total += U.haversineKm(
+                points[i - 1].lat,
+                points[i - 1].lon,
+                points[i].lat,
+                points[i].lon
+            );
+        }
+
+        return total;
+    }
+
+
+    _simplifyPath(points, maxPoints) {
+        if (
+            points.length <= maxPoints
+        ) {
+            return points.slice();
+        }
+
+        const output = [];
+
+        const count =
+            Math.max(
+                2,
+                maxPoints
+            );
+
+        for (
+            let i = 0;
+            i < count;
+            i++
+        ) {
+            const position =
+                i /
+                (
+                    count - 1
+                ) *
+                (
+                    points.length - 1
+                );
+
+            output.push(
+                points[
+                    Math.round(position)
+                ]
+            );
+        }
+
+        return output;
+    }
+
+
+    _emitHover(x, y) {
+        if (
+            typeof this.options.onHover !==
+            "function"
+        ) {
+            return;
+        }
+
+        const geo =
             this.pixelToGeo(
                 x,
                 y
-            )
-        );
-
+            );
 
         let sample = null;
 
-
         try {
-
-            sample = (
+            sample =
                 this.weather.sample(
                     geo.lat,
                     geo.lon
-                )
-            );
-
+                );
         } catch (error) {
-
             sample = null;
         }
 
-
-        const data = {
-
+        this.options.onHover({
             x,
-
             y,
-
-            lat:
-                geo.lat,
-
-            lon:
-                geo.lon,
-
+            lat: geo.lat,
+            lon: geo.lon,
             sample
+        });
+    }
+
+
+    /* ========================================================================
+       CURVES
+       ======================================================================== */
+
+    addCommittedCurve(points, metadata = {}) {
+        if (
+            !points ||
+            points.length < 2
+        ) {
+            return null;
+        }
+
+        const curve = {
+            id:
+                "curve-" +
+                Date.now() +
+                "-" +
+                Math.random()
+                    .toString(36)
+                    .slice(2),
+
+            points:
+                points.map(point => ({
+                    lat:
+                        finite(
+                            point.lat
+                        ),
+
+                    lon:
+                        finite(
+                            point.lon
+                        )
+                })),
+
+            metadata:
+                Object.assign(
+                    {},
+                    metadata
+                )
         };
 
-
-        this.lastHover = (
-            data
+        this.committedCurves.push(
+            curve
         );
 
+        this._drawComposite();
 
+        return curve;
+    }
+
+
+    clearCommittedCurves() {
+        this.committedCurves.length = 0;
+
+        this._drawComposite();
+    }
+
+
+    setCommittedCurves(curves) {
+        this.committedCurves =
+            Array.isArray(curves)
+                ? curves.slice()
+                : [];
+
+        this._drawComposite();
+    }
+
+
+    _drawSmoothPath(
+        ctx,
+        points,
+        options = {}
+    ) {
         if (
-            typeof this.options.onHover ===
-            "function"
+            !points ||
+            points.length < 2
         ) {
+            return;
+        }
 
-            this.options.onHover(
-                data
+        const pixelPoints =
+            points.map(point => {
+                if (
+                    point.x !== undefined &&
+                    point.y !== undefined
+                ) {
+                    return {
+                        x: point.x,
+                        y: point.y
+                    };
+                }
+
+                return this.geoToPixel(
+                    point.lat,
+                    point.lon
+                );
+            });
+
+        ctx.save();
+
+        ctx.strokeStyle =
+            options.stroke ||
+            "rgba(40,32,22,0.90)";
+
+        ctx.lineWidth =
+            finite(
+                options.width,
+                3
             );
+
+        ctx.lineJoin = "round";
+        ctx.lineCap = "round";
+
+        if (options.dashed) {
+            ctx.setLineDash([
+                8,
+                5
+            ]);
+        }
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            pixelPoints[0].x,
+            pixelPoints[0].y
+        );
+
+        if (pixelPoints.length === 2) {
+            ctx.lineTo(
+                pixelPoints[1].x,
+                pixelPoints[1].y
+            );
+        } else {
+            for (
+                let i = 1;
+                i < pixelPoints.length - 1;
+                i++
+            ) {
+                const current =
+                    pixelPoints[i];
+
+                const next =
+                    pixelPoints[
+                        i + 1
+                    ];
+
+                const midX =
+                    (
+                        current.x +
+                        next.x
+                    ) /
+                    2;
+
+                const midY =
+                    (
+                        current.y +
+                        next.y
+                    ) /
+                    2;
+
+                ctx.quadraticCurveTo(
+                    current.x,
+                    current.y,
+                    midX,
+                    midY
+                );
+            }
+
+            const secondLast =
+                pixelPoints[
+                    pixelPoints.length - 2
+                ];
+
+            const last =
+                pixelPoints[
+                    pixelPoints.length - 1
+                ];
+
+            ctx.quadraticCurveTo(
+                secondLast.x,
+                secondLast.y,
+                last.x,
+                last.y
+            );
+        }
+
+        ctx.stroke();
+
+        ctx.setLineDash([]);
+
+        const previous =
+            pixelPoints[
+                pixelPoints.length - 2
+            ];
+
+        const end =
+            pixelPoints[
+                pixelPoints.length - 1
+            ];
+
+        const angle =
+            Math.atan2(
+                end.y - previous.y,
+                end.x - previous.x
+            );
+
+        const size =
+            finite(
+                options.headSize,
+                12
+            );
+
+        ctx.fillStyle =
+            options.stroke ||
+            "rgba(40,32,22,0.90)";
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            end.x,
+            end.y
+        );
+
+        ctx.lineTo(
+            end.x -
+            Math.cos(
+                angle -
+                0.55
+            ) *
+            size,
+
+            end.y -
+            Math.sin(
+                angle -
+                0.55
+            ) *
+            size
+        );
+
+        ctx.lineTo(
+            end.x -
+            Math.cos(
+                angle +
+                0.55
+            ) *
+            size,
+
+            end.y -
+            Math.sin(
+                angle +
+                0.55
+            ) *
+            size
+        );
+
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+
+    /* ========================================================================
+       STATIC GEOGRAPHY CACHE
+       ======================================================================== */
+
+    rebuildGeography() {
+        this.geographyDirty = false;
+
+        const fields =
+            this._getFields();
+
+        const land =
+            this._getLandArray(
+                fields
+            );
+
+        const ctx =
+            this.geographyCtx;
+
+        ctx.clearRect(
+            0,
+            0,
+            this.width,
+            this.height
+        );
+
+        if (!land) {
+            return;
+        }
+
+        const nx =
+            fields.nx;
+
+        const ny =
+            fields.ny;
+
+        const cellW =
+            this.width /
+            nx;
+
+        const cellH =
+            this.height /
+            ny;
+
+
+        /*
+         * LAND TINT
+
+         * Drawn once only.
+         */
+        if (this.options.landShading) {
+            ctx.fillStyle =
+                "rgba(18,15,10,0.075)";
+
+            for (
+                let y = 0;
+                y < ny;
+                y++
+            ) {
+                for (
+                    let x = 0;
+                    x < nx;
+                    x++
+                ) {
+                    const i =
+                        y *
+                        nx +
+                        x;
+
+                    if (
+                        land[i] >= 0.5
+                    ) {
+                        ctx.fillRect(
+                            x * cellW,
+                            y * cellH,
+                            cellW + 1,
+                            cellH + 1
+                        );
+                    }
+                }
+            }
+        }
+
+
+        /*
+         * COASTLINE
+
+         * Drawn once into the geography canvas.
+         */
+        if (this.options.coastline) {
+            ctx.save();
+
+            ctx.strokeStyle =
+                "rgba(20,24,22,0.92)";
+
+            ctx.lineWidth = 1.25;
+            ctx.lineJoin = "round";
+            ctx.lineCap = "round";
+
+            ctx.beginPath();
+
+            for (
+                let y = 0;
+                y < ny - 1;
+                y++
+            ) {
+                for (
+                    let x = 0;
+                    x < nx - 1;
+                    x++
+                ) {
+                    const i =
+                        y *
+                        nx +
+                        x;
+
+                    const here =
+                        land[i] >= 0.5;
+
+                    const right =
+                        land[i + 1] >=
+                        0.5;
+
+                    const below =
+                        land[i + nx] >=
+                        0.5;
+
+                    if (
+                        here !== right
+                    ) {
+                        const px =
+                            (
+                                x +
+                                0.5
+                            ) *
+                            cellW;
+
+                        ctx.moveTo(
+                            px,
+                            y * cellH
+                        );
+
+                        ctx.lineTo(
+                            px,
+                            (
+                                y +
+                                1
+                            ) *
+                            cellH
+                        );
+                    }
+
+                    if (
+                        here !== below
+                    ) {
+                        const py =
+                            (
+                                y +
+                                0.5
+                            ) *
+                            cellH;
+
+                        ctx.moveTo(
+                            x * cellW,
+                            py
+                        );
+
+                        ctx.lineTo(
+                            (
+                                x +
+                                1
+                            ) *
+                            cellW,
+                            py
+                        );
+                    }
+                }
+            }
+
+            ctx.stroke();
+
+            ctx.restore();
         }
     }
 
 
     /* ========================================================================
-       FIELD SELECTION
+       WEATHER RASTER
        ======================================================================== */
 
-    _fieldForLayer(
-        fields
-    ) {
-
-        switch (
-            this.layer
-        ) {
-
+    _fieldForLayer(fields) {
+        switch (this.layer) {
             case "temperature":
                 return fields.temperatureC;
 
@@ -1353,14 +1467,8 @@ class EuropaRenderer {
     }
 
 
-    _colourForValue(
-        value
-    ) {
-
-        switch (
-            this.layer
-        ) {
-
+    _colourForValue(value) {
+        switch (this.layer) {
             case "temperature":
                 return colourRamp(
                     value,
@@ -1417,171 +1525,114 @@ class EuropaRenderer {
 
             default:
                 return rgba(
-                    120,
-                    120,
-                    120
+                    100,
+                    100,
+                    100
                 );
         }
     }
 
 
-    /* ========================================================================
-       BASE WEATHER IMAGE
-       ======================================================================== */
-
-    _renderBase(
+    _renderWeatherField(
+        targetCtx,
         fields
     ) {
-
-        const field = (
+        const field =
             this._fieldForLayer(
                 fields
-            )
-        );
+            );
 
+        if (!field) {
+            return;
+        }
 
-        const nx = (
-            fields.nx
-        );
+        const nx =
+            fields.nx;
 
+        const ny =
+            fields.ny;
 
-        const ny = (
-            fields.ny
-        );
+        const land =
+            this._getLandArray(
+                fields
+            );
 
+        const data =
+            this._imageData.data;
 
-        const data = (
-            this._imageData.data
-        );
-
-
-        let p = 0;
-
+        let pointer = 0;
 
         for (
             let y = 0;
-            y <
-            this.height;
+            y < this.height;
             y++
         ) {
-
-            const gy = (
-                this._displayY[y]
-            );
-
+            const gy =
+                this._displayY[y];
 
             for (
                 let x = 0;
-                x <
-                this.width;
+                x < this.width;
                 x++
             ) {
-
-                const gx = (
-                    this._displayX[x]
-                );
-
-
-                let value = (
-                    bilinearSample(
-
-                        field,
-
-                        nx,
-
-                        ny,
-
-                        gx,
-
-                        gy
-                    )
-                );
-
-
-                /*
-                 * SST has no meaningful value over land.
-
-                 * Keep the land visible but neutral.
-                 */
+                const gx =
+                    this._displayX[x];
 
                 if (
-                    this.layer ===
-                    "sst" &&
-                    fields.land
+                    this.layer === "sst" &&
+                    land
                 ) {
-
-                    const land = (
+                    const landValue =
                         bilinearSample(
-
-                            fields.land,
-
+                            land,
                             nx,
-
                             ny,
-
                             gx,
-
                             gy
-                        )
-                    );
-
+                        );
 
                     if (
-                        land >
+                        landValue >
                         0.5
                     ) {
-
-                        data[p++] = (
-                            70
-                        );
-
-                        data[p++] = (
-                            74
-                        );
-
-                        data[p++] = (
-                            68
-                        );
-
-                        data[p++] = (
-                            255
-                        );
+                        data[pointer++] = 80;
+                        data[pointer++] = 84;
+                        data[pointer++] = 76;
+                        data[pointer++] = 255;
 
                         continue;
                     }
                 }
 
+                const value =
+                    bilinearSample(
+                        field,
+                        nx,
+                        ny,
+                        gx,
+                        gy
+                    );
 
-                const colour = (
+                const colour =
                     this._colourForValue(
                         value
-                    )
-                );
+                    );
 
+                data[pointer++] =
+                    colour[0];
 
-                data[p++] = (
-                    colour[0]
-                );
+                data[pointer++] =
+                    colour[1];
 
+                data[pointer++] =
+                    colour[2];
 
-                data[p++] = (
-                    colour[1]
-                );
-
-
-                data[p++] = (
-                    colour[2]
-                );
-
-
-                data[p++] = (
-                    255
-                );
+                data[pointer++] =
+                    255;
             }
         }
 
-
-        this.ctx.putImageData(
+        targetCtx.putImageData(
             this._imageData,
             0,
             0
@@ -1590,1516 +1641,848 @@ class EuropaRenderer {
 
 
     /* ========================================================================
-       LAND SHADING
+       ISOBAR CACHE
        ======================================================================== */
 
-    _drawLandShading(
-        fields
-    ) {
+    _rebuildIsobars(fields) {
+        const ctx =
+            this.isobarCtx;
 
-        if (
-            !this.options.landShading ||
-            !fields.land
-        ) {
-
-            return;
-        }
-
-
-        const nx = (
-            fields.nx
+        ctx.clearRect(
+            0,
+            0,
+            this.width,
+            this.height
         );
-
-
-        const ny = (
-            fields.ny
-        );
-
-
-        this.ctx.save();
-
-
-        /*
-         * A very faint tint only.
-
-         * Atmospheric colours remain dominant.
-         */
-
-        this.ctx.fillStyle = (
-            "rgba(30, 22, 10, 0.055)"
-        );
-
-
-        const cellWidth = (
-            this.width /
-            nx
-        );
-
-
-        const cellHeight = (
-            this.height /
-            ny
-        );
-
-
-        for (
-            let y = 0;
-            y <
-            ny;
-            y++
-        ) {
-
-            for (
-                let x = 0;
-                x <
-                nx;
-                x++
-            ) {
-
-                const i = (
-                    y *
-                    nx +
-                    x
-                );
-
-
-                if (
-                    fields.land[i] >
-                    0.5
-                ) {
-
-                    this.ctx.fillRect(
-
-                        x *
-                        cellWidth,
-
-                        y *
-                        cellHeight,
-
-                        cellWidth +
-                        1,
-
-                        cellHeight +
-                        1
-                    );
-                }
-            }
-        }
-
-
-        this.ctx.restore();
-    }
-
-
-    /* ========================================================================
-       COASTLINE
-
-       Uses the physics land mask and draws boundaries where neighbouring
-       cells switch between land and water.
-       ======================================================================== */
-
-    _drawCoastline(
-        fields
-    ) {
-
-        if (
-            !this.options.coastline ||
-            !fields.land
-        ) {
-
-            return;
-        }
-
-
-        const nx = (
-            fields.nx
-        );
-
-
-        const ny = (
-            fields.ny
-        );
-
-
-        const dx = (
-            this.width /
-            (
-                nx - 1
-            )
-        );
-
-
-        const dy = (
-            this.height /
-            (
-                ny - 1
-            )
-        );
-
-
-        this.ctx.save();
-
-
-        this.ctx.strokeStyle = (
-            "rgba(25, 28, 27, 0.82)"
-        );
-
-
-        this.ctx.lineWidth = (
-            1.15
-        );
-
-
-        this.ctx.lineJoin = (
-            "round"
-        );
-
-
-        this.ctx.lineCap = (
-            "round"
-        );
-
-
-        this.ctx.beginPath();
-
-
-        for (
-            let y = 0;
-            y <
-            ny - 1;
-            y++
-        ) {
-
-            for (
-                let x = 0;
-                x <
-                nx - 1;
-                x++
-            ) {
-
-                const i = (
-                    y *
-                    nx +
-                    x
-                );
-
-
-                const here = (
-                    fields.land[i] >=
-                    0.5
-                );
-
-
-                const right = (
-                    fields.land[
-                        i + 1
-                    ] >=
-                    0.5
-                );
-
-
-                const below = (
-                    fields.land[
-                        i + nx
-                    ] >=
-                    0.5
-                );
-
-
-                if (
-                    here !==
-                    right
-                ) {
-
-                    const px = (
-                        (
-                            x +
-                            0.5
-                        ) *
-                        dx
-                    );
-
-
-                    const py0 = (
-                        y *
-                        dy
-                    );
-
-
-                    const py1 = (
-                        (
-                            y +
-                            1
-                        ) *
-                        dy
-                    );
-
-
-                    this.ctx.moveTo(
-                        px,
-                        py0
-                    );
-
-
-                    this.ctx.lineTo(
-                        px,
-                        py1
-                    );
-                }
-
-
-                if (
-                    here !==
-                    below
-                ) {
-
-                    const py = (
-                        (
-                            y +
-                            0.5
-                        ) *
-                        dy
-                    );
-
-
-                    const px0 = (
-                        x *
-                        dx
-                    );
-
-
-                    const px1 = (
-                        (
-                            x +
-                            1
-                        ) *
-                        dx
-                    );
-
-
-                    this.ctx.moveTo(
-                        px0,
-                        py
-                    );
-
-
-                    this.ctx.lineTo(
-                        px1,
-                        py
-                    );
-                }
-            }
-        }
-
-
-        this.ctx.stroke();
-
-        this.ctx.restore();
-    }
-
-
-    /* ========================================================================
-       ISOBARS
-       ======================================================================== */
-
-    _drawIsobars(
-        fields
-    ) {
 
         if (
             !this.options.isobars ||
             !fields.pressureHpa
         ) {
-
             return;
         }
 
+        const pressure =
+            fields.pressureHpa;
 
-        const pressure = (
-            fields.pressureHpa
-        );
+        const nx =
+            fields.nx;
 
+        const ny =
+            fields.ny;
 
-        const nx = (
-            fields.nx
-        );
-
-
-        const ny = (
-            fields.ny
-        );
-
-
-        let minP = (
-            Infinity
-        );
-
-
-        let maxP = (
-            -Infinity
-        );
-
+        let minimum = Infinity;
+        let maximum = -Infinity;
 
         for (
             let i = 0;
-            i <
-            pressure.length;
+            i < pressure.length;
             i++
         ) {
+            const p =
+                pressure[i];
 
-            const p = (
-                pressure[i]
-            );
-
-
-            if (
-                p <
-                minP
-            ) {
-
-                minP = (
+            minimum =
+                Math.min(
+                    minimum,
                     p
                 );
-            }
 
-
-            if (
-                p >
-                maxP
-            ) {
-
-                maxP = (
+            maximum =
+                Math.max(
+                    maximum,
                     p
                 );
-            }
         }
 
+        const interval =
+            Math.max(
+                1,
+                finite(
+                    this.options.isobarIntervalHpa,
+                    4
+                )
+            );
 
-        const interval = Math.max(
-
-            1,
-
-            Number(
-                this.options.isobarIntervalHpa
-            ) ||
-            4
-        );
-
-
-        const first = (
-
+        const first =
             Math.ceil(
-                minP /
+                minimum /
                 interval
             ) *
-            interval
-        );
+            interval;
 
-
-        const last = (
-
+        const last =
             Math.floor(
-                maxP /
+                maximum /
                 interval
             ) *
-            interval
-        );
+            interval;
 
-
-        this.ctx.save();
-
-
-        this.ctx.strokeStyle = (
-            "rgba(45, 48, 46, 0.58)"
-        );
-
-
-        this.ctx.lineWidth = (
-            1
-        );
-
-
-        const dx = (
+        const dx =
             this.width /
             (
                 nx - 1
-            )
-        );
+            );
 
-
-        const dy = (
+        const dy =
             this.height /
             (
                 ny - 1
-            )
-        );
+            );
 
+        ctx.save();
+
+        ctx.strokeStyle =
+            "rgba(35,40,38,0.58)";
+
+        ctx.lineWidth = 1;
 
         for (
             let level = first;
             level <= last;
             level += interval
         ) {
-
-            this.ctx.beginPath();
-
+            ctx.beginPath();
 
             for (
                 let y = 0;
-                y <
-                ny - 1;
+                y < ny - 1;
                 y++
             ) {
-
                 for (
                     let x = 0;
-                    x <
-                    nx - 1;
+                    x < nx - 1;
                     x++
                 ) {
-
-                    const i00 = (
+                    const i00 =
                         y *
                         nx +
-                        x
-                    );
+                        x;
 
-
-                    const i10 = (
+                    const i10 =
                         i00 +
-                        1
-                    );
+                        1;
 
-
-                    const i01 = (
+                    const i01 =
                         i00 +
-                        nx
-                    );
+                        nx;
 
-
-                    const i11 = (
+                    const i11 =
                         i01 +
-                        1
-                    );
+                        1;
 
-
-                    const v00 = (
-                        pressure[i00]
-                    );
-
-
-                    const v10 = (
-                        pressure[i10]
-                    );
-
-
-                    const v01 = (
+                    const values = [
+                        pressure[i00],
+                        pressure[i10],
+                        pressure[i11],
                         pressure[i01]
-                    );
+                    ];
 
+                    const positions = [
+                        [x, y],
+                        [x + 1, y],
+                        [x + 1, y + 1],
+                        [x, y + 1]
+                    ];
 
-                    const v11 = (
-                        pressure[i11]
-                    );
+                    const intersections = [];
 
-
-                    const points = [];
-
-
-                    function edge(
-                        ax,
-                        ay,
-                        av,
-                        bx,
-                        by,
-                        bv
+                    for (
+                        let edge = 0;
+                        edge < 4;
+                        edge++
                     ) {
+                        const next =
+                            (
+                                edge +
+                                1
+                            ) %
+                            4;
+
+                        const a =
+                            values[edge];
+
+                        const b =
+                            values[next];
 
                         if (
                             (
-                                av <
+                                a <
                                 level &&
-                                bv >=
+                                b >=
                                 level
                             ) ||
                             (
-                                av >=
+                                a >=
                                 level &&
-                                bv <
+                                b <
                                 level
                             )
                         ) {
-
-                            const t = (
-
+                            const t =
                                 (
                                     level -
-                                    av
+                                    a
                                 ) /
-
                                 (
-                                    bv -
-                                    av
-                                )
-                            );
+                                    b -
+                                    a
+                                );
 
-
-                            points.push({
-
+                            intersections.push({
                                 x:
                                     U.lerp(
-                                        ax,
-                                        bx,
+                                        positions[edge][0],
+                                        positions[next][0],
                                         t
                                     ),
 
                                 y:
                                     U.lerp(
-                                        ay,
-                                        by,
+                                        positions[edge][1],
+                                        positions[next][1],
                                         t
                                     )
                             });
                         }
                     }
 
-
-                    edge(
-                        x,
-                        y,
-                        v00,
-                        x + 1,
-                        y,
-                        v10
-                    );
-
-
-                    edge(
-                        x + 1,
-                        y,
-                        v10,
-                        x + 1,
-                        y + 1,
-                        v11
-                    );
-
-
-                    edge(
-                        x + 1,
-                        y + 1,
-                        v11,
-                        x,
-                        y + 1,
-                        v01
-                    );
-
-
-                    edge(
-                        x,
-                        y + 1,
-                        v01,
-                        x,
-                        y,
-                        v00
-                    );
-
-
                     if (
-                        points.length >=
+                        intersections.length >=
                         2
                     ) {
-
-                        this.ctx.moveTo(
-
-                            points[0].x *
+                        ctx.moveTo(
+                            intersections[0].x *
                             dx,
 
-                            points[0].y *
+                            intersections[0].y *
                             dy
                         );
 
-
-                        this.ctx.lineTo(
-
-                            points[1].x *
+                        ctx.lineTo(
+                            intersections[1].x *
                             dx,
 
-                            points[1].y *
+                            intersections[1].y *
                             dy
                         );
                     }
                 }
             }
 
-
-            this.ctx.stroke();
+            ctx.stroke();
         }
 
-
-        this.ctx.restore();
+        ctx.restore();
     }
 
 
     /* ========================================================================
-       WIND VECTORS
+       OVERLAYS
        ======================================================================== */
 
-    _drawWindVectors(
-        fields
-    ) {
-
+    _drawWindVectors(fields) {
         if (
             !this.options.windVectors ||
             !fields.windU ||
             !fields.windV
         ) {
-
             return;
         }
 
+        const spacing =
+            Math.max(
+                28,
+                finite(
+                    this.options.windVectorSpacing,
+                    44
+                )
+            );
 
-        const spacing = Math.max(
+        const nx =
+            fields.nx;
 
-            24,
+        const ny =
+            fields.ny;
 
-            Number(
-                this.options.windVectorSpacing
-            ) ||
-            42
-        );
+        const ctx =
+            this.ctx;
 
+        ctx.save();
 
-        const nx = (
-            fields.nx
-        );
+        ctx.strokeStyle =
+            "rgba(15,20,22,0.68)";
 
+        ctx.fillStyle =
+            "rgba(15,20,22,0.68)";
 
-        const ny = (
-            fields.ny
-        );
-
-
-        this.ctx.save();
-
-
-        this.ctx.strokeStyle = (
-            "rgba(20, 25, 30, 0.70)"
-        );
-
-
-        this.ctx.fillStyle = (
-            "rgba(20, 25, 30, 0.70)"
-        );
-
-
-        this.ctx.lineWidth = (
-            1.2
-        );
-
+        ctx.lineWidth = 1.1;
 
         for (
             let py = spacing / 2;
-            py <
-            this.height;
+            py < this.height;
             py += spacing
         ) {
-
             for (
                 let px = spacing / 2;
-                px <
-                this.width;
+                px < this.width;
                 px += spacing
             ) {
-
-                const gx = (
-
+                const gx =
                     px /
                     this.width *
                     (
                         nx - 1
-                    )
-                );
+                    );
 
-
-                const gy = (
-
+                const gy =
                     py /
                     this.height *
                     (
                         ny - 1
-                    )
-                );
+                    );
 
-
-                const u = (
+                const u =
                     bilinearSample(
                         fields.windU,
                         nx,
                         ny,
                         gx,
                         gy
-                    )
-                );
+                    );
 
-
-                const v = (
+                const v =
                     bilinearSample(
                         fields.windV,
                         nx,
                         ny,
                         gx,
                         gy
-                    )
-                );
+                    );
 
-
-                const speed = (
+                const speed =
                     Math.hypot(
                         u,
                         v
-                    )
-                );
-
+                    );
 
                 if (
                     speed <
                     0.25
                 ) {
-
                     continue;
                 }
 
-
-                const scale = (
-
+                const length =
                     7 +
-
                     Math.min(
-                        12,
+                        13,
                         speed *
                         0.45
-                    )
-                );
+                    );
 
-
-                const dx = (
-
+                const dx =
                     u /
                     speed *
-                    scale
-                );
+                    length;
 
-
-                /*
-                 * Canvas Y increases southward, while positive v is north.
-                 */
-
-                const dy = (
-
+                const dy =
                     -v /
                     speed *
-                    scale
-                );
+                    length;
 
+                ctx.beginPath();
 
-                const x2 = (
-                    px +
-                    dx
-                );
-
-
-                const y2 = (
-                    py +
-                    dy
-                );
-
-
-                this.ctx.beginPath();
-
-
-                this.ctx.moveTo(
+                ctx.moveTo(
                     px,
                     py
                 );
 
-
-                this.ctx.lineTo(
-                    x2,
-                    y2
+                ctx.lineTo(
+                    px + dx,
+                    py + dy
                 );
 
-
-                this.ctx.stroke();
-
-
-                const angle = (
-                    Math.atan2(
-                        dy,
-                        dx
-                    )
-                );
-
-
-                const head = (
-                    4
-                );
-
-
-                this.ctx.beginPath();
-
-
-                this.ctx.moveTo(
-                    x2,
-                    y2
-                );
-
-
-                this.ctx.lineTo(
-
-                    x2 -
-                    Math.cos(
-                        angle -
-                        0.55
-                    ) *
-                    head,
-
-                    y2 -
-                    Math.sin(
-                        angle -
-                        0.55
-                    ) *
-                    head
-                );
-
-
-                this.ctx.lineTo(
-
-                    x2 -
-                    Math.cos(
-                        angle +
-                        0.55
-                    ) *
-                    head,
-
-                    y2 -
-                    Math.sin(
-                        angle +
-                        0.55
-                    ) *
-                    head
-                );
-
-
-                this.ctx.closePath();
-
-                this.ctx.fill();
+                ctx.stroke();
             }
         }
 
-
-        this.ctx.restore();
+        ctx.restore();
     }
 
 
-    /* ========================================================================
-       SYSTEM MARKERS
-       ======================================================================== */
-
     _drawSystems() {
-
         if (
             !this.options.systemMarkers
         ) {
-
             return;
         }
 
-
         let systems = [];
 
-
         try {
-
             if (
                 typeof this.weather.getSystems ===
                 "function"
             ) {
-
-                systems = (
+                systems =
                     this.weather.getSystems() ||
-                    []
-                );
-
+                    [];
             } else if (
                 this.weather.synoptic &&
                 Array.isArray(
                     this.weather.synoptic.systems
                 )
             ) {
-
-                systems = (
-                    this.weather.synoptic.systems
-                );
+                systems =
+                    this.weather.synoptic.systems;
             }
-
         } catch (error) {
-
             systems = [];
         }
 
+        const ctx =
+            this.ctx;
 
-        this.ctx.save();
+        ctx.save();
 
-
-        this.ctx.textAlign = (
-            "center"
-        );
-
-
-        this.ctx.textBaseline = (
-            "middle"
-        );
-
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
 
         for (
-            const system
-            of systems
+            const system of systems
         ) {
-
             if (
                 system.active ===
                 false
             ) {
-
                 continue;
             }
 
-
-            const p = (
+            const point =
                 this.geoToPixel(
                     system.lat,
                     system.lon
-                )
-            );
+                );
 
-
-            const isLow = (
-
+            const low =
                 String(
                     system.type
                 ).toLowerCase() ===
-                "low"
+                "low";
+
+            ctx.fillStyle =
+                low
+                    ? "rgba(40,85,220,0.90)"
+                    : "rgba(220,65,50,0.90)";
+
+            ctx.font =
+                "bold 27px Arial";
+
+            ctx.fillText(
+                low ? "L" : "H",
+                point.x,
+                point.y - 5
             );
 
+            ctx.font =
+                "bold 12px Arial";
 
-            this.ctx.font = (
-                "bold 28px Arial"
-            );
-
-
-            this.ctx.fillStyle = isLow
-                ? "rgba(40, 85, 220, 0.88)"
-                : "rgba(220, 70, 55, 0.88)";
-
-
-            this.ctx.fillText(
-
-                isLow
-                    ? "L"
-                    : "H",
-
-                p.x,
-
-                p.y - 5
-            );
-
-
-            this.ctx.font = (
-                "bold 13px Arial"
-            );
-
-
-            this.ctx.fillText(
-
-                `${Math.round(
+            ctx.fillText(
+                Math.round(
                     finite(
                         system.pressureHpa,
                         1013
                     )
-                )} hPa`,
+                ) +
+                " hPa",
 
-                p.x,
-
-                p.y + 19
+                point.x,
+                point.y + 18
             );
         }
 
-
-        this.ctx.restore();
+        ctx.restore();
     }
 
 
-    /* ========================================================================
-       STEERING ARROW DRAWING
-       ======================================================================== */
-
-    _drawArrowLine(
-        sourceLat,
-        sourceLon,
-        targetLat,
-        targetLon,
-        options = {}
-    ) {
-
-        const a = (
-            this.geoToPixel(
-                sourceLat,
-                sourceLon
-            )
-        );
-
-
-        const b = (
-            this.geoToPixel(
-                targetLat,
-                targetLon
-            )
-        );
-
-
-        const dx = (
-            b.x -
-            a.x
-        );
-
-
-        const dy = (
-            b.y -
-            a.y
-        );
-
-
-        const length = (
-            Math.hypot(
-                dx,
-                dy
-            )
-        );
-
-
-        if (
-            length <
-            2
-        ) {
-
-            return;
-        }
-
-
-        const angle = (
-            Math.atan2(
-                dy,
-                dx
-            )
-        );
-
-
-        const preview = (
-            !!options.preview
-        );
-
-
-        this.ctx.save();
-
-
-        this.ctx.lineWidth = preview
-            ? 3
-            : 2.4;
-
-
-        this.ctx.strokeStyle = preview
-            ? "rgba(255, 255, 255, 0.95)"
-            : "rgba(45, 35, 25, 0.90)";
-
-
-        this.ctx.fillStyle = (
-            this.ctx.strokeStyle
-        );
-
-
-        if (
-            preview
-        ) {
-
-            this.ctx.setLineDash([
-                8,
-                5
-            ]);
-        }
-
-
-        this.ctx.beginPath();
-
-
-        this.ctx.moveTo(
-            a.x,
-            a.y
-        );
-
-
-        this.ctx.lineTo(
-            b.x,
-            b.y
-        );
-
-
-        this.ctx.stroke();
-
-
-        this.ctx.setLineDash([]);
-
-
-        const headSize = (
-            preview
-                ? 13
-                : 11
-        );
-
-
-        this.ctx.beginPath();
-
-
-        this.ctx.moveTo(
-            b.x,
-            b.y
-        );
-
-
-        this.ctx.lineTo(
-
-            b.x -
-            Math.cos(
-                angle -
-                0.55
-            ) *
-            headSize,
-
-            b.y -
-            Math.sin(
-                angle -
-                0.55
-            ) *
-            headSize
-        );
-
-
-        this.ctx.lineTo(
-
-            b.x -
-            Math.cos(
-                angle +
-                0.55
-            ) *
-            headSize,
-
-            b.y -
-            Math.sin(
-                angle +
-                0.55
-            ) *
-            headSize
-        );
-
-
-        this.ctx.closePath();
-
-        this.ctx.fill();
-
-
-        /*
-         * Source marker.
-         */
-
-        this.ctx.beginPath();
-
-
-        this.ctx.arc(
-            a.x,
-            a.y,
-            4,
-            0,
-            Math.PI * 2
-        );
-
-
-        this.ctx.fill();
-
-
-        this.ctx.restore();
-    }
-
-
-    _drawSteeringArrows() {
-
+    _drawExistingStraightArrows() {
         if (
             !this.options.steeringArrows
         ) {
-
             return;
         }
 
-
         let arrows = [];
 
-
         try {
-
             if (
                 typeof this.weather.getSteeringArrows ===
                 "function"
             ) {
-
-                arrows = (
+                arrows =
                     this.weather.getSteeringArrows() ||
-                    []
-                );
-
+                    [];
             } else if (
                 this.weather.synoptic &&
                 Array.isArray(
                     this.weather.synoptic.arrows
                 )
             ) {
-
-                arrows = (
-                    this.weather.synoptic.arrows
-                );
+                arrows =
+                    this.weather.synoptic.arrows;
             }
-
         } catch (error) {
-
             arrows = [];
         }
 
-
+        /*
+         * Raw backend segments are intentionally subtle.
+         *
+         * Curved groups are drawn more prominently afterwards.
+         */
         for (
-            const arrow
-            of arrows
+            const arrow of arrows
         ) {
+            const sourceLat =
+                finite(
+                    arrow.sourceLat !== undefined
+                        ? arrow.sourceLat
+                        : arrow.lat1,
+                    NaN
+                );
 
-            const sourceLat = finite(
+            const sourceLon =
+                finite(
+                    arrow.sourceLon !== undefined
+                        ? arrow.sourceLon
+                        : arrow.lon1,
+                    NaN
+                );
 
-                arrow.sourceLat !== undefined
-                    ? arrow.sourceLat
-                    : arrow.lat1,
+            const targetLat =
+                finite(
+                    arrow.targetLat !== undefined
+                        ? arrow.targetLat
+                        : arrow.lat2,
+                    NaN
+                );
 
-                NaN
-            );
-
-
-            const sourceLon = finite(
-
-                arrow.sourceLon !== undefined
-                    ? arrow.sourceLon
-                    : arrow.lon1,
-
-                NaN
-            );
-
-
-            const targetLat = finite(
-
-                arrow.targetLat !== undefined
-                    ? arrow.targetLat
-                    : arrow.lat2,
-
-                NaN
-            );
-
-
-            const targetLon = finite(
-
-                arrow.targetLon !== undefined
-                    ? arrow.targetLon
-                    : arrow.lon2,
-
-                NaN
-            );
-
+            const targetLon =
+                finite(
+                    arrow.targetLon !== undefined
+                        ? arrow.targetLon
+                        : arrow.lon2,
+                    NaN
+                );
 
             if (
-                !Number.isFinite(
-                    sourceLat
-                ) ||
-                !Number.isFinite(
-                    sourceLon
-                ) ||
-                !Number.isFinite(
-                    targetLat
-                ) ||
-                !Number.isFinite(
-                    targetLon
-                )
+                !Number.isFinite(sourceLat) ||
+                !Number.isFinite(sourceLon) ||
+                !Number.isFinite(targetLat) ||
+                !Number.isFinite(targetLon)
             ) {
-
                 continue;
             }
 
+            this._drawSmoothPath(
+                this.ctx,
+                [
+                    {
+                        lat: sourceLat,
+                        lon: sourceLon
+                    },
+                    {
+                        lat: targetLat,
+                        lon: targetLon
+                    }
+                ],
+                {
+                    stroke:
+                        "rgba(30,28,24,0.34)",
 
-            this._drawArrowLine(
+                    width: 1.5,
 
-                sourceLat,
+                    headSize: 8
+                }
+            );
+        }
+    }
 
-                sourceLon,
 
-                targetLat,
+    _drawCommittedCurves() {
+        if (
+            !this.options.steeringArrows
+        ) {
+            return;
+        }
 
-                targetLon
+        for (
+            const curve of this.committedCurves
+        ) {
+            this._drawSmoothPath(
+                this.ctx,
+                curve.points,
+                {
+                    stroke:
+                        "rgba(34,27,18,0.94)",
+
+                    width: 3.2,
+
+                    headSize: 13
+                }
             );
         }
     }
 
 
     _drawDragPreview() {
-
         if (
-            !this.options.dragPreview ||
-            !this.drag.active
+            !this.drag.active ||
+            this.drag.points.length <
+            2
         ) {
-
             return;
         }
 
-
-        this._drawArrowLine(
-
-            this.drag.startLat,
-
-            this.drag.startLon,
-
-            this.drag.endLat,
-
-            this.drag.endLon,
-
+        this._drawSmoothPath(
+            this.ctx,
+            this.drag.points,
             {
-                preview:
-                    true
+                stroke:
+                    "rgba(255,255,255,0.96)",
+
+                width: 3,
+
+                headSize: 13,
+
+                dashed: true
             }
         );
     }
 
 
     /* ========================================================================
-       FRONT OVERLAY
+       SMOOTH VISUAL INTERPOLATION
        ======================================================================== */
 
-    _drawFrontOverlay(
-        fields
-    ) {
+    setVisualTransitionMs(milliseconds) {
+        this.transitionDuration =
+            Math.max(
+                0,
+                finite(
+                    milliseconds,
+                    0
+                )
+            );
+
+        return this;
+    }
+
+
+    _startTransition(fields) {
+        /*
+         * Current becomes previous.
+         */
+        this.fieldCtxPrevious.clearRect(
+            0,
+            0,
+            this.width,
+            this.height
+        );
+
+        this.fieldCtxPrevious.drawImage(
+            this.fieldCanvasCurrent,
+            0,
+            0
+        );
+
+        /*
+         * Render the new 4-minute physical state.
+         */
+        this.fieldCtxCurrent.clearRect(
+            0,
+            0,
+            this.width,
+            this.height
+        );
+
+        this._renderWeatherField(
+            this.fieldCtxCurrent,
+            fields
+        );
+
+        this.transitionStart =
+            performance.now();
+
+        this.transitionAnimating =
+            this.transitionDuration >
+            0;
+
+        this._rebuildIsobars(
+            fields
+        );
 
         if (
-            !this.options.frontOverlay ||
-            !fields.frontStrength
+            this.transitionAnimating
         ) {
+            this._scheduleTransitionFrame();
+        }
+    }
 
+
+    _scheduleTransitionFrame() {
+        if (
+            this.animationFrame !==
+            null
+        ) {
             return;
         }
 
+        this.animationFrame =
+            requestAnimationFrame(
+                () => {
+                    this.animationFrame = null;
 
-        const nx = (
-            fields.nx
-        );
+                    this._drawComposite();
 
-
-        const ny = (
-            fields.ny
-        );
-
-
-        const dx = (
-            this.width /
-            nx
-        );
-
-
-        const dy = (
-            this.height /
-            ny
-        );
-
-
-        this.ctx.save();
-
-
-        for (
-            let y = 0;
-            y <
-            ny;
-            y++
-        ) {
-
-            for (
-                let x = 0;
-                x <
-                nx;
-                x++
-            ) {
-
-                const i = (
-                    y *
-                    nx +
-                    x
-                );
-
-
-                const strength = U.clamp(
-
-                    fields.frontStrength[i],
-
-                    0,
-
-                    1
-                );
-
-
-                if (
-                    strength <
-                    0.35
-                ) {
-
-                    continue;
+                    if (
+                        this.transitionAnimating
+                    ) {
+                        this._scheduleTransitionFrame();
+                    }
                 }
+            );
+    }
 
 
-                this.ctx.fillStyle = (
+    _drawComposite() {
+        const started =
+            performance.now();
 
-                    `rgba(255,255,255,${
-                        0.03 +
-                        strength *
-                        0.16
-                    })`
-                );
+        const fields =
+            this._getFields();
 
+        const ctx =
+            this.ctx;
 
-                this.ctx.fillRect(
+        ctx.clearRect(
+            0,
+            0,
+            this.width,
+            this.height
+        );
 
-                    x *
-                    dx,
+        let blend = 1;
 
-                    y *
-                    dy,
-
-                    dx +
-                    1,
-
-                    dy +
+        if (
+            this.transitionAnimating
+        ) {
+            blend =
+                U.clamp(
+                    (
+                        performance.now() -
+                        this.transitionStart
+                    ) /
+                    Math.max(
+                        1,
+                        this.transitionDuration
+                    ),
+                    0,
                     1
                 );
+
+            /*
+             * Ease in/out instead of linear flickering.
+             */
+            blend =
+                blend *
+                blend *
+                (
+                    3 -
+                    2 *
+                    blend
+                );
+
+            if (
+                blend >=
+                0.999
+            ) {
+                blend = 1;
+
+                this.transitionAnimating =
+                    false;
             }
         }
 
+        if (
+            blend < 1
+        ) {
+            ctx.globalAlpha =
+                1 -
+                blend;
 
-        this.ctx.restore();
+            ctx.drawImage(
+                this.fieldCanvasPrevious,
+                0,
+                0
+            );
+
+            ctx.globalAlpha =
+                blend;
+
+            ctx.drawImage(
+                this.fieldCanvasCurrent,
+                0,
+                0
+            );
+
+            ctx.globalAlpha = 1;
+        } else {
+            ctx.drawImage(
+                this.fieldCanvasCurrent,
+                0,
+                0
+            );
+        }
+
+        /*
+         * Cached geography.
+         */
+        ctx.drawImage(
+            this.geographyCanvas,
+            0,
+            0
+        );
+
+        /*
+         * Cached isobars.
+         */
+        if (
+            this.options.isobars
+        ) {
+            ctx.drawImage(
+                this.isobarCanvas,
+                0,
+                0
+            );
+        }
+
+        this._drawWindVectors(
+            fields
+        );
+
+        this._drawSystems();
+
+        this._drawExistingStraightArrows();
+
+        this._drawCommittedCurves();
+
+        this._drawDragPreview();
+
+        this.lastRenderMs =
+            performance.now() -
+            started;
     }
 
 
@@ -3107,297 +2490,323 @@ class EuropaRenderer {
        MAIN RENDER
        ======================================================================== */
 
-    render() {
+    render(force = false) {
+        const fields =
+            this._getFields();
 
-        const started = (
-            performance.now()
-        );
+        let weatherTime;
 
+        try {
+            weatherTime =
+                this.weather.getTimeMs();
+        } catch (error) {
+            weatherTime =
+                Date.now();
+        }
 
-        const fields = (
-            this.weather.getFields()
-        );
+        const changed =
+            force ||
+            this.lastWeatherTime ===
+            null ||
+            weatherTime !==
+            this.lastWeatherTime;
 
+        if (changed) {
+            if (
+                this.lastWeatherTime ===
+                null ||
+                force
+            ) {
+                this.fieldCtxCurrent.clearRect(
+                    0,
+                    0,
+                    this.width,
+                    this.height
+                );
 
-        this.fields = (
-            fields
-        );
+                this._renderWeatherField(
+                    this.fieldCtxCurrent,
+                    fields
+                );
 
+                this.fieldCtxPrevious.clearRect(
+                    0,
+                    0,
+                    this.width,
+                    this.height
+                );
 
-        this._renderBase(
-            fields
-        );
+                this.fieldCtxPrevious.drawImage(
+                    this.fieldCanvasCurrent,
+                    0,
+                    0
+                );
 
+                this._rebuildIsobars(
+                    fields
+                );
 
-        this._drawLandShading(
-            fields
-        );
+                this.transitionAnimating =
+                    false;
+            } else {
+                this._startTransition(
+                    fields
+                );
+            }
 
+            this.lastWeatherTime =
+                weatherTime;
+        }
 
-        this._drawFrontOverlay(
-            fields
-        );
+        if (this.geographyDirty) {
+            this.rebuildGeography();
+        }
 
-
-        this._drawIsobars(
-            fields
-        );
-
-
-        this._drawCoastline(
-            fields
-        );
-
-
-        this._drawWindVectors(
-            fields
-        );
-
-
-        this._drawSystems();
-
-
-        this._drawSteeringArrows();
-
-
-        this._drawDragPreview();
-
-
-        this.lastRenderMs = (
-
-            performance.now() -
-            started
-        );
-
+        this._drawComposite();
 
         return this;
     }
 
 
     /* ========================================================================
-       CONTROLS
+       PUBLIC CONTROL API
        ======================================================================== */
 
-    setLayer(
-        layer
-    ) {
-
-        this.layer = (
-            layer
-        );
-
-
-        this.options.layer = (
-            layer
-        );
-
-
-        this.render();
-
-        return this;
-    }
-
-
-    setIsobars(
-        enabled
-    ) {
-
-        this.options.isobars = (
-            !!enabled
-        );
-
-
-        this.render();
-
-        return this;
-    }
-
-
-    setWindVectors(
-        enabled
-    ) {
-
-        this.options.windVectors = (
-            !!enabled
-        );
-
-
-        this.render();
-
-        return this;
-    }
-
-
-    setFrontOverlay(
-        enabled
-    ) {
-
-        this.options.frontOverlay = (
-            !!enabled
-        );
-
-
-        this.render();
-
-        return this;
-    }
-
-
-    setSystemMarkers(
-        enabled
-    ) {
-
-        this.options.systemMarkers = (
-            !!enabled
-        );
-
-
-        this.render();
-
-        return this;
-    }
-
-
-    setSteeringArrows(
-        enabled
-    ) {
-
-        this.options.steeringArrows = (
-            !!enabled
-        );
-
-
-        this.render();
-
-        return this;
-    }
-
-
-    setCoastline(
-        enabled
-    ) {
-
-        this.options.coastline = (
-            !!enabled
-        );
-
-
-        this.render();
-
-        return this;
-    }
-
-
-    setLandShading(
-        enabled
-    ) {
-
-        this.options.landShading = (
-            !!enabled
-        );
-
-
-        this.render();
-
-        return this;
-    }
-
-
-    setDragToolEnabled(
-        enabled
-    ) {
-
-        this.options.dragToolEnabled = (
-            !!enabled
-        );
-
-
-        this.canvas.style.cursor = enabled
-            ? "crosshair"
-            : "default";
-
-
-        if (
-            !enabled
-        ) {
-
-            this.drag.active = (
-                false
-            );
-        }
-
-
-        this.render();
-
-        return this;
-    }
-
-
-    resize(
-        width,
-        height
-    ) {
-
-        this.width = Math.max(
-            1,
-            Math.floor(
-                width
-            )
-        );
-
-
-        this.height = Math.max(
-            1,
-            Math.floor(
-                height
-            )
-        );
-
-
-        this.canvas.width = (
-            this.width
-        );
-
-
-        this.canvas.height = (
+    setLayer(layer) {
+        this.layer = layer;
+        this.options.layer = layer;
+
+        /*
+         * Changing layer is not a meteorological timestep,
+         * so render it immediately rather than crossfading from another
+         * variable.
+         */
+        const fields =
+            this._getFields();
+
+        this.fieldCtxCurrent.clearRect(
+            0,
+            0,
+            this.width,
             this.height
         );
 
+        this._renderWeatherField(
+            this.fieldCtxCurrent,
+            fields
+        );
 
-        this._imageData = (
-            this.ctx.createImageData(
+        this.fieldCtxPrevious.clearRect(
+            0,
+            0,
+            this.width,
+            this.height
+        );
+
+        this.fieldCtxPrevious.drawImage(
+            this.fieldCanvasCurrent,
+            0,
+            0
+        );
+
+        this.transitionAnimating =
+            false;
+
+        this._drawComposite();
+
+        return this;
+    }
+
+
+    setIsobars(enabled) {
+        this.options.isobars =
+            !!enabled;
+
+        this._rebuildIsobars(
+            this._getFields()
+        );
+
+        this._drawComposite();
+
+        return this;
+    }
+
+
+    setWindVectors(enabled) {
+        this.options.windVectors =
+            !!enabled;
+
+        this._drawComposite();
+
+        return this;
+    }
+
+
+    setFrontOverlay(enabled) {
+        this.options.frontOverlay =
+            !!enabled;
+
+        this._drawComposite();
+
+        return this;
+    }
+
+
+    setSystemMarkers(enabled) {
+        this.options.systemMarkers =
+            !!enabled;
+
+        this._drawComposite();
+
+        return this;
+    }
+
+
+    setSteeringArrows(enabled) {
+        this.options.steeringArrows =
+            !!enabled;
+
+        this._drawComposite();
+
+        return this;
+    }
+
+
+    setCoastline(enabled) {
+        this.options.coastline =
+            !!enabled;
+
+        this.geographyDirty = true;
+
+        this.rebuildGeography();
+
+        this._drawComposite();
+
+        return this;
+    }
+
+
+    setLandShading(enabled) {
+        this.options.landShading =
+            !!enabled;
+
+        this.geographyDirty = true;
+
+        this.rebuildGeography();
+
+        this._drawComposite();
+
+        return this;
+    }
+
+
+    setDragToolEnabled(enabled) {
+        this.options.dragToolEnabled =
+            !!enabled;
+
+        this.canvas.style.cursor =
+            enabled
+                ? "crosshair"
+                : "default";
+
+        if (!enabled) {
+            this.drag.active = false;
+            this.drag.points = [];
+        }
+
+        this._drawComposite();
+
+        return this;
+    }
+
+
+    resize(width, height) {
+        this.width =
+            Math.max(
+                1,
+                Math.floor(width)
+            );
+
+        this.height =
+            Math.max(
+                1,
+                Math.floor(height)
+            );
+
+        this.canvas.width =
+            this.width;
+
+        this.canvas.height =
+            this.height;
+
+        this.fieldCanvasPrevious.width =
+            this.width;
+
+        this.fieldCanvasPrevious.height =
+            this.height;
+
+        this.fieldCanvasCurrent.width =
+            this.width;
+
+        this.fieldCanvasCurrent.height =
+            this.height;
+
+        this.geographyCanvas.width =
+            this.width;
+
+        this.geographyCanvas.height =
+            this.height;
+
+        this.isobarCanvas.width =
+            this.width;
+
+        this.isobarCanvas.height =
+            this.height;
+
+        this.fieldCtxPrevious =
+            this.fieldCanvasPrevious.getContext("2d");
+
+        this.fieldCtxCurrent =
+            this.fieldCanvasCurrent.getContext("2d");
+
+        this.geographyCtx =
+            this.geographyCanvas.getContext("2d");
+
+        this.isobarCtx =
+            this.isobarCanvas.getContext("2d");
+
+        this._imageData =
+            this.fieldCtxCurrent.createImageData(
                 this.width,
                 this.height
-            )
-        );
+            );
 
-
-        this._displayX = (
+        this._displayX =
             new Float32Array(
                 this.width
-            )
-        );
+            );
 
-
-        this._displayY = (
+        this._displayY =
             new Float32Array(
                 this.height
-            )
-        );
-
+            );
 
         this._buildLookup();
 
-        this.render();
+        this.geographyDirty = true;
+
+        this.lastWeatherTime = null;
+
+        this.rebuildGeography();
+
+        this.render(true);
 
         return this;
     }
 
 
     getInfo() {
-
         return {
-
             width:
                 this.width,
 
@@ -3417,58 +2826,49 @@ class EuropaRenderer {
                 !!this.options.landShading,
 
             dragToolEnabled:
-                !!this.options.dragToolEnabled
+                !!this.options.dragToolEnabled,
+
+            committedCurves:
+                this.committedCurves.length,
+
+            transitionMs:
+                this.transitionDuration
         };
     }
 
 
     destroy() {
+        if (
+            this.animationFrame !==
+            null
+        ) {
+            cancelAnimationFrame(
+                this.animationFrame
+            );
+
+            this.animationFrame = null;
+        }
 
         this.canvas.removeEventListener(
             "pointerdown",
-            this._onPointerDown
+            this._pointerDown
         );
-
 
         this.canvas.removeEventListener(
             "pointermove",
-            this._onPointerMove
+            this._pointerMove
         );
-
 
         this.canvas.removeEventListener(
             "pointerup",
-            this._onPointerUp
+            this._pointerUp
         );
-
 
         this.canvas.removeEventListener(
             "pointercancel",
-            this._onPointerCancel
+            this._pointerCancel
         );
     }
-}
-
-
-/* ============================================================================
-   NUMBER HELPER USED BY SYSTEM LABELS
-============================================================================ */
-
-function finite(
-    value,
-    fallback = 0
-) {
-
-    const number = Number(
-        value
-    );
-
-
-    return Number.isFinite(
-        number
-    )
-        ? number
-        : fallback;
 }
 
 
@@ -3476,18 +2876,13 @@ function finite(
    EXPORT
 ============================================================================ */
 
-global.EuropaRenderer = (
-    EuropaRenderer
-);
+global.EuropaRenderer =
+    EuropaRenderer;
 
+global.EuropaRendererDefaults =
+    DEFAULTS;
 
-global.EuropaRendererDefaults = (
-    DEFAULTS
-);
-
-
-global.EuropaRendererColourScales = (
-    COLOUR_SCALES
-);
+global.EuropaRendererColourScales =
+    COLOUR_SCALES;
 
 })(window);
