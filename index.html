@@ -1,6 +1,9 @@
 <!DOCTYPE html>
+
 <html lang="en">
+
 <head>
+
 <meta charset="UTF-8">
 
 <meta
@@ -9,8 +12,9 @@
 >
 
 <title>
-    EuropaCraft Climate and Weather Laboratory
+    EuropaCraft Climate Simulator
 </title>
+
 
 <style>
 
@@ -18,77 +22,108 @@
         box-sizing: border-box;
     }
 
+
     html,
     body {
+
         margin: 0;
         padding: 0;
-        background: #eef2f4;
-        color: #17212b;
+
+        background:
+            #eef2f4;
+
+        color:
+            #17212b;
+
         font-family:
             Arial,
             Helvetica,
             sans-serif;
     }
 
+
     body {
-        min-width: 900px;
+        min-width:
+            920px;
     }
 
-    #app {
-        width: 100%;
-    }
 
     #toolbar {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 6px;
 
-        padding: 8px 10px;
+        display:
+            flex;
 
-        background: white;
+        flex-wrap:
+            wrap;
+
+        align-items:
+            center;
+
+        gap:
+            6px;
+
+        padding:
+            8px 10px;
+
+        background:
+            white;
 
         border-bottom:
-            1px solid #b8c2ca;
+            1px solid #b9c2c9;
     }
+
 
     .group {
-        display: flex;
-        align-items: center;
-        gap: 5px;
 
-        padding-right: 8px;
-        margin-right: 4px;
+        display:
+            flex;
+
+        align-items:
+            center;
+
+        gap:
+            5px;
+
+        padding-right:
+            9px;
+
+        margin-right:
+            3px;
 
         border-right:
-            1px solid #d7dde2;
+            1px solid #d5dce1;
     }
+
 
     .group:last-child {
         border-right: 0;
     }
 
+
     button,
-    input,
-    select {
-        font: inherit;
+    input {
+
+        font:
+            inherit;
     }
 
+
     button {
-        min-height: 34px;
+
+        min-height:
+            34px;
 
         padding:
-            5px
-            10px;
+            5px 10px;
 
         border:
-            1px solid #aeb9c2;
+            1px solid #aab5bd;
 
         border-radius:
             4px;
 
         background:
-            #ffffff;
+            white;
 
         color:
             #17212b;
@@ -97,57 +132,84 @@
             pointer;
     }
 
+
     button:hover {
+
         background:
             #f2f5f7;
     }
 
+
     button.active {
+
         background:
+            #17212b;
+
+        border-color:
             #17212b;
 
         color:
             white;
-
-        border-color:
-            #17212b;
     }
+
 
     button.primary {
+
         background:
+            #17212b;
+
+        border-color:
             #17212b;
 
         color:
             white;
-
-        border-color:
-            #17212b;
     }
 
+
+    button:disabled {
+
+        opacity:
+            0.45;
+
+        cursor:
+            default;
+    }
+
+
     input {
-        min-height: 34px;
+
+        min-height:
+            34px;
 
         padding:
-            4px
-            6px;
+            4px 6px;
 
         border:
-            1px solid #aeb9c2;
+            1px solid #aab5bd;
 
         border-radius:
             4px;
     }
 
+
     #dateInput {
-        width: 196px;
+
+        width:
+            195px;
     }
+
 
     #seedInput {
-        width: 112px;
+
+        width:
+            116px;
     }
 
+
     #main {
-        display: grid;
+
+        display:
+            grid;
 
         grid-template-columns:
             780px
@@ -155,20 +217,23 @@
                 300px,
                 1fr
             );
-
-        gap: 0;
     }
 
+
     #mapColumn {
+
         background:
             white;
 
         border-right:
-            1px solid #b8c2ca;
+            1px solid #b9c2c9;
     }
 
+
     #mapWrap {
-        position: relative;
+
+        position:
+            relative;
 
         width:
             780px;
@@ -176,50 +241,70 @@
         height:
             440px;
 
-        overflow: hidden;
+        overflow:
+            hidden;
 
         background:
-            #cfd8de;
+            #cdd6dc;
     }
+
 
     #mapCanvas,
     #particleCanvas {
-        position: absolute;
 
-        top: 0;
-        left: 0;
+        position:
+            absolute;
+
+        top:
+            0;
+
+        left:
+            0;
 
         width:
             780px;
 
         height:
             440px;
-
-        image-rendering:
-            pixelated;
     }
+
 
     #mapCanvas {
-        z-index: 1;
+
+        z-index:
+            1;
     }
 
+
     #particleCanvas {
-        z-index: 2;
+
+        z-index:
+            2;
 
         pointer-events:
             none;
     }
 
-    #selectionMarker {
-        position: absolute;
 
-        z-index: 3;
+    #selectionMarker {
+
+        position:
+            absolute;
+
+        z-index:
+            3;
 
         width:
-            7px;
+            8px;
 
         height:
-            7px;
+            8px;
+
+        margin-left:
+            -4px;
+
+        margin-top:
+            -4px;
 
         border:
             1px solid black;
@@ -227,12 +312,6 @@
         background:
             white;
 
-        transform:
-            translate(
-                -50%,
-                -50%
-            );
-
         display:
             none;
 
@@ -240,69 +319,64 @@
             none;
     }
 
-    #mapHelp {
-        padding:
-            8px
-            12px;
+
+    #mapFooter {
 
         min-height:
-            36px;
+            38px;
+
+        padding:
+            8px 11px;
+
+        border-top:
+            1px solid #d4dade;
 
         font-size:
             12px;
-
-        border-top:
-            1px solid #d6dde2;
     }
 
+
     #side {
-        padding:
-            12px;
 
         min-width:
             0;
+
+        padding:
+            12px;
     }
 
+
     .panel {
+
         margin-bottom:
             12px;
 
         padding:
             12px;
 
+        background:
+            white;
+
         border:
-            1px solid #c7d0d7;
+            1px solid #c7d0d6;
 
         border-radius:
             5px;
-
-        background:
-            white;
     }
 
+
     .panel h2 {
+
         margin:
-            0
-            0
-            9px
-            0;
+            0 0 9px 0;
 
         font-size:
             15px;
     }
 
-    .panel h3 {
-        margin:
-            12px
-            0
-            6px
-            0;
-
-        font-size:
-            13px;
-    }
 
     #status {
+
         font-size:
             13px;
 
@@ -310,87 +384,79 @@
             1.55;
     }
 
+
+    #performance {
+
+        margin-top:
+            8px;
+
+        padding-top:
+            7px;
+
+        border-top:
+            1px solid #e1e5e8;
+
+        font-size:
+            12px;
+
+        color:
+            #596873;
+    }
+
+
     #inspector {
+
         display:
             grid;
 
         grid-template-columns:
-            155px
+            150px
             minmax(
                 0,
                 1fr
             );
 
         gap:
-            4px
-            8px;
+            4px 8px;
 
         font-size:
             13px;
     }
 
+
     .label {
+
         color:
-            #586773;
+            #5e6d77;
     }
 
+
     .value {
+
         font-variant-numeric:
             tabular-nums;
     }
 
-    #legend {
-        display:
-            flex;
-        flex-wrap:
-            wrap;
-        gap:
-            7px;
-
-        font-size:
-            12px;
-
-        margin-top:
-            8px;
-    }
-
-    .legendItem {
-        display:
-            flex;
-        align-items:
-            center;
-        gap:
-            4px;
-    }
-
-    .swatch {
-        display:
-            inline-block;
-
-        width:
-            15px;
-
-        height:
-            10px;
-
-        border:
-            1px solid rgba(
-                0,
-                0,
-                0,
-                0.25
-            );
-    }
 
     #log {
-        max-height:
-            180px;
 
-        overflow:
+        max-height:
+            170px;
+
+        overflow-y:
             auto;
+
+        padding:
+            8px;
 
         white-space:
             pre-wrap;
+
+        background:
+            #f7f9fa;
+
+        border:
+            1px solid #d9dfe3;
 
         font-family:
             Consolas,
@@ -401,416 +467,500 @@
 
         line-height:
             1.45;
-
-        background:
-            #f7f9fa;
-
-        padding:
-            8px;
-
-        border:
-            1px solid #d7dde2;
     }
 
+
     .small {
+
         font-size:
             11px;
 
+        line-height:
+            1.45;
+
         color:
-            #64727d;
+            #64727c;
     }
 
 </style>
+
 </head>
+
 
 <body>
 
-<div id="app">
 
-    <div id="toolbar">
+<div id="toolbar">
 
-        <div class="group">
-            <button
-                id="buildClimateBtn"
-                class="primary"
-            >
-                Rebuild Climate
-            </button>
-        </div>
 
-        <div class="group">
+    <div class="group">
 
-            <label for="dateInput">
-                UTC
-            </label>
+        <button
+            id="initialiseBtn"
+            class="primary"
+        >
+            Initialise
+        </button>
 
-            <input
-                id="dateInput"
-                type="datetime-local"
-                value="2026-01-15T12:00"
-            >
-
-            <button
-                id="resetWeatherBtn"
-            >
-                Initialise
-            </button>
-
-            <button
-                id="newRunBtn"
-            >
-                New Random Run
-            </button>
-
-        </div>
-
-        <div class="group">
-
-            <label for="seedInput">
-                Seed
-            </label>
-
-            <input
-                id="seedInput"
-                type="number"
-                min="1"
-                step="1"
-            >
-
-            <button
-                id="applySeedBtn"
-            >
-                Apply
-            </button>
-
-        </div>
-
-        <div class="group">
-
-            <button
-                id="playBtn"
-            >
-                ▶ Play
-            </button>
-
-            <button
-                id="step1Btn"
-            >
-                +1 h
-            </button>
-
-            <button
-                id="step6Btn"
-            >
-                +6 h
-            </button>
-
-            <button
-                id="step24Btn"
-            >
-                +24 h
-            </button>
-
-        </div>
-
-        <div class="group">
-
-            <button
-                id="averageBtn"
-            >
-                Climatological Balance: OFF
-            </button>
-
-        </div>
-
-        <div class="group">
-
-            <button
-                class="viewBtn active"
-                data-view="temperature"
-            >
-                Temperature
-            </button>
-
-            <button
-                class="viewBtn"
-                data-view="anomaly"
-            >
-                Anomaly
-            </button>
-
-            <button
-                class="viewBtn"
-                data-view="pressure"
-            >
-                Pressure
-            </button>
-
-            <button
-                class="viewBtn"
-                data-view="wind"
-            >
-                Wind
-            </button>
-
-            <button
-                class="viewBtn"
-                data-view="cloud"
-            >
-                Cloud
-            </button>
-
-            <button
-                class="viewBtn"
-                data-view="precipitation"
-            >
-                Precipitation
-            </button>
-
-            <button
-                class="viewBtn"
-                data-view="airmass"
-            >
-                Air Mass
-            </button>
-
-        </div>
-
-        <div class="group">
-
-            <button
-                id="particlesBtn"
-                class="active"
-            >
-                Particles: ON
-            </button>
-
-        </div>
+        <button
+            id="newRunBtn"
+        >
+            New Random Run
+        </button>
 
     </div>
 
 
-    <div id="main">
+    <div class="group">
 
-        <div id="mapColumn">
+        <label for="dateInput">
+            UTC
+        </label>
 
-            <div id="mapWrap">
+        <input
+            id="dateInput"
+            type="datetime-local"
+            value="2026-01-15T12:00"
+        >
 
-                <canvas
-                    id="mapCanvas"
-                    width="780"
-                    height="440"
-                ></canvas>
+    </div>
 
-                <canvas
-                    id="particleCanvas"
-                    width="780"
-                    height="440"
-                ></canvas>
+
+    <div class="group">
+
+        <label for="seedInput">
+            Seed
+        </label>
+
+        <input
+            id="seedInput"
+            type="number"
+            min="1"
+            step="1"
+        >
+
+        <button
+            id="applySeedBtn"
+        >
+            Apply
+        </button>
+
+    </div>
+
+
+    <div class="group">
+
+        <button
+            id="playBtn"
+        >
+            ▶ Play
+        </button>
+
+        <button
+            id="step1Btn"
+        >
+            +1 h
+        </button>
+
+        <button
+            id="step6Btn"
+        >
+            +6 h
+        </button>
+
+        <button
+            id="step24Btn"
+        >
+            +24 h
+        </button>
+
+    </div>
+
+
+    <div class="group">
+
+        <button
+            id="averageBtn"
+        >
+            Climatological Balance: OFF
+        </button>
+
+    </div>
+
+
+    <div class="group">
+
+        <button
+            class="viewBtn active"
+            data-view="temperature"
+        >
+            Temperature
+        </button>
+
+        <button
+            class="viewBtn"
+            data-view="anomaly"
+        >
+            Anomaly
+        </button>
+
+        <button
+            class="viewBtn"
+            data-view="pressure"
+        >
+            Pressure
+        </button>
+
+        <button
+            class="viewBtn"
+            data-view="wind"
+        >
+            Wind
+        </button>
+
+        <button
+            class="viewBtn"
+            data-view="cloud"
+        >
+            Cloud
+        </button>
+
+        <button
+            class="viewBtn"
+            data-view="precipitation"
+        >
+            Precipitation
+        </button>
+
+        <button
+            class="viewBtn"
+            data-view="airmass"
+        >
+            Air Mass
+        </button>
+
+    </div>
+
+
+    <div class="group">
+
+        <button
+            id="particlesBtn"
+            class="active"
+        >
+            Particles: ON
+        </button>
+
+    </div>
+
+
+</div>
+
+
+<div id="main">
+
+
+    <div id="mapColumn">
+
+
+        <div id="mapWrap">
+
+
+            <canvas
+                id="mapCanvas"
+                width="780"
+                height="440"
+            ></canvas>
+
+
+            <canvas
+                id="particleCanvas"
+                width="780"
+                height="440"
+            ></canvas>
+
+
+            <div
+                id="selectionMarker"
+            ></div>
+
+
+        </div>
+
+
+        <div id="mapFooter">
+
+            Atmospheric physics:
+            195 × 110 cells.
+            Display:
+            780 × 440.
+            Click map to inspect.
+
+        </div>
+
+
+    </div>
+
+
+    <div id="side">
+
+
+        <div class="panel">
+
+
+            <h2>
+                Simulation
+            </h2>
+
+
+            <div id="status">
+                Loading engines...
+            </div>
+
+
+            <div id="performance">
+                No simulation timing yet.
+            </div>
+
+
+        </div>
+
+
+        <div class="panel">
+
+
+            <h2>
+                Selected Location
+            </h2>
+
+
+            <div id="inspector">
+
+
+                <div class="label">
+                    Latitude
+                </div>
 
                 <div
-                    id="selectionMarker"
-                ></div>
+                    id="inspectLat"
+                    class="value"
+                >
+                    —
+                </div>
+
+
+                <div class="label">
+                    Longitude
+                </div>
+
+                <div
+                    id="inspectLon"
+                    class="value"
+                >
+                    —
+                </div>
+
+
+                <div class="label">
+                    Temperature
+                </div>
+
+                <div
+                    id="inspectTemperature"
+                    class="value"
+                >
+                    —
+                </div>
+
+
+                <div class="label">
+                    Anomaly
+                </div>
+
+                <div
+                    id="inspectAnomaly"
+                    class="value"
+                >
+                    —
+                </div>
+
+
+                <div class="label">
+                    SST
+                </div>
+
+                <div
+                    id="inspectSST"
+                    class="value"
+                >
+                    —
+                </div>
+
+
+                <div class="label">
+                    Pressure
+                </div>
+
+                <div
+                    id="inspectPressure"
+                    class="value"
+                >
+                    —
+                </div>
+
+
+                <div class="label">
+                    Wind
+                </div>
+
+                <div
+                    id="inspectWind"
+                    class="value"
+                >
+                    —
+                </div>
+
+
+                <div class="label">
+                    Moisture
+                </div>
+
+                <div
+                    id="inspectMoisture"
+                    class="value"
+                >
+                    —
+                </div>
+
+
+                <div class="label">
+                    Cloud
+                </div>
+
+                <div
+                    id="inspectCloud"
+                    class="value"
+                >
+                    —
+                </div>
+
+
+                <div class="label">
+                    Precipitation
+                </div>
+
+                <div
+                    id="inspectPrecip"
+                    class="value"
+                >
+                    —
+                </div>
+
+
+                <div class="label">
+                    Air mass
+                </div>
+
+                <div
+                    id="inspectAirMass"
+                    class="value"
+                >
+                    —
+                </div>
+
 
             </div>
 
-            <div id="mapHelp">
-                Click a point to inspect the interpolated atmospheric state.
-            </div>
 
         </div>
 
 
-        <div id="side">
+        <div class="panel">
 
-            <div class="panel">
 
-                <h2>
-                    Simulation
-                </h2>
+            <h2>
+                Run Log
+            </h2>
 
-                <div id="status">
-                    Waiting for JavaScript engines.
-                </div>
 
+            <div
+                id="log"
+            >
+                No simulation initialised.
             </div>
 
 
-            <div class="panel">
+            <p class="small">
 
-                <h2>
-                    Selected Location
-                </h2>
+                Layer switching now reads the atmospheric arrays
+                directly. It does not rerun the weather simulation.
 
-                <div id="inspector">
+            </p>
 
-                    <div class="label">
-                        Latitude
-                    </div>
-                    <div
-                        class="value"
-                        id="inspectLat"
-                    >
-                        —
-                    </div>
-
-                    <div class="label">
-                        Longitude
-                    </div>
-                    <div
-                        class="value"
-                        id="inspectLon"
-                    >
-                        —
-                    </div>
-
-                    <div class="label">
-                        Temperature
-                    </div>
-                    <div
-                        class="value"
-                        id="inspectTemperature"
-                    >
-                        —
-                    </div>
-
-                    <div class="label">
-                        Anomaly
-                    </div>
-                    <div
-                        class="value"
-                        id="inspectAnomaly"
-                    >
-                        —
-                    </div>
-
-                    <div class="label">
-                        SST
-                    </div>
-                    <div
-                        class="value"
-                        id="inspectSST"
-                    >
-                        —
-                    </div>
-
-                    <div class="label">
-                        Pressure
-                    </div>
-                    <div
-                        class="value"
-                        id="inspectPressure"
-                    >
-                        —
-                    </div>
-
-                    <div class="label">
-                        Wind
-                    </div>
-                    <div
-                        class="value"
-                        id="inspectWind"
-                    >
-                        —
-                    </div>
-
-                    <div class="label">
-                        Moisture
-                    </div>
-                    <div
-                        class="value"
-                        id="inspectMoisture"
-                    >
-                        —
-                    </div>
-
-                    <div class="label">
-                        Cloud
-                    </div>
-                    <div
-                        class="value"
-                        id="inspectCloud"
-                    >
-                        —
-                    </div>
-
-                    <div class="label">
-                        Precipitation
-                    </div>
-                    <div
-                        class="value"
-                        id="inspectPrecip"
-                    >
-                        —
-                    </div>
-
-                    <div class="label">
-                        Air mass
-                    </div>
-                    <div
-                        class="value"
-                        id="inspectAirMass"
-                    >
-                        —
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <div class="panel">
-
-                <h2>
-                    Development Notes
-                </h2>
-
-                <div class="small">
-                    Atmospheric transport runs at 0.4° resolution.
-                    The display is interpolated to the 780×440 map.
-                    Temperature anomaly and moisture persist between
-                    hourly steps and are transported by the wind.
-                </div>
-
-                <h3>
-                    Current run
-                </h3>
-
-                <div id="log">
-                    No simulation initialised.
-                </div>
-
-            </div>
 
         </div>
+
 
     </div>
+
 
 </div>
 
 
 <script src="europacraft-climate-v3.js"></script>
+
 <script src="europacraft-weather-v1.js"></script>
+
 
 <script>
 
 (function () {
+
     "use strict";
+
+
+    /* ============================================================
+       DISPLAY CONSTANTS
+    ============================================================ */
+
+    var DISPLAY_WIDTH =
+        780;
+
+    var DISPLAY_HEIGHT =
+        440;
+
+
+    var WEST =
+        -26;
+
+    var EAST =
+        52;
+
+    var SOUTH =
+        30;
+
+    var NORTH =
+        74;
 
 
     /* ============================================================
        DOM
     ============================================================ */
 
-    var canvas =
+    var mapCanvas =
         document.getElementById(
             "mapCanvas"
         );
 
-    var context =
-        canvas.getContext(
-            "2d"
+    var mapContext =
+        mapCanvas.getContext(
+            "2d",
+            {
+                alpha:
+                    false
+            }
         );
+
 
     var particleCanvas =
         document.getElementById(
@@ -822,30 +972,70 @@
             "2d"
         );
 
-    var status =
+
+    var selectionMarker =
         document.getElementById(
-            "status"
+            "selectionMarker"
         );
+
 
     var dateInput =
         document.getElementById(
             "dateInput"
         );
 
+
     var seedInput =
         document.getElementById(
             "seedInput"
         );
+
+
+    var statusElement =
+        document.getElementById(
+            "status"
+        );
+
+
+    var performanceElement =
+        document.getElementById(
+            "performance"
+        );
+
 
     var logElement =
         document.getElementById(
             "log"
         );
 
-    var selectionMarker =
-        document.getElementById(
-            "selectionMarker"
+
+    /* ============================================================
+       OFFSCREEN ATMOSPHERIC CANVAS
+
+       THIS IS THE MAIN PERFORMANCE CHANGE.
+
+       Instead of rendering 780 × 440 weather samples,
+       we render only 195 × 110 pixels.
+    ============================================================ */
+
+    var atmosphereCanvas =
+        document.createElement(
+            "canvas"
         );
+
+
+    var atmosphereContext =
+        atmosphereCanvas.getContext(
+            "2d",
+            {
+                alpha:
+                    false
+            }
+        );
+
+
+    var atmosphereImage =
+        null;
 
 
     /* ============================================================
@@ -855,100 +1045,78 @@
     var world =
         null;
 
+
     var particles =
         [];
+
 
     var particlesEnabled =
         true;
 
+
     var currentView =
         "temperature";
 
-    var playing =
-        false;
-
-    var playTimer =
-        null;
 
     var selectedLatitude =
         51.5;
+
 
     var selectedLongitude =
         -0.1;
 
 
+    var playing =
+        false;
+
+
+    var playTimer =
+        null;
+
+
+    var busy =
+        false;
+
+
     /* ============================================================
-       BASIC MAP TRANSFORMS
+       ENGINE CHECK
     ============================================================ */
 
-    function lonToPixel(
-        longitude
-    ) {
+    function enginesReady() {
 
-        return (
-            (
-                longitude +
-                26
-            ) /
-            78 *
-            canvas.width
-        );
-    }
+        if (
+            !window.EuropaClimate
+        ) {
+
+            statusElement.textContent =
+                "Climate engine missing.";
+
+            return false;
+        }
 
 
-    function latToPixel(
-        latitude
-    ) {
+        if (
+            !window.EuropaWeather
+        ) {
 
-        return (
-            (
-                74 -
-                latitude
-            ) /
-            44 *
-            canvas.height
-        );
-    }
+            statusElement.textContent =
+                "Weather engine missing.";
+
+            return false;
+        }
 
 
-    function pixelToLon(
-        x
-    ) {
-
-        return (
-            -26 +
-            x /
-            canvas.width *
-            78
-        );
-    }
-
-
-    function pixelToLat(
-        y
-    ) {
-
-        return (
-            74 -
-            y /
-            canvas.height *
-            44
-        );
+        return true;
     }
 
 
     /* ============================================================
-       PLACEHOLDER SURFACE
+       SURFACE PROVIDER
 
-       This is intentionally simple so the atmosphere runs even
-       without Natural Earth fetches.
+       This remains deliberately lightweight.
 
-       EuropaClimate still provides geography-informed climate.
-
-       The rough surface function merely determines whether direct
-       SST exchange is allowed.
-
-       Replace later with your precise surface grid.
+       It can later be replaced with the exact Natural Earth /
+       EuropaCraft surface grid without changing weather physics.
     ============================================================ */
 
     function roughLandFraction(
@@ -956,9 +1124,9 @@
         longitude
     ) {
 
-        /*
-         * Atlantic west of Europe.
-         */
+
+        /* ATLANTIC */
+
         if (
             longitude <
             -11
@@ -967,9 +1135,9 @@
             return 0;
         }
 
-        /*
-         * Far northwestern ocean.
-         */
+
+        /* NORWEGIAN / GREENLAND SEAS */
+
         if (
             latitude >
             66 &&
@@ -980,65 +1148,9 @@
             return 0;
         }
 
-        /*
-         * Mediterranean broad approximation.
-         */
-        if (
-            latitude <
-            42 &&
-            longitude >
-            -5 &&
-            longitude <
-            36
-        ) {
 
-            /*
-             * Prevent whole southern Europe becoming sea by
-             * allowing coarse continental blocks.
-             */
+        /* NORTH SEA */
 
-            if (
-                longitude >
-                -1 &&
-                longitude <
-                4 &&
-                latitude >
-                36
-            ) {
-
-                return 1;
-            }
-
-            if (
-                longitude >
-                7 &&
-                longitude <
-                18 &&
-                latitude >
-                37
-            ) {
-
-                return 1;
-            }
-
-            if (
-                longitude >
-                19 &&
-                longitude <
-                29 &&
-                latitude >
-                38
-            ) {
-
-                return 1;
-            }
-
-            return 0;
-        }
-
-        /*
-         * North Sea.
-         */
         if (
             latitude >
             51 &&
@@ -1053,34 +1165,34 @@
             return 0;
         }
 
-        /*
-         * Baltic.
-         */
+
+        /* BALTIC BROAD */
+
         if (
             latitude >
-            54 &&
+            55 &&
             latitude <
             66 &&
             longitude >
-            11 &&
+            14 &&
             longitude <
             30
         ) {
 
             if (
-                latitude >
-                57 &&
                 longitude >
-                20
+                20 ||
+                latitude <
+                59
             ) {
 
                 return 0;
             }
         }
 
-        /*
-         * Black Sea.
-         */
+
+        /* BLACK SEA */
+
         if (
             latitude >
             40 &&
@@ -1095,111 +1207,210 @@
             return 0;
         }
 
+
+        /* WESTERN MEDITERRANEAN */
+
+        if (
+            latitude <
+            41 &&
+            longitude >
+            4 &&
+            longitude <
+            10
+        ) {
+
+            return 0;
+        }
+
+
+        /* CENTRAL MEDITERRANEAN */
+
+        if (
+            latitude <
+            40 &&
+            longitude >=
+            10 &&
+            longitude <
+            20
+        ) {
+
+            return 0;
+        }
+
+
+        /* EASTERN MEDITERRANEAN */
+
+        if (
+            latitude <
+            38 &&
+            longitude >=
+            20 &&
+            longitude <
+            34
+        ) {
+
+            return 0;
+        }
+
+
         return 1;
     }
 
 
     /* ============================================================
-       ENGINE CHECK
+       MAP TRANSFORMS
     ============================================================ */
 
-    function enginesReady() {
+    function lonToPixel(
+        longitude
+    ) {
 
-        if (
-            !window.EuropaClimate
-        ) {
+        return (
+            (
+                longitude -
+                WEST
+            ) /
+            (
+                EAST -
+                WEST
+            ) *
+            DISPLAY_WIDTH
+        );
+    }
 
-            status.textContent =
-                "Climate engine missing.";
 
-            return false;
-        }
+    function latToPixel(
+        latitude
+    ) {
 
-        if (
-            !window.EuropaWeather
-        ) {
+        return (
+            (
+                NORTH -
+                latitude
+            ) /
+            (
+                NORTH -
+                SOUTH
+            ) *
+            DISPLAY_HEIGHT
+        );
+    }
 
-            status.textContent =
-                "Weather engine missing.";
 
-            return false;
-        }
+    function pixelToLon(
+        x
+    ) {
 
-        return true;
+        return (
+            WEST +
+            x /
+            DISPLAY_WIDTH *
+            (
+                EAST -
+                WEST
+            )
+        );
+    }
+
+
+    function pixelToLat(
+        y
+    ) {
+
+        return (
+            NORTH -
+            y /
+            DISPLAY_HEIGHT *
+            (
+                NORTH -
+                SOUTH
+            )
+        );
     }
 
 
     /* ============================================================
-       INITIALISE
+       DATE
     ============================================================ */
 
-    function parseInputDate() {
-
-        var value =
-            dateInput.value;
+    function parseDateInput() {
 
         if (
-            !value
+            !dateInput.value
         ) {
 
             return new Date();
         }
 
-        /*
-         * Treat UI time as UTC.
-         */
+
         return new Date(
-            value +
+            dateInput.value +
             ":00Z"
         );
     }
 
 
-    function initialiseWorld() {
+    function updateDateInput() {
 
         if (
-            !enginesReady()
+            !world
         ) {
-
             return;
         }
 
-        stopPlayback();
 
-        window.EuropaWeather
-            .setSurfaceProvider(
-                roughLandFraction
-            );
-
-        var date =
-            parseInputDate();
-
-        world =
-            new window.EuropaWeather
-                .WeatherWorld(
-                    date
+        dateInput.value =
+            world.date
+                .toISOString()
+                .substring(
+                    0,
+                    16
                 );
+    }
 
-        particles =
-            window.EuropaWeather
-                .createParticles(
-                    450
-                );
 
-        seedInput.value =
-            window.EuropaWeather
-                .getSimulationSeed();
+    /* ============================================================
+       UI BUSY STATE
+    ============================================================ */
 
-        appendLog(
-            "Initialised " +
-            world.date.toISOString() +
-            "\nSeed " +
-            seedInput.value
-        );
+    function setBusy(
+        enabled
+    ) {
 
-        render();
+        busy =
+            !!enabled;
 
-        inspectSelected();
+
+        var ids = [
+
+            "initialiseBtn",
+            "newRunBtn",
+            "applySeedBtn",
+            "step1Btn",
+            "step6Btn",
+            "step24Btn",
+            "averageBtn"
+
+        ];
+
+
+        var i;
+
+
+        for (
+            i = 0;
+            i <
+            ids.length;
+            i++
+        ) {
+
+            document.getElementById(
+                ids[
+                    i
+                ]
+            ).disabled =
+                busy;
+        }
     }
 
 
@@ -1208,43 +1419,47 @@
     ============================================================ */
 
     function appendLog(
-        text
+        message
     ) {
 
-        var current =
+        var existing =
             logElement.textContent;
 
+
         if (
-            current ===
+            existing ===
             "No simulation initialised."
         ) {
 
-            current =
+            existing =
                 "";
         }
 
+
         var lines =
             (
-                current +
+                existing +
                 "\n" +
-                text
+                message
             )
             .trim()
             .split(
                 "\n"
             );
 
+
         if (
             lines.length >
-            16
+            18
         ) {
 
             lines =
                 lines.slice(
                     lines.length -
-                    16
+                    18
                 );
         }
+
 
         logElement.textContent =
             lines.join(
@@ -1254,78 +1469,329 @@
 
 
     /* ============================================================
-       COLOUR FUNCTIONS
+       INITIALISE
     ============================================================ */
 
-    function temperatureColour(
-        value
-    ) {
+    function initialiseWorld() {
 
-        var stops = [
+        if (
+            busy
+        ) {
+            return;
+        }
 
-            [-30, 32, 48, 120],
-            [-15, 70, 105, 180],
-            [-5, 125, 170, 210],
-            [0, 195, 225, 235],
-            [5, 218, 235, 210],
-            [10, 225, 230, 170],
-            [15, 238, 218, 130],
-            [20, 240, 184, 100],
-            [25, 225, 130, 75],
-            [30, 205, 78, 60],
-            [40, 155, 45, 50]
 
-        ];
+        if (
+            !enginesReady()
+        ) {
+            return;
+        }
 
-        return interpolateStops(
-            value,
-            stops
+
+        stopPlayback();
+
+
+        setBusy(
+            true
+        );
+
+
+        statusElement.textContent =
+            "Initialising atmospheric grid...";
+
+
+        /*
+         * Allow browser to paint status before heavy work.
+         */
+        setTimeout(
+            function () {
+
+                var start =
+                    performance.now();
+
+
+                window.EuropaWeather
+                    .setSurfaceProvider(
+                        roughLandFraction
+                    );
+
+
+                world =
+                    new window.EuropaWeather
+                        .WeatherWorld(
+                            parseDateInput()
+                        );
+
+
+                particles =
+                    window.EuropaWeather
+                        .createParticles(
+                            350
+                        );
+
+
+                seedInput.value =
+                    window.EuropaWeather
+                        .getSimulationSeed();
+
+
+                atmosphereCanvas.width =
+                    window.EuropaWeather
+                        .grid
+                        .width;
+
+
+                atmosphereCanvas.height =
+                    window.EuropaWeather
+                        .grid
+                        .height;
+
+
+                atmosphereImage =
+                    atmosphereContext
+                        .createImageData(
+                            atmosphereCanvas.width,
+                            atmosphereCanvas.height
+                        );
+
+
+                var elapsed =
+                    performance.now() -
+                    start;
+
+
+                appendLog(
+                    "Initialised " +
+                    world.date
+                        .toISOString()
+                        .substring(
+                            0,
+                            16
+                        ) +
+                    " | seed " +
+                    seedInput.value
+                );
+
+
+                render();
+
+
+                inspectSelected();
+
+
+                performanceElement.textContent =
+                    "Initialisation: " +
+                    elapsed.toFixed(
+                        0
+                    ) +
+                    " ms";
+
+
+                setBusy(
+                    false
+                );
+
+            },
+            20
         );
     }
 
 
-    function anomalyColour(
+    /* ============================================================
+       COLOUR HELPERS
+    ============================================================ */
+
+    function colourTemperature(
         value
     ) {
 
-        var stops = [
+        if (
+            value <=
+            -20
+        ) {
 
-            [-10, 45, 75, 170],
-            [-5, 95, 145, 210],
-            [0, 230, 230, 225],
-            [5, 220, 130, 85],
-            [10, 165, 55, 55]
-
-        ];
-
-        return interpolateStops(
-            value,
-            stops
-        );
-    }
+            return [
+                40,
+                55,
+                125
+            ];
+        }
 
 
-    function pressureColour(
-        value
-    ) {
+        if (
+            value <=
+            -10
+        ) {
 
-        var t =
-            clamp(
+            var t1 =
+                (
+                    value +
+                    20
+                ) /
+                10;
+
+            return mixColour(
+                [40,55,125],
+                [80,125,195],
+                t1
+            );
+        }
+
+
+        if (
+            value <=
+            0
+        ) {
+
+            var t2 =
+                (
+                    value +
+                    10
+                ) /
+                10;
+
+            return mixColour(
+                [80,125,195],
+                [200,225,235],
+                t2
+            );
+        }
+
+
+        if (
+            value <=
+            10
+        ) {
+
+            var t3 =
+                value /
+                10;
+
+            return mixColour(
+                [200,225,235],
+                [225,230,165],
+                t3
+            );
+        }
+
+
+        if (
+            value <=
+            20
+        ) {
+
+            var t4 =
                 (
                     value -
-                    985
+                    10
                 ) /
-                60,
-                0,
-                1
+                10;
+
+            return mixColour(
+                [225,230,165],
+                [235,180,95],
+                t4
             );
+        }
+
+
+        if (
+            value <=
+            30
+        ) {
+
+            var t5 =
+                (
+                    value -
+                    20
+                ) /
+                10;
+
+            return mixColour(
+                [235,180,95],
+                [210,90,65],
+                t5
+            );
+        }
+
+
+        return [
+            160,
+            50,
+            50
+        ];
+    }
+
+
+    function colourAnomaly(
+        value
+    ) {
+
+        value =
+            Math.max(
+                -8,
+                Math.min(
+                    8,
+                    value
+                )
+            );
+
+
+        if (
+            value <
+            0
+        ) {
+
+            return mixColour(
+                [70,110,205],
+                [230,230,225],
+                (
+                    value +
+                    8
+                ) /
+                8
+            );
+        }
+
+
+        return mixColour(
+            [230,230,225],
+            [205,75,60],
+            value /
+            8
+        );
+    }
+
+
+    function colourPressure(
+        value
+    ) {
+
+        var amount =
+            (
+                value -
+                985
+            ) /
+            60;
+
+
+        amount =
+            Math.max(
+                0,
+                Math.min(
+                    1,
+                    amount
+                )
+            );
+
 
         var shade =
             Math.round(
                 45 +
-                t *
-                190
+                amount *
+                200
             );
+
 
         return [
             shade,
@@ -1335,19 +1801,45 @@
     }
 
 
-    function cloudColour(
+    function colourWind(
+        value
+    ) {
+
+        var amount =
+            Math.min(
+                1,
+                value /
+                20
+            );
+
+
+        var shade =
+            Math.round(
+                245 -
+                amount *
+                200
+            );
+
+
+        return [
+            shade,
+            shade,
+            shade
+        ];
+    }
+
+
+    function colourCloud(
         value
     ) {
 
         var shade =
             Math.round(
-                30 +
-                (
-                    1 -
-                    value
-                ) *
-                215
+                245 -
+                value *
+                210
             );
+
 
         return [
             shade,
@@ -1357,186 +1849,139 @@
     }
 
 
-    function precipitationColour(
-        value,
+    function colourPrecipitation(
+        intensity,
         temperature
     ) {
 
         if (
-            value <
+            intensity <
             0.02
         ) {
 
             return [
-                245,
-                245,
-                245
+                246,
+                246,
+                246
             ];
         }
+
 
         if (
             temperature <=
             1.5
         ) {
 
-            var snow =
-                Math.round(
-                    245 -
-                    value *
-                    70
-                );
-
-            return [
-                snow,
-                snow,
-                255
-            ];
+            return mixColour(
+                [238,242,250],
+                [115,130,190],
+                intensity
+            );
         }
+
 
         if (
             temperature <=
             3
         ) {
 
-            return [
-                170,
-                Math.round(
-                    220 -
-                    value *
-                    60
-                ),
-                225
-            ];
+            return mixColour(
+                [235,242,242],
+                [80,165,180],
+                intensity
+            );
         }
 
-        return [
-            Math.round(
-                220 -
-                value *
-                150
-            ),
-            Math.round(
-                235 -
-                value *
-                110
-            ),
-            235
-        ];
-    }
 
-
-    function airMassColour(
-        value
-    ) {
-
-        return interpolateStops(
-            value,
-            [
-                [-1, 70, 115, 210],
-                [0, 225, 225, 220],
-                [1, 215, 95, 65]
-            ]
+        return mixColour(
+            [235,242,245],
+            [55,110,185],
+            intensity
         );
     }
 
 
-    function interpolateStops(
-        value,
-        stops
+    function colourAirMass(
+        value
     ) {
 
         if (
-            value <=
-            stops[0][0]
+            value <
+            0
         ) {
 
-            return [
-                stops[0][1],
-                stops[0][2],
-                stops[0][3]
-            ];
-        }
-
-        var i;
-
-        for (
-            i = 0;
-            i <
-            stops.length -
-            1;
-            i++
-        ) {
-
-            var a =
-                stops[i];
-
-            var b =
-                stops[
-                    i + 1
-                ];
-
-            if (
-                value <=
-                b[0]
-            ) {
-
-                var amount =
-                    (
-                        value -
-                        a[0]
-                    ) /
-                    (
-                        b[0] -
-                        a[0]
-                    );
-
-                return [
-                    Math.round(
-                        a[1] +
-                        (
-                            b[1] -
-                            a[1]
-                        ) *
-                        amount
-                    ),
-
-                    Math.round(
-                        a[2] +
-                        (
-                            b[2] -
-                            a[2]
-                        ) *
-                        amount
-                    ),
-
-                    Math.round(
-                        a[3] +
-                        (
-                            b[3] -
-                            a[3]
-                        ) *
-                        amount
-                    )
-                ];
-            }
-        }
-
-        var last =
-            stops[
-                stops.length -
+            return mixColour(
+                [65,105,205],
+                [230,230,225],
+                value +
                 1
-            ];
+            );
+        }
+
+
+        return mixColour(
+            [230,230,225],
+            [210,80,55],
+            value
+        );
+    }
+
+
+    function mixColour(
+        a,
+        b,
+        amount
+    ) {
+
+        amount =
+            Math.max(
+                0,
+                Math.min(
+                    1,
+                    amount
+                )
+            );
+
 
         return [
-            last[1],
-            last[2],
-            last[3]
+
+            Math.round(
+                a[0] +
+                (
+                    b[0] -
+                    a[0]
+                ) *
+                amount
+            ),
+
+            Math.round(
+                a[1] +
+                (
+                    b[1] -
+                    a[1]
+                ) *
+                amount
+            ),
+
+            Math.round(
+                a[2] +
+                (
+                    b[2] -
+                    a[2]
+                ) *
+                amount
+            )
+
         ];
     }
 
 
     /* ============================================================
-       RENDER WEATHER FIELD
+       OPTIMISED RENDER
+
+       Only 21,450 atmospheric cells are coloured.
+
+       NO world.sample() loop.
     ============================================================ */
 
     function render() {
@@ -1545,206 +1990,227 @@
             !world
         ) {
 
-            context.fillStyle =
-                "#cdd7dd";
+            mapContext.fillStyle =
+                "#cdd6dc";
 
-            context.fillRect(
+
+            mapContext.fillRect(
                 0,
                 0,
-                canvas.width,
-                canvas.height
+                DISPLAY_WIDTH,
+                DISPLAY_HEIGHT
             );
+
 
             clearParticles();
 
+
             updateStatus();
+
 
             return;
         }
 
-        var image =
-            context.createImageData(
-                canvas.width,
-                canvas.height
-            );
+
+        var start =
+            performance.now();
+
 
         var data =
-            image.data;
+            atmosphereImage.data;
 
-        /*
-         * Atmospheric field is sampled for each visual pixel.
 
-         * Canvas pixels correspond directly to 0.1-degree map
-         * cells:
-         * 780 × 440.
-         */
-        var px;
-        var py;
+        var count =
+            window.EuropaWeather
+                .grid
+                .cells;
+
+
+        var i;
+
 
         for (
-            py = 0;
-            py <
-            canvas.height;
-            py++
+            i = 0;
+            i <
+            count;
+            i++
         ) {
 
-            var latitude =
-                74 -
-                (
-                    py +
-                    0.5
-                ) /
-                canvas.height *
-                44;
+            var colour;
 
-            for (
-                px = 0;
-                px <
-                canvas.width;
-                px++
+
+            if (
+                currentView ===
+                "temperature"
             ) {
 
-                var longitude =
-                    -26 +
-                    (
-                        px +
-                        0.5
-                    ) /
-                    canvas.width *
-                    78;
-
-                var weather =
-                    world.sample(
-                        latitude,
-                        longitude
+                colour =
+                    colourTemperature(
+                        world.temperature[
+                            i
+                        ]
                     );
 
-                var colour;
+            } else if (
+                currentView ===
+                "anomaly"
+            ) {
 
-                if (
-                    currentView ===
-                    "temperature"
-                ) {
+                colour =
+                    colourAnomaly(
+                        world.temperatureAnomaly[
+                            i
+                        ]
+                    );
 
-                    colour =
-                        temperatureColour(
-                            weather.temperatureC
-                        );
+            } else if (
+                currentView ===
+                "pressure"
+            ) {
 
-                } else if (
-                    currentView ===
-                    "anomaly"
-                ) {
+                colour =
+                    colourPressure(
+                        world.pressure[
+                            i
+                        ]
+                    );
 
-                    colour =
-                        anomalyColour(
-                            weather.temperatureAnomalyC
-                        );
+            } else if (
+                currentView ===
+                "wind"
+            ) {
 
-                } else if (
-                    currentView ===
-                    "pressure"
-                ) {
+                colour =
+                    colourWind(
+                        world.windSpeed[
+                            i
+                        ]
+                    );
 
-                    colour =
-                        pressureColour(
-                            weather.pressureHpa
-                        );
+            } else if (
+                currentView ===
+                "cloud"
+            ) {
 
-                } else if (
-                    currentView ===
-                    "cloud"
-                ) {
+                colour =
+                    colourCloud(
+                        world.cloud[
+                            i
+                        ]
+                    );
 
-                    colour =
-                        cloudColour(
-                            weather.cloudFraction
-                        );
+            } else if (
+                currentView ===
+                "precipitation"
+            ) {
 
-                } else if (
-                    currentView ===
-                    "precipitation"
-                ) {
+                colour =
+                    colourPrecipitation(
+                        world.precipitation[
+                            i
+                        ],
+                        world.temperature[
+                            i
+                        ]
+                    );
 
-                    colour =
-                        precipitationColour(
-                            weather.precipitationIntensity,
-                            weather.temperatureC
-                        );
+            } else {
 
-                } else if (
-                    currentView ===
-                    "airmass"
-                ) {
-
-                    colour =
-                        airMassColour(
-                            weather.airMass
-                        );
-
-                } else {
-
-                    /*
-                     * Wind = grayscale by speed.
-                     */
-                    var speedShade =
-                        Math.round(
-                            245 -
-                            clamp(
-                                weather.wind.speedMs /
-                                20,
-                                0,
-                                1
-                            ) *
-                            195
-                        );
-
-                    colour = [
-                        speedShade,
-                        speedShade,
-                        speedShade
-                    ];
-                }
-
-                var offset =
-                    (
-                        py *
-                        canvas.width +
-                        px
-                    ) *
-                    4;
-
-                data[
-                    offset
-                ] =
-                    colour[0];
-
-                data[
-                    offset + 1
-                ] =
-                    colour[1];
-
-                data[
-                    offset + 2
-                ] =
-                    colour[2];
-
-                data[
-                    offset + 3
-                ] =
-                    255;
+                colour =
+                    colourAirMass(
+                        world.airMass[
+                            i
+                        ]
+                    );
             }
+
+
+            var offset =
+                i *
+                4;
+
+
+            data[
+                offset
+            ] =
+                colour[
+                    0
+                ];
+
+
+            data[
+                offset + 1
+            ] =
+                colour[
+                    1
+                ];
+
+
+            data[
+                offset + 2
+            ] =
+                colour[
+                    2
+                ];
+
+
+            data[
+                offset + 3
+            ] =
+                255;
         }
 
-        context.putImageData(
-            image,
+
+        atmosphereContext
+            .putImageData(
+                atmosphereImage,
+                0,
+                0
+            );
+
+
+        mapContext
+            .clearRect(
+                0,
+                0,
+                DISPLAY_WIDTH,
+                DISPLAY_HEIGHT
+            );
+
+
+        /*
+         * Smooth visual scaling from 195×110 to 780×440.
+         */
+        mapContext.imageSmoothingEnabled =
+            true;
+
+
+        mapContext.drawImage(
+            atmosphereCanvas,
             0,
-            0
+            0,
+            DISPLAY_WIDTH,
+            DISPLAY_HEIGHT
         );
+
 
         renderParticles();
 
+
         updateStatus();
+
+
+        var elapsed =
+            performance.now() -
+            start;
+
+
+        performanceElement.textContent =
+            "Last render: " +
+            elapsed.toFixed(
+                1
+            ) +
+            " ms";
     }
 
 
@@ -1754,18 +2220,20 @@
 
     function clearParticles() {
 
-        particleContext.clearRect(
-            0,
-            0,
-            particleCanvas.width,
-            particleCanvas.height
-        );
+        particleContext
+            .clearRect(
+                0,
+                0,
+                DISPLAY_WIDTH,
+                DISPLAY_HEIGHT
+            );
     }
 
 
     function renderParticles() {
 
         clearParticles();
+
 
         if (
             !world ||
@@ -1775,10 +2243,13 @@
             return;
         }
 
+
         particleContext.fillStyle =
-            "rgba(255,255,255,0.70)";
+            "rgba(255,255,255,0.72)";
+
 
         var i;
+
 
         for (
             i = 0;
@@ -1787,18 +2258,23 @@
             i++
         ) {
 
-            var p =
-                particles[i];
+            var particle =
+                particles[
+                    i
+                ];
+
 
             var x =
                 lonToPixel(
-                    p.lon
+                    particle.lon
                 );
+
 
             var y =
                 latToPixel(
-                    p.lat
+                    particle.lat
                 );
+
 
             particleContext.fillRect(
                 x,
@@ -1807,76 +2283,6 @@
                 2
             );
         }
-    }
-
-
-    /* ============================================================
-       STATUS
-    ============================================================ */
-
-    function updateStatus() {
-
-        if (
-            !enginesReady()
-        ) {
-
-            return;
-        }
-
-        var text =
-            "Climate: Loaded";
-
-        text +=
-            "<br>Weather: " +
-            window.EuropaWeather.version;
-
-        text +=
-            "<br>Atmosphere: " +
-            window.EuropaWeather.grid.width +
-            " × " +
-            window.EuropaWeather.grid.height +
-            " (" +
-            window.EuropaWeather.grid.cells.toLocaleString() +
-            " persistent cells)";
-
-        text +=
-            "<br>Seed: " +
-            window.EuropaWeather.getSimulationSeed();
-
-        if (
-            world
-        ) {
-
-            text +=
-                "<br>Simulation UTC: " +
-                world.date
-                    .toISOString()
-                    .replace(
-                        "T",
-                        " "
-                    )
-                    .substring(
-                        0,
-                        16
-                    );
-
-            text +=
-                "<br>Elapsed: " +
-                world.hoursElapsed +
-                " h";
-        }
-
-        text +=
-            "<br>Mode: " +
-            (
-                window.EuropaWeather
-                    .getClimatologicalMode()
-                    ? "CLIMATOLOGICAL BALANCE"
-                    : "EVOLVING WEATHER"
-            );
-
-        status.innerHTML =
-            text;
     }
 
 
@@ -1893,11 +2299,13 @@
             return;
         }
 
+
         var weather =
             world.sample(
                 selectedLatitude,
                 selectedLongitude
             );
+
 
         document.getElementById(
             "inspectLat"
@@ -1907,6 +2315,7 @@
             ) +
             "°";
 
+
         document.getElementById(
             "inspectLon"
         ).textContent =
@@ -1915,6 +2324,7 @@
             ) +
             "°";
 
+
         document.getElementById(
             "inspectTemperature"
         ).textContent =
@@ -1922,6 +2332,7 @@
                 1
             ) +
             " °C";
+
 
         document.getElementById(
             "inspectAnomaly"
@@ -1937,6 +2348,7 @@
             ) +
             " °C";
 
+
         document.getElementById(
             "inspectSST"
         ).textContent =
@@ -1945,6 +2357,7 @@
             ) +
             " °C";
 
+
         document.getElementById(
             "inspectPressure"
         ).textContent =
@@ -1952,6 +2365,7 @@
                 1
             ) +
             " hPa";
+
 
         document.getElementById(
             "inspectWind"
@@ -1965,6 +2379,7 @@
             ) +
             "°";
 
+
         document.getElementById(
             "inspectMoisture"
         ).textContent =
@@ -1976,6 +2391,7 @@
             ) +
             "%";
 
+
         document.getElementById(
             "inspectCloud"
         ).textContent =
@@ -1986,6 +2402,7 @@
                 0
             ) +
             "%";
+
 
         document.getElementById(
             "inspectPrecip"
@@ -2000,15 +2417,17 @@
             ) +
             "%";
 
-        var airMassDescription =
+
+        var airMass =
             "neutral";
+
 
         if (
             weather.airMass <
             -0.35
         ) {
 
-            airMassDescription =
+            airMass =
                 "cold-origin";
 
         } else if (
@@ -2016,14 +2435,15 @@
             0.35
         ) {
 
-            airMassDescription =
+            airMass =
                 "warm-origin";
         }
+
 
         document.getElementById(
             "inspectAirMass"
         ).textContent =
-            airMassDescription +
+            airMass +
             " (" +
             weather.airMass.toFixed(
                 2
@@ -2033,7 +2453,90 @@
 
 
     /* ============================================================
-       STEP
+       STATUS
+    ============================================================ */
+
+    function updateStatus() {
+
+        if (
+            !enginesReady()
+        ) {
+
+            return;
+        }
+
+
+        var html =
+            "Climate: Loaded";
+
+
+        html +=
+            "<br>Weather: " +
+            window.EuropaWeather.version;
+
+
+        html +=
+            "<br>Atmosphere: " +
+            window.EuropaWeather.grid.width +
+            " × " +
+            window.EuropaWeather.grid.height +
+            " (" +
+            window.EuropaWeather.grid.cells.toLocaleString() +
+            " cells)";
+
+
+        html +=
+            "<br>Seed: " +
+            window.EuropaWeather
+                .getSimulationSeed();
+
+
+        if (
+            world
+        ) {
+
+            html +=
+                "<br>UTC: " +
+                world.date
+                    .toISOString()
+                    .replace(
+                        "T",
+                        " "
+                    )
+                    .substring(
+                        0,
+                        16
+                    );
+
+
+            html +=
+                "<br>Elapsed: " +
+                world.hoursElapsed +
+                " h";
+        }
+
+
+        html +=
+            "<br>Mode: " +
+            (
+                window.EuropaWeather
+                    .getClimatologicalMode()
+                    ? "CLIMATOLOGICAL BALANCE"
+                    : "EVOLVING WEATHER"
+            );
+
+
+        statusElement.innerHTML =
+            html;
+    }
+
+
+    /* ============================================================
+       STEP WEATHER
+
+       Multi-hour simulation runs all physics first.
+
+       Only ONE render happens afterwards.
     ============================================================ */
 
     function stepWeather(
@@ -2041,61 +2544,118 @@
     ) {
 
         if (
+            busy
+        ) {
+            return;
+        }
+
+
+        if (
             !world
         ) {
 
             initialiseWorld();
 
-            if (
-                !world
-            ) {
-
-                return;
-            }
+            return;
         }
 
+
         var count =
-            Math.max(
-                1,
-                Math.floor(
+            Math.floor(
+                Number(
                     hours
                 )
             );
 
-        world.step(
-            count
+
+        if (
+            !isFinite(
+                count
+            ) ||
+            count <
+            1
+        ) {
+
+            count = 1;
+        }
+
+
+        setBusy(
+            true
         );
 
-        window.EuropaWeather
-            .moveParticles(
-                particles,
-                world,
-                count
-            );
 
-        dateInput.value =
-            world.date
-                .toISOString()
-                .substring(
-                    0,
-                    16
+        var start =
+            performance.now();
+
+
+        setTimeout(
+            function () {
+
+
+                world.step(
+                    count
                 );
 
-        appendLog(
-            "+" +
-            count +
-            " h → " +
-            world.date
-                .toISOString()
-                .substring(
-                    0,
-                    16
-                )
+
+                window.EuropaWeather
+                    .moveParticles(
+                        particles,
+                        world,
+                        count
+                    );
+
+
+                updateDateInput();
+
+
+                var physicsElapsed =
+                    performance.now() -
+                    start;
+
+
+                render();
+
+
+                inspectSelected();
+
+
+                performanceElement.textContent =
+                    "+" +
+                    count +
+                    " h physics: " +
+                    physicsElapsed.toFixed(
+                        0
+                    ) +
+                    " ms";
+
+
+                appendLog(
+                    "+" +
+                    count +
+                    " h → " +
+                    world.date
+                        .toISOString()
+                        .substring(
+                            0,
+                            16
+                        ) +
+                    " | " +
+                    physicsElapsed.toFixed(
+                        0
+                    ) +
+                    " ms"
+                );
+
+
+                setBusy(
+                    false
+                );
+
+
+            },
+            10
         );
-
-        render();
-
-        inspectSelected();
     }
 
 
@@ -2106,47 +2666,49 @@
     function startPlayback() {
 
         if (
-            playing
+            playing ||
+            busy
         ) {
 
             return;
         }
+
 
         if (
             !world
         ) {
 
             initialiseWorld();
-        }
-
-        if (
-            !world
-        ) {
 
             return;
         }
 
+
         playing =
             true;
+
 
         document.getElementById(
             "playBtn"
         ).textContent =
             "⏸ Pause";
 
-        /*
-         * One simulation hour every 400 ms.
-         */
+
         playTimer =
             setInterval(
                 function () {
 
-                    stepWeather(
-                        1
-                    );
+                    if (
+                        !busy
+                    ) {
+
+                        stepWeather(
+                            1
+                        );
+                    }
 
                 },
-                400
+                650
             );
     }
 
@@ -2156,6 +2718,7 @@
         playing =
             false;
 
+
         if (
             playTimer
         ) {
@@ -2164,9 +2727,11 @@
                 playTimer
             );
 
+
             playTimer =
                 null;
         }
+
 
         document.getElementById(
             "playBtn"
@@ -2191,24 +2756,36 @@
 
 
     /* ============================================================
-       REROLL
+       RANDOM RUN
     ============================================================ */
 
     function newRandomRun() {
 
+        if (
+            busy
+        ) {
+
+            return;
+        }
+
+
         stopPlayback();
+
 
         var seed =
             window.EuropaWeather
                 .rerollWeather();
 
+
         seedInput.value =
             seed;
 
+
         appendLog(
-            "New random seed: " +
+            "New seed: " +
             seed
         );
+
 
         initialiseWorld();
     }
@@ -2216,78 +2793,99 @@
 
     function applySeed() {
 
+        if (
+            busy
+        ) {
+
+            return;
+        }
+
+
         stopPlayback();
 
-        var seed =
-            Number(
-                seedInput.value
-            );
 
-        var applied =
+        var seed =
             window.EuropaWeather
                 .setSimulationSeed(
-                    seed
+                    seedInput.value
                 );
 
+
         seedInput.value =
-            applied;
+            seed;
+
 
         appendLog(
             "Applied seed: " +
-            applied
+            seed
         );
+
 
         initialiseWorld();
     }
 
 
     /* ============================================================
-       CLIMATOLOGICAL BALANCE MODE
+       CLIMATOLOGICAL BALANCE
     ============================================================ */
 
     function toggleAverageMode() {
 
+        if (
+            busy
+        ) {
+
+            return;
+        }
+
+
         stopPlayback();
 
-        var button =
-            document.getElementById(
-                "averageBtn"
-            );
-
-        var current =
-            window.EuropaWeather
-                .getClimatologicalMode();
 
         var next =
-            !current;
+            !window.EuropaWeather
+                .getClimatologicalMode();
+
 
         window.EuropaWeather
             .setClimatologicalMode(
                 next
             );
 
+
+        var button =
+            document.getElementById(
+                "averageBtn"
+            );
+
+
         button.textContent =
             next
                 ? "Climatological Balance: ON"
                 : "Climatological Balance: OFF";
+
 
         button.classList.toggle(
             "active",
             next
         );
 
+
         appendLog(
             next
-                ? "Climatological balancing mode enabled."
-                : "Returned to evolving weather mode."
+                ? "Climatological balance enabled."
+                : "Evolving weather enabled."
         );
+
 
         initialiseWorld();
     }
 
 
     /* ============================================================
-       VIEW
+       CHANGE VIEW
+
+       This should now feel immediate.
     ============================================================ */
 
     function setView(
@@ -2297,12 +2895,15 @@
         currentView =
             view;
 
+
         var buttons =
             document.querySelectorAll(
                 ".viewBtn"
             );
 
+
         var i;
+
 
         for (
             i = 0;
@@ -2311,40 +2912,30 @@
             i++
         ) {
 
-            buttons[i]
-                .classList
-                .toggle(
-                    "active",
-                    buttons[i]
-                        .getAttribute(
-                            "data-view"
-                        ) ===
-                        view
-                );
+            buttons[
+                i
+            ].classList.toggle(
+                "active",
+                buttons[
+                    i
+                ].getAttribute(
+                    "data-view"
+                ) ===
+                view
+            );
         }
+
 
         render();
     }
 
 
     /* ============================================================
-       EVENT LISTENERS
+       EVENTS
     ============================================================ */
 
     document.getElementById(
-        "buildClimateBtn"
-    ).addEventListener(
-        "click",
-        function () {
-
-            initialiseWorld();
-
-        }
-    );
-
-
-    document.getElementById(
-        "resetWeatherBtn"
+        "initialiseBtn"
     ).addEventListener(
         "click",
         initialiseWorld
@@ -2384,7 +2975,6 @@
             stepWeather(
                 1
             );
-
         }
     );
 
@@ -2398,7 +2988,6 @@
             stepWeather(
                 6
             );
-
         }
     );
 
@@ -2412,7 +3001,6 @@
             stepWeather(
                 24
             );
-
         }
     );
 
@@ -2434,18 +3022,20 @@
             particlesEnabled =
                 !particlesEnabled;
 
+
             this.textContent =
                 particlesEnabled
                     ? "Particles: ON"
                     : "Particles: OFF";
+
 
             this.classList.toggle(
                 "active",
                 particlesEnabled
             );
 
-            renderParticles();
 
+            renderParticles();
         }
     );
 
@@ -2455,17 +3045,19 @@
             ".viewBtn"
         );
 
-    var viewIndex;
+
+    var i;
+
 
     for (
-        viewIndex = 0;
-        viewIndex <
+        i = 0;
+        i <
         viewButtons.length;
-        viewIndex++
+        i++
     ) {
 
         viewButtons[
-            viewIndex
+            i
         ].addEventListener(
             "click",
             function () {
@@ -2475,66 +3067,86 @@
                         "data-view"
                     )
                 );
-
             }
         );
     }
 
 
-    canvas.addEventListener(
+    mapCanvas.addEventListener(
         "click",
         function (
             event
         ) {
 
-            var rect =
-                canvas.getBoundingClientRect();
+            if (
+                !world
+            ) {
+
+                return;
+            }
+
+
+            var rectangle =
+                mapCanvas
+                    .getBoundingClientRect();
+
 
             var x =
                 (
                     event.clientX -
-                    rect.left
+                    rectangle.left
                 ) /
-                rect.width *
-                canvas.width;
+                rectangle.width *
+                DISPLAY_WIDTH;
+
 
             var y =
                 (
                     event.clientY -
-                    rect.top
+                    rectangle.top
                 ) /
-                rect.height *
-                canvas.height;
+                rectangle.height *
+                DISPLAY_HEIGHT;
+
 
             selectedLongitude =
                 pixelToLon(
                     x
                 );
 
+
             selectedLatitude =
                 pixelToLat(
                     y
                 );
 
+
             selectionMarker.style.left =
                 x +
                 "px";
+
 
             selectionMarker.style.top =
                 y +
                 "px";
 
+
             selectionMarker.style.display =
                 "block";
 
-            inspectSelected();
 
+            inspectSelected();
         }
     );
 
 
     /* ============================================================
        INITIAL PAGE
+
+       IMPORTANT:
+       No weather world is created automatically.
+
+       This means the page itself should load quickly.
     ============================================================ */
 
     if (
@@ -2545,37 +3157,47 @@
             window.EuropaWeather
                 .getSimulationSeed();
 
-        status.innerHTML =
+
+        statusElement.innerHTML =
             "Climate: Loaded" +
             "<br>Weather: " +
             window.EuropaWeather.version +
-            "<br>Press Initialise to create the atmospheric state.";
+            "<br>Press Initialise.";
 
-        context.fillStyle =
-            "#cdd7dd";
 
-        context.fillRect(
+        mapContext.fillStyle =
+            "#cdd6dc";
+
+
+        mapContext.fillRect(
             0,
             0,
-            canvas.width,
-            canvas.height
+            DISPLAY_WIDTH,
+            DISPLAY_HEIGHT
         );
+
 
     } else {
 
-        context.fillStyle =
-            "#d8dde0";
 
-        context.fillRect(
+        mapContext.fillStyle =
+            "#d9dde0";
+
+
+        mapContext.fillRect(
             0,
             0,
-            canvas.width,
-            canvas.height
+            DISPLAY_WIDTH,
+            DISPLAY_HEIGHT
         );
     }
 
+
 })();
+
 </script>
 
+
 </body>
+
 </html>
