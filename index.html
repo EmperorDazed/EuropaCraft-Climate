@@ -1,10 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>EuropaCraft Climate System</title>
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
+
+<title>
+EuropaCraft Climate and Weather System
+</title>
+
 
 <style>
 
@@ -12,721 +21,980 @@
     box-sizing: border-box;
 }
 
+
+html,
 body {
     margin: 0;
-    font-family: Arial, Helvetica, sans-serif;
-    background: #f3f5f7;
-    color: #202830;
+    padding: 0;
 }
+
+
+body {
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    background:
+        #f1f3f5;
+
+    color:
+        #202830;
+
+}
+
 
 header {
-    background: white;
-    border-bottom: 1px solid #d5dbe0;
-    padding: 18px 26px;
+
+    background:
+        white;
+
+    border-bottom:
+        1px solid #ccd3d9;
+
+    padding:
+        17px 22px;
+
 }
+
 
 header h1 {
-    margin: 0 0 4px;
-    font-size: 26px;
+
+    margin:
+        0 0 4px 0;
+
+    font-size:
+        25px;
+
 }
+
 
 header p {
-    margin: 0;
-    color: #5f6973;
+
+    margin:
+        0;
+
+    color:
+        #65717b;
+
+    font-size:
+        13px;
+
 }
+
 
 .status-bar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-    padding: 11px 26px;
-    background: #e8ecef;
-    border-bottom: 1px solid #d2d8dd;
-    font-size: 13px;
+
+    display:
+        flex;
+
+    flex-wrap:
+        wrap;
+
+    gap:
+        15px;
+
+    padding:
+        10px 22px;
+
+    background:
+        #e3e8ec;
+
+    border-bottom:
+        1px solid #ccd3d9;
+
+    font-size:
+        12px;
+
 }
+
 
 .layout {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 400px;
-    gap: 18px;
-    max-width: 1750px;
-    margin: 0 auto;
-    padding: 18px;
+
+    display:
+        grid;
+
+    grid-template-columns:
+        minmax(0, 1fr)
+        390px;
+
+    gap:
+        16px;
+
+    max-width:
+        1700px;
+
+    margin:
+        0 auto;
+
+    padding:
+        16px;
+
 }
 
-.map-panel,
-.sidebar {
-    background: white;
-    border: 1px solid #d8dde2;
-    border-radius: 8px;
+
+.panel {
+
+    background:
+        white;
+
+    border:
+        1px solid #d5dbe0;
+
+    border-radius:
+        7px;
+
 }
+
 
 .map-panel {
-    min-width: 0;
-    overflow: hidden;
+
+    overflow:
+        hidden;
+
+    min-width:
+        0;
+
 }
 
-.map-toolbar {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 11px 13px;
-    border-bottom: 1px solid #dde2e6;
+
+.toolbar {
+
+    display:
+        flex;
+
+    flex-wrap:
+        wrap;
+
+    gap:
+        8px;
+
+    align-items:
+        center;
+
+    padding:
+        10px;
+
+    border-bottom:
+        1px solid #dce1e5;
+
 }
+
 
 .toolbar-group {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px;
+
+    display:
+        flex;
+
+    flex-wrap:
+        wrap;
+
+    gap:
+        5px;
+
+    align-items:
+        center;
+
 }
+
 
 .toolbar-label {
-    color: #66717b;
-    font-size: 12px;
+
+    font-size:
+        11px;
+
+    color:
+        #6b7680;
+
+    margin-right:
+        2px;
+
 }
+
 
 button {
-    border: 1px solid #b7c0c8;
-    background: white;
-    padding: 8px 11px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 13px;
+
+    min-height:
+        36px;
+
+    padding:
+        7px 10px;
+
+    border:
+        1px solid #b9c2c9;
+
+    border-radius:
+        5px;
+
+    background:
+        white;
+
+    color:
+        #202830;
+
+    cursor:
+        pointer;
+
 }
 
+
 button:hover {
-    background: #f0f2f4;
+
+    background:
+        #edf0f2;
+
 }
+
 
 button.active,
 button.primary {
-    background: #202830;
-    border-color: #202830;
-    color: white;
+
+    background:
+        #202830;
+
+    border-color:
+        #202830;
+
+    color:
+        white;
+
 }
 
-button.danger {
-    color: #992b2b;
-}
 
 button:disabled {
-    opacity: 0.45;
-    cursor: default;
+
+    opacity:
+        0.45;
+
+    cursor:
+        default;
+
 }
+
+
+select,
+input {
+
+    width:
+        100%;
+
+    min-height:
+        38px;
+
+    padding:
+        7px 8px;
+
+    border:
+        1px solid #bdc6cd;
+
+    border-radius:
+        5px;
+
+    background:
+        white;
+
+    font-size:
+        14px;
+
+}
+
 
 .map-scroll {
-    overflow: auto;
-    max-height: 720px;
-    background: #dde2e6;
+
+    overflow:
+        auto;
+
+    max-height:
+        730px;
+
+    background:
+        #d9dfe3;
+
 }
 
-#gridStage {
-    position: relative;
-    width: 780px;
-    height: 440px;
+
+#mapStage {
+
+    position:
+        relative;
+
+    width:
+        780px;
+
+    height:
+        440px;
+
 }
+
 
 #climateCanvas {
-    display: block;
-    width: 780px;
-    height: 440px;
-    image-rendering: pixelated;
-    cursor: crosshair;
-    user-select: none;
+
+    display:
+        block;
+
+    width:
+        780px;
+
+    height:
+        440px;
+
+    image-rendering:
+        pixelated;
+
+    cursor:
+        crosshair;
+
 }
+
 
 #selectionBox {
-    display: none;
-    position: absolute;
-    pointer-events: none;
-    border: 2px solid white;
-    box-shadow: 0 0 0 1px black;
-    z-index: 5;
+
+    position:
+        absolute;
+
+    display:
+        none;
+
+    width:
+        1px;
+
+    height:
+        1px;
+
+    pointer-events:
+        none;
+
+    border:
+        1px solid white;
+
+    box-shadow:
+        0 0 0 1px black;
+
 }
+
 
 .map-footer {
-    padding: 10px 13px;
-    border-top: 1px solid #dde2e6;
-    color: #5f6973;
-    font-size: 13px;
-    line-height: 1.55;
+
+    padding:
+        9px 11px;
+
+    border-top:
+        1px solid #dce1e5;
+
+    font-size:
+        12px;
+
+    color:
+        #647079;
+
+    line-height:
+        1.45;
+
 }
+
 
 .sidebar {
-    padding: 16px;
-    align-self: start;
+
+    padding:
+        14px;
+
+    align-self:
+        start;
+
 }
+
 
 .section {
-    padding-bottom: 16px;
-    margin-bottom: 16px;
-    border-bottom: 1px solid #e1e5e8;
+
+    padding-bottom:
+        14px;
+
+    margin-bottom:
+        14px;
+
+    border-bottom:
+        1px solid #e0e4e7;
+
 }
+
 
 .section:last-child {
-    margin-bottom: 0;
-    border-bottom: 0;
+
+    border-bottom:
+        0;
+
+    margin-bottom:
+        0;
+
 }
 
-.section h2,
-.section h3 {
-    margin: 0 0 8px;
-}
 
 .section h2 {
-    font-size: 18px;
+
+    font-size:
+        17px;
+
+    margin:
+        0 0 8px 0;
+
 }
+
 
 .section h3 {
-    font-size: 15px;
+
+    font-size:
+        14px;
+
+    margin:
+        0 0 8px 0;
+
 }
+
 
 .hint {
-    color: #66717b;
-    font-size: 13px;
-    line-height: 1.45;
-    margin-bottom: 10px;
+
+    font-size:
+        12px;
+
+    color:
+        #68737c;
+
+    line-height:
+        1.45;
+
+    margin-bottom:
+        9px;
+
 }
 
-.coordinate-box {
-    padding: 10px;
-    background: #f0f3f5;
-    border-radius: 6px;
-    margin-bottom: 10px;
-}
-
-.coordinate-main {
-    font-size: 19px;
-    font-weight: bold;
-    margin-bottom: 4px;
-}
-
-.coordinate-sub {
-    color: #5f6973;
-    font-size: 12px;
-    line-height: 1.45;
-}
-
-.surface-box {
-    padding: 9px;
-    margin-bottom: 9px;
-    border-radius: 6px;
-    text-align: center;
-    font-size: 16px;
-    font-weight: bold;
-}
-
-.details {
-    font-size: 12px;
-    line-height: 1.7;
-}
-
-.detail-row {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-}
-
-.detail-row span:first-child {
-    color: #68727b;
-}
-
-.detail-row span:last-child {
-    text-align: right;
-    font-weight: bold;
-}
-
-.regional-heading {
-    margin-top: 13px;
-    padding-top: 11px;
-    border-top: 1px solid #dde2e6;
-}
-
-.region-dominant {
-    padding: 8px 9px;
-    border-radius: 5px;
-    background: #f0f3f5;
-    margin-bottom: 7px;
-    font-size: 12px;
-}
-
-.region-equation {
-    padding: 7px 9px;
-    margin-bottom: 8px;
-    border-radius: 5px;
-    background: #eef1f3;
-    font-size: 12px;
-    font-weight: bold;
-    text-align: center;
-}
-
-.region-summary {
-    max-height: 190px;
-    overflow-y: auto;
-    padding-right: 3px;
-}
-
-.region-empty {
-    color: #68727b;
-    font-size: 12px;
-    padding: 5px 0;
-}
-
-.region-row {
-    margin-bottom: 6px;
-}
-
-.region-row-top {
-    display: flex;
-    justify-content: space-between;
-    gap: 8px;
-    font-size: 11px;
-    margin-bottom: 2px;
-}
-
-.region-name {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.region-value {
-    font-weight: bold;
-}
-
-.region-track {
-    height: 6px;
-    background: #e3e6e8;
-    border-radius: 4px;
-    overflow: hidden;
-}
-
-.region-fill {
-    height: 100%;
-}
-
-.region-totals {
-    margin-top: 8px;
-    padding-top: 7px;
-    border-top: 1px solid #cfd5da;
-}
-
-.region-total-row {
-    display: flex;
-    justify-content: space-between;
-    gap: 10px;
-    font-size: 12px;
-    margin: 4px 0;
-}
-
-.region-total-row.grand {
-    border-top: 2px solid #303941;
-    padding-top: 7px;
-    margin-top: 7px;
-    font-size: 14px;
-    font-weight: bold;
-}
 
 .field {
-    margin-bottom: 11px;
+
+    margin-bottom:
+        10px;
+
 }
+
 
 .field label {
-    display: block;
-    font-size: 13px;
-    font-weight: bold;
-    margin-bottom: 5px;
+
+    display:
+        block;
+
+    margin-bottom:
+        4px;
+
+    font-size:
+        12px;
+
+    font-weight:
+        bold;
+
 }
 
-input,
-select {
-    width: 100%;
-    min-height: 39px;
-    padding: 8px 9px;
-    border: 1px solid #bcc5cc;
-    border-radius: 5px;
-    background: white;
-    font-size: 15px;
+
+.coordinate-box {
+
+    background:
+        #eef1f3;
+
+    padding:
+        9px;
+
+    border-radius:
+        5px;
+
+    margin-bottom:
+        8px;
+
 }
 
-.editor-panel {
-    display: none;
+
+.coordinate-main {
+
+    font-size:
+        18px;
+
+    font-weight:
+        bold;
+
 }
 
-.editor-panel.active {
-    display: block;
+
+.coordinate-sub {
+
+    margin-top:
+        3px;
+
+    color:
+        #69747d;
+
+    font-size:
+        11px;
+
 }
 
-.brush-preview {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 9px;
-    background: #f1f3f5;
-    border-radius: 6px;
-    margin-bottom: 11px;
+
+.details {
+
+    font-size:
+        12px;
+
 }
 
-.brush-colour {
-    width: 34px;
-    height: 34px;
-    border-radius: 5px;
-    border: 1px solid rgba(0,0,0,0.2);
-    flex: 0 0 auto;
+
+.detail-row {
+
+    display:
+        flex;
+
+    justify-content:
+        space-between;
+
+    gap:
+        12px;
+
+    padding:
+        3px 0;
+
 }
 
-.brush-name {
-    font-size: 14px;
-    font-weight: bold;
+
+.detail-row span:first-child {
+
+    color:
+        #68737c;
+
 }
 
-.brush-description {
-    margin-top: 2px;
-    color: #65707a;
-    font-size: 12px;
-    line-height: 1.35;
+
+.detail-row span:last-child {
+
+    text-align:
+        right;
+
+    font-weight:
+        bold;
+
 }
 
-.visual-note {
-    margin-bottom: 11px;
-    padding: 9px;
-    border-radius: 6px;
-    background: #eef1f3;
-    color: #56616a;
-    font-size: 12px;
-    line-height: 1.45;
+
+.climate-list {
+
+    margin-top:
+        9px;
+
 }
 
-.mask-box {
-    padding: 9px;
-    margin-bottom: 11px;
-    border: 1px solid #ccd3d9;
-    border-radius: 6px;
-    background: #f6f7f8;
+
+.climate-row {
+
+    margin-bottom:
+        6px;
+
 }
 
-.mask-box.active-mask {
-    border: 2px solid #303941;
-    background: #eef1f3;
+
+.climate-row-top {
+
+    display:
+        flex;
+
+    justify-content:
+        space-between;
+
+    gap:
+        10px;
+
+    font-size:
+        11px;
+
+    margin-bottom:
+        2px;
+
 }
 
-.mask-title {
-    font-size: 13px;
-    font-weight: bold;
-    margin-bottom: 4px;
+
+.climate-track {
+
+    height:
+        6px;
+
+    background:
+        #e5e8ea;
+
+    overflow:
+        hidden;
+
+    border-radius:
+        3px;
+
 }
 
-.mask-description {
-    font-size: 12px;
-    color: #606b74;
-    line-height: 1.4;
+
+.climate-fill {
+
+    height:
+        100%;
+
 }
 
-.button-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 7px;
-    margin-top: 9px;
+
+.weather-box {
+
+    padding:
+        9px;
+
+    margin-top:
+        9px;
+
+    border-radius:
+        5px;
+
+    background:
+        #eef1f3;
+
 }
 
-.button-row {
-    display: flex;
-    gap: 7px;
-    margin-top: 10px;
+
+.weather-main {
+
+    font-size:
+        17px;
+
+    font-weight:
+        bold;
+
+    margin-bottom:
+        5px;
+
 }
 
-.button-row button {
-    flex: 1;
+
+.progress {
+
+    margin-top:
+        8px;
+
+    padding:
+        8px;
+
+    background:
+        #eef1f3;
+
+    border-radius:
+        5px;
+
+    font-size:
+        12px;
+
+    line-height:
+        1.4;
+
 }
 
-.save-status {
-    margin-top: 9px;
-    padding: 8px 9px;
-    background: #f1f3f5;
-    border-radius: 5px;
-    color: #59646d;
-    font-size: 12px;
-    line-height: 1.4;
+
+.legend {
+
+    display:
+        grid;
+
+    grid-template-columns:
+        1fr 1fr;
+
+    gap:
+        4px;
+
+    margin-top:
+        8px;
+
 }
 
-.palette {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 5px;
-    margin-top: 9px;
+
+.legend-item {
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    gap:
+        5px;
+
+    font-size:
+        10px;
+
 }
 
-.palette-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    border: 1px solid #d5dadd;
-    border-radius: 5px;
-    padding: 5px;
-    font-size: 10px;
+
+.legend-colour {
+
+    width:
+        13px;
+
+    height:
+        13px;
+
+    flex:
+        0 0 auto;
+
+    border:
+        1px solid rgba(0,0,0,0.12);
+
 }
 
-.palette-colour {
-    width: 14px;
-    height: 14px;
-    border-radius: 2px;
-    border: 1px solid rgba(0,0,0,0.15);
-    flex: 0 0 auto;
-}
-
-.weather-state {
-    margin: 12px 0;
-    padding: 10px;
-    border-radius: 6px;
-    background: #f0f3f5;
-}
-
-.weather-state .label {
-    margin-bottom: 5px;
-    color: #67727b;
-    font-size: 11px;
-    text-transform: uppercase;
-}
-
-#stateOutput {
-    font-family: Consolas, "Courier New", monospace;
-    font-weight: bold;
-    font-size: 16px;
-    word-break: break-all;
-}
 
 .warning {
-    min-height: 17px;
-    margin-top: 7px;
-    color: #9b381e;
-    font-size: 12px;
-    line-height: 1.4;
+
+    color:
+        #9a3d27;
+
+    font-size:
+        11px;
+
+    line-height:
+        1.4;
+
+    margin-top:
+        7px;
+
 }
 
-kbd {
-    display: inline-block;
-    padding: 2px 5px;
-    border: 1px solid #aeb6bd;
-    border-bottom-width: 2px;
-    border-radius: 4px;
-    background: white;
-    font-size: 11px;
-    font-weight: bold;
-}
 
-@media (max-width: 900px) {
+@media (
+    max-width:
+    900px
+) {
 
     .layout {
-        grid-template-columns: 1fr;
+
+        grid-template-columns:
+            1fr;
+
     }
+
 
     .sidebar {
-        order: -1;
+
+        order:
+            -1;
+
     }
 
-    .map-scroll {
-        max-height: 520px;
-    }
 }
 
 </style>
+
 </head>
+
 
 <body>
 
+
 <header>
 
-    <h1>EuropaCraft Climate System</h1>
+<h1>
+EuropaCraft Climate and Weather System
+</h1>
 
-    <p>
-        Physical surface, regional influence and weather editor
-    </p>
+<p>
+0.1° physical climate field, regional differentiation and dynamic weather prototype
+</p>
 
 </header>
 
 
 <div class="status-bar">
 
-    <span>
-        <strong>Scale:</strong>
-        1:116
-    </span>
+<span>
+<strong>Bounds:</strong>
+26°W–52°E / 30°N–74°N
+</span>
 
-    <span>
-        <strong>Grid:</strong>
-        780 × 440
-    </span>
+<span>
+<strong>Grid:</strong>
+780 × 440
+</span>
 
-    <span>
-        <strong>Cells:</strong>
-        343,200
-    </span>
+<span>
+<strong>Cells:</strong>
+343,200
+</span>
 
-    <span>
-        <strong>Cell:</strong>
-        0.1°
-    </span>
+<span>
+<strong>Resolution:</strong>
+0.1°
+</span>
 
-    <span>
-        <strong>Cell size:</strong>
-        96 × 96 blocks
-    </span>
+<span>
+<strong>Climate:</strong>
+<span id="climateStatus">
+Waiting
+</span>
+</span>
 
-    <span>
-        <strong>Regional precision:</strong>
-        0.1%
-    </span>
-
-    <span>
-        <strong>Total:</strong>
-        exactly 100.0%
-    </span>
-
-    <span>
-        <strong>Display:</strong>
-        low % enhanced
-    </span>
-
-    <span>
-        <strong>Storage:</strong>
-        <span id="topSaveStatus">
-            Starting...
-        </span>
-    </span>
+<span>
+<strong>Weather:</strong>
+<span id="weatherStatus">
+Not generated
+</span>
+</span>
 
 </div>
 
 
 <div class="layout">
 
-<section class="map-panel">
+
+<section class="panel map-panel">
 
 
-<div class="map-toolbar">
+<div class="toolbar">
 
 
-    <div class="toolbar-group">
+<div class="toolbar-group">
 
-        <span class="toolbar-label">
-            Mode
-        </span>
+<span class="toolbar-label">
+Climate
+</span>
 
-        <button
-            type="button"
-            id="inspectButton"
-            class="active">
-            Inspect
-        </button>
+<button
+    type="button"
+    id="buildButton"
+    class="primary"
+>
+Build Map and Climate
+</button>
 
-        <button
-            type="button"
-            id="paintSurfaceButton">
-            Paint Surface
-        </button>
-
-        <button
-            type="button"
-            id="paintRegionButton">
-            Paint Regional
-        </button>
-
-    </div>
+</div>
 
 
-    <div class="toolbar-group">
+<div class="toolbar-group">
 
-        <span class="toolbar-label">
-            View
-        </span>
+<span class="toolbar-label">
+View
+</span>
 
-        <button
-            type="button"
-            id="surfaceViewButton"
-            class="active">
-            Surface
-        </button>
+<button
+    type="button"
+    data-view="surface"
+>
+Surface
+</button>
 
-        <button
-            type="button"
-            id="regionSelectedViewButton">
-            Selected Influence
-        </button>
+<button
+    type="button"
+    data-view="dominant"
+    class="active"
+>
+Climate
+</button>
 
-        <button
-            type="button"
-            id="regionAllViewButton">
-            All Influences
-        </button>
+<button
+    type="button"
+    data-view="influence"
+>
+Influence
+</button>
 
-        <button
-            type="button"
-            id="temperatureViewButton">
-            Temperature
-        </button>
+<button
+    type="button"
+    data-view="temperature"
+>
+Temperature
+</button>
 
-    </div>
+<button
+    type="button"
+    data-view="pressure"
+>
+Pressure
+</button>
+
+<button
+    type="button"
+    data-view="wind"
+>
+Wind
+</button>
+
+<button
+    type="button"
+    data-view="cloud"
+>
+Cloud
+</button>
+
+<button
+    type="button"
+    data-view="precipitation"
+>
+Precipitation
+</button>
+
+</div>
 
 
-    <div class="toolbar-group">
+<div class="toolbar-group">
 
-        <span class="toolbar-label">
-            Zoom
-        </span>
+<span class="toolbar-label">
+Zoom
+</span>
 
-        <button
-            type="button"
-            data-zoom="1">
-            1×
-        </button>
+<button
+    type="button"
+    data-zoom="1"
+>
+1×
+</button>
 
-        <button
-            type="button"
-            data-zoom="2">
-            2×
-        </button>
+<button
+    type="button"
+    data-zoom="2"
+>
+2×
+</button>
 
-        <button
-            type="button"
-            data-zoom="4">
-            4×
-        </button>
+<button
+    type="button"
+    data-zoom="4"
+>
+4×
+</button>
 
-        <button
-            type="button"
-            data-zoom="8">
-            8×
-        </button>
+</div>
 
-    </div>
 
 </div>
 
 
 <div class="map-scroll">
 
-    <div id="gridStage">
+<div id="mapStage">
 
-        <canvas
-            id="climateCanvas"
-            width="780"
-            height="440">
-        </canvas>
+<canvas
+    id="climateCanvas"
+    width="780"
+    height="440"
+>
+</canvas>
 
-        <div id="selectionBox"></div>
+<div id="selectionBox">
+</div>
 
-    </div>
+</div>
 
 </div>
 
 
 <div
     class="map-footer"
-    id="mapFooter">
+    id="mapFooter"
+>
 
-    <strong>Inspect:</strong>
-    click a cell to see its surface and full regional mixture.
+Click anywhere on the map to inspect the exact 0.1° cell.
 
 </div>
 
@@ -734,740 +1002,331 @@ kbd {
 </section>
 
 
-<aside class="sidebar">
+<aside class="panel sidebar">
 
-
-<!-- ======================================================
-     SELECTED CELL FIRST
-====================================================== -->
 
 <div class="section">
 
-    <h2>
-        Selected Climate Cell
-    </h2>
-
-
-    <div
-        class="hint"
-        id="selectionHint">
-
-        Click a cell on the map.
-
-    </div>
-
-
-    <div
-        id="selectedCell"
-        style="display:none;">
-
-
-        <div class="coordinate-box">
-
-            <div
-                class="coordinate-main"
-                id="coordinateMain">
-                —
-            </div>
-
-            <div
-                class="coordinate-sub"
-                id="coordinateBounds">
-                —
-            </div>
-
-        </div>
-
-
-        <div
-            class="surface-box"
-            id="surfaceBox">
-            —
-        </div>
-
-
-        <div class="details">
-
-            <div class="detail-row">
-
-                <span>
-                    Surface
-                </span>
-
-                <span id="surfaceOutput">
-                    —
-                </span>
-
-            </div>
-
-
-            <div class="detail-row">
-
-                <span>
-                    Thermal behaviour
-                </span>
-
-                <span id="thermalOutput">
-                    —
-                </span>
-
-            </div>
-
-
-            <div class="detail-row">
-
-                <span>
-                    Grid index
-                </span>
-
-                <span id="gridIndexOutput">
-                    —
-                </span>
-
-            </div>
-
-
-            <div class="detail-row">
-
-                <span>
-                    Cell
-                </span>
-
-                <span>
-                    0.1° / 96 blocks
-                </span>
-
-            </div>
-
-        </div>
-
-
-        <!-- REGIONAL MIXTURE DIRECTLY BELOW CELL -->
-
-        <div class="regional-heading">
-
-            <h3>
-                Regional Mixture
-            </h3>
-
-        </div>
-
-
-        <div
-            class="region-dominant"
-            id="regionDominant">
-            —
-        </div>
-
-
-        <div
-            class="region-equation"
-            id="regionEquation">
-            —
-        </div>
-
-
-        <div
-            class="region-summary"
-            id="regionSummary">
-        </div>
-
-
-        <div class="region-totals">
-
-            <div class="region-total-row">
-
-                <span>
-                    Assigned influences
-                </span>
-
-                <strong id="assignedTotal">
-                    0.0%
-                </strong>
-
-            </div>
-
-
-            <div class="region-total-row">
-
-                <span>
-                    Unassigned
-                </span>
-
-                <strong id="unassignedTotal">
-                    100.0%
-                </strong>
-
-            </div>
-
-
-            <div class="region-total-row grand">
-
-                <span>
-                    Grand total
-                </span>
-
-                <span id="regionTotal">
-                    100.0%
-                </span>
-
-            </div>
-
-        </div>
-
-    </div>
-
-</div>
-
-
-
-<!-- ======================================================
-     EDITOR AFTER INSPECTOR
-====================================================== -->
-
-<div class="section">
-
-    <h2>
-        Map Editor
-    </h2>
-
-
-    <div class="hint">
-
-        Surface and regional influence are independent layers.
-
-    </div>
-
-
-    <!-- SURFACE EDITOR -->
-
-    <div
-        id="surfaceEditor"
-        class="editor-panel">
-
-
-        <h3>
-            Physical Surface
-        </h3>
-
-
-        <div class="field">
-
-            <label for="surfaceBrush">
-                Surface
-            </label>
-
-            <select id="surfaceBrush">
-
-                <option value="1">
-                    Ocean
-                </option>
-
-                <option value="2">
-                    Coastal / Shallow Sea
-                </option>
-
-                <option value="3">
-                    Lake
-                </option>
-
-                <option
-                    value="4"
-                    selected>
-                    Land
-                </option>
-
-                <option value="5">
-                    Dry / Arid Land
-                </option>
-
-            </select>
-
-        </div>
-
-
-        <div class="field">
-
-            <label for="surfaceBrushSize">
-                Brush size
-            </label>
-
-            <select id="surfaceBrushSize">
-
-                <option value="1">
-                    1 cell — 0.1°
-                </option>
-
-                <option value="3">
-                    3 cells — 0.3°
-                </option>
-
-                <option value="5">
-                    5 cells — 0.5°
-                </option>
-
-                <option value="9">
-                    9 cells — 0.9°
-                </option>
-
-                <option value="15">
-                    15 cells — 1.5°
-                </option>
-
-                <option value="25">
-                    25 cells — 2.5°
-                </option>
-
-                <option value="41">
-                    41 cells — 4.1°
-                </option>
-
-            </select>
-
-        </div>
-
-
-        <div class="brush-preview">
-
-            <div
-                class="brush-colour"
-                id="surfaceBrushColour">
-            </div>
-
-            <div>
-
-                <div
-                    class="brush-name"
-                    id="surfaceBrushName">
-                </div>
-
-                <div
-                    class="brush-description"
-                    id="surfaceBrushDescription">
-                </div>
-
-            </div>
-
-        </div>
-
-    </div>
-
-
-    <!-- REGIONAL EDITOR -->
-
-    <div
-        id="regionEditor"
-        class="editor-panel">
-
-
-        <h3>
-            Regional Influence
-        </h3>
-
-
-        <div class="visual-note">
-
-            The percentage stored in the climate model is the real value.
-
-            The map deliberately makes low values such as
-            <strong>5–10%</strong>
-            brighter so you can see where you have painted them.
-
-        </div>
-
-
-        <div class="field">
-
-            <label for="regionBrush">
-                Influence
-            </label>
-
-            <select id="regionBrush">
-            </select>
-
-        </div>
-
-
-        <div class="field">
-
-            <label for="regionTarget">
-                Target percentage
-            </label>
-
-            <input
-                id="regionTarget"
-                type="number"
-                min="0"
-                max="100"
-                step="0.1"
-                value="10.0">
-
-        </div>
-
-
-        <div class="field">
-
-            <label for="regionBrushSize">
-                Brush size
-            </label>
-
-            <select id="regionBrushSize">
-
-                <option value="1">
-                    1 cell — 0.1°
-                </option>
-
-                <option value="3">
-                    3 cells — 0.3°
-                </option>
-
-                <option value="5">
-                    5 cells — 0.5°
-                </option>
-
-                <option value="9">
-                    9 cells — 0.9°
-                </option>
-
-                <option value="15">
-                    15 cells — 1.5°
-                </option>
-
-                <option value="25">
-                    25 cells — 2.5°
-                </option>
-
-                <option value="41">
-                    41 cells — 4.1°
-                </option>
-
-            </select>
-
-        </div>
-
-
-        <div class="field">
-
-            <label for="regionHardness">
-                Brush edge
-            </label>
-
-            <select id="regionHardness">
-
-                <option
-                    value="hard"
-                    selected>
-                    Hard
-                </option>
-
-                <option value="medium">
-                    Medium
-                </option>
-
-                <option value="soft">
-                    Soft
-                </option>
-
-            </select>
-
-        </div>
-
-
-        <div class="brush-preview">
-
-            <div
-                class="brush-colour"
-                id="regionBrushColour">
-            </div>
-
-            <div>
-
-                <div
-                    class="brush-name"
-                    id="regionBrushName">
-                </div>
-
-                <div
-                    class="brush-description"
-                    id="regionBrushDescription">
-                </div>
-
-            </div>
-
-        </div>
-
-    </div>
-
-
-    <div
-        class="mask-box"
-        id="maskBox">
-
-        <div class="mask-title">
-            Ctrl Mask
-        </div>
-
-        <div
-            class="mask-description"
-            id="maskDescription">
-
-            Hold
-            <kbd>Ctrl</kbd>
-            before starting a drag to restrict the stroke to the type
-            underneath the starting cell.
-
-        </div>
-
-    </div>
-
-
-    <div class="button-grid">
-
-        <button
-            type="button"
-            id="undoButton"
-            disabled>
-            Undo
-        </button>
-
-        <button
-            type="button"
-            id="redoButton"
-            disabled>
-            Redo
-        </button>
-
-        <button
-            type="button"
-            id="saveButton">
-            Save Now
-        </button>
-
-        <button
-            type="button"
-            id="exportButton">
-            Export Map
-        </button>
-
-        <button
-            type="button"
-            id="importButton">
-            Import Map
-        </button>
-
-        <button
-            type="button"
-            id="rebuildButton"
-            class="danger">
-            Rebuild Surface
-        </button>
-
-    </div>
-
-
-    <input
-        id="importFile"
-        type="file"
-        accept=".json,application/json"
-        style="display:none;">
-
-
-    <div
-        class="save-status"
-        id="saveStatus">
-        Initialising...
-    </div>
-
-
-    <div
-        class="palette"
-        id="activePalette">
-    </div>
-
-</div>
-
-
-
-<!-- ======================================================
-     WEATHER LAST
-====================================================== -->
+<h2>
+Selected Cell
+</h2>
 
 <div
-    class="section"
-    id="weatherSection"
-    style="display:none;">
+    class="hint"
+    id="selectionHint"
+>
+Click a cell on the map.
+</div>
 
 
-    <h3>
-        Weather State
-    </h3>
+<div
+    id="selectionDetails"
+    style="display:none;"
+>
 
 
-    <div class="field">
+<div class="coordinate-box">
 
-        <label for="temperatureInput">
-            Air temperature
-        </label>
+<div
+    class="coordinate-main"
+    id="coordinateMain"
+>
+—
+</div>
 
-        <input
-            id="temperatureInput"
-            type="number"
-            min="-60"
-            max="60"
-            step="0.1"
-            value="2.2">
+<div
+    class="coordinate-sub"
+    id="coordinateSub"
+>
+—
+</div>
 
-    </div>
-
-
-    <div class="field">
-
-        <label for="precipitationInput">
-            Precipitation
-        </label>
-
-        <select id="precipitationInput">
-
-            <option value="0">
-                Dry
-            </option>
-
-            <option value="1">
-                Wet
-            </option>
-
-        </select>
-
-    </div>
+</div>
 
 
-    <div class="field">
+<div class="details">
 
-        <label for="skyInput">
-            Sky
-        </label>
+<div class="detail-row">
 
-        <select id="skyInput">
+<span>
+Surface
+</span>
 
-            <option value="0">
-                Clear
-            </option>
+<span id="surfaceOutput">
+—
+</span>
 
-            <option value="1">
-                Overcast
-            </option>
-
-        </select>
-
-    </div>
+</div>
 
 
-    <div class="field">
+<div class="detail-row">
 
-        <label for="thunderInput">
-            Thunder
-        </label>
+<span>
+Dominant climate
+</span>
 
-        <select id="thunderInput">
+<span id="dominantOutput">
+—
+</span>
 
-            <option value="0">
-                No
-            </option>
-
-            <option value="1">
-                Yes
-            </option>
-
-        </select>
-
-    </div>
+</div>
 
 
-    <div class="weather-state">
+<div class="detail-row">
 
-        <div class="label">
-            EuropaCraft Weather State
-        </div>
+<span>
+Maritime index
+</span>
 
-        <div id="stateOutput">
-            —
-        </div>
+<span id="maritimeOutput">
+—
+</span>
 
-    </div>
-
-
-    <div class="details">
-
-        <div class="detail-row">
-
-            <span>
-                Real temperature
-            </span>
-
-            <span id="realTemperatureOutput">
-                —
-            </span>
-
-        </div>
+</div>
 
 
-        <div class="detail-row">
+<div class="detail-row">
 
-            <span>
-                Minecraft temperature
-            </span>
+<span>
+Continental index
+</span>
 
-            <span id="minecraftTemperatureOutput">
-                —
-            </span>
+<span id="continentalOutput">
+—
+</span>
 
-        </div>
+</div>
 
-
-        <div class="detail-row">
-
-            <span>
-                Precipitation
-            </span>
-
-            <span id="precipitationTypeOutput">
-                —
-            </span>
-
-        </div>
-
-    </div>
+</div>
 
 
-    <div
-        class="warning"
-        id="warningOutput">
-    </div>
+<h3 style="margin-top:12px;">
+Climate Mixture
+</h3>
+
+<div
+    class="climate-list"
+    id="climateList"
+>
+</div>
 
 
-    <div class="button-row">
+</div>
 
-        <button
-            type="button"
-            class="primary"
-            id="applyWeatherButton">
-            Apply Weather
-        </button>
+</div>
 
-        <button
-            type="button"
-            id="clearWeatherButton">
-            Clear Weather
-        </button>
 
-    </div>
+
+<div class="section">
+
+<h2>
+Climate Display
+</h2>
+
+
+<div class="field">
+
+<label for="influenceSelect">
+Selected influence
+</label>
+
+<select id="influenceSelect">
+</select>
+
+</div>
+
+
+<div class="hint">
+
+The climate field is continuous. Regional names are influences rather than hard borders.
+
+</div>
+
+
+<div
+    class="legend"
+    id="legend"
+>
+</div>
+
+</div>
+
+
+
+<div class="section">
+
+<h2>
+Weather
+</h2>
+
+
+<div class="field">
+
+<label for="weatherDate">
+Simulation date and time
+</label>
+
+<input
+    type="datetime-local"
+    id="weatherDate"
+    value="2026-10-15T12:00"
+>
+
+</div>
+
+
+<button
+    type="button"
+    id="selectedWeatherButton"
+    class="primary"
+    style="width:100%; margin-bottom:6px;"
+>
+Simulate Selected Cell
+</button>
+
+
+<button
+    type="button"
+    id="weatherFieldButton"
+    style="width:100%;"
+>
+Generate Europe Weather Field
+</button>
+
+
+<div
+    class="weather-box"
+    id="weatherBox"
+    style="display:none;"
+>
+
+<div
+    class="weather-main"
+    id="weatherMain"
+>
+—
+</div>
+
+
+<div class="details">
+
+<div class="detail-row">
+
+<span>
+Temperature
+</span>
+
+<span id="temperatureOutput">
+—
+</span>
+
+</div>
+
+
+<div class="detail-row">
+
+<span>
+Pressure
+</span>
+
+<span id="pressureOutput">
+—
+</span>
+
+</div>
+
+
+<div class="detail-row">
+
+<span>
+Wind
+</span>
+
+<span id="windOutput">
+—
+</span>
+
+</div>
+
+
+<div class="detail-row">
+
+<span>
+Humidity
+</span>
+
+<span id="humidityOutput">
+—
+</span>
+
+</div>
+
+
+<div class="detail-row">
+
+<span>
+Cloud
+</span>
+
+<span id="cloudOutput">
+—
+</span>
+
+</div>
+
+
+<div class="detail-row">
+
+<span>
+Precipitation
+</span>
+
+<span id="precipitationOutput">
+—
+</span>
+
+</div>
+
+</div>
+
+</div>
+
+
+<div
+    class="progress"
+    id="progressOutput"
+>
+Load the page, then press <strong>Build Map and Climate</strong>.
+</div>
+
+
+<div class="warning">
+
+The current weather engine is the first synoptic scaffold. It produces pressure, wind, temperature, humidity, cloud and precipitation, but persistent cell-to-cell air-mass transport comes next.
+
+</div>
 
 </div>
 
 
 </aside>
 
+
 </div>
+
+
+
+<!-- ========================================================
+     ENGINES
+
+     THESE TWO FILES MUST BE BESIDE index.html
+======================================================== -->
+
+
+<script src="europacraft-climate-v3.js"></script>
+
+<script src="europacraft-weather-v1.js"></script>
+
 
 
 <script>
@@ -1481,225 +1340,65 @@ kbd {
    GRID
 ========================================================== */
 
-const MIN_LONGITUDE = -26;
-const MAX_LONGITUDE = 52;
 
-const MIN_LATITUDE = 30;
-const MAX_LATITUDE = 74;
+const MIN_LONGITUDE =
+    -26;
 
-const CELL_DEGREES = 0.1;
 
-const BLOCKS_PER_DEGREE = 960;
+const MAX_LONGITUDE =
+    52;
 
-const GRID_WIDTH = 780;
-const GRID_HEIGHT = 440;
+
+const MIN_LATITUDE =
+    30;
+
+
+const MAX_LATITUDE =
+    74;
+
+
+const CELL_DEGREES =
+    0.1;
+
+
+const GRID_WIDTH =
+    780;
+
+
+const GRID_HEIGHT =
+    440;
+
 
 const TOTAL_CELLS =
     GRID_WIDTH *
     GRID_HEIGHT;
 
-const SNOW_BOUNDARY = 1.5;
 
 
 /* ==========================================================
-   SURFACE TYPES
+   SURFACE
 ========================================================== */
 
-const SURFACE_TYPES = {
 
-    0: {
-        name: "Unknown",
-        description: "Not classified",
-        colour: [215, 219, 223]
-    },
-
-    1: {
-        name: "Ocean",
-        description: "Very slow thermal response",
-        colour: [92, 148, 184]
-    },
-
-    2: {
-        name: "Coastal / Shallow Sea",
-        description: "Responsive regional, shelf or enclosed sea",
-        colour: [126, 184, 208]
-    },
-
-    3: {
-        name: "Lake",
-        description: "Moderate water thermal inertia",
-        colour: [158, 205, 220]
-    },
-
-    4: {
-        name: "Land",
-        description: "Normal terrestrial thermal response",
-        colour: [197, 190, 154]
-    },
-
-    5: {
-        name: "Dry / Arid Land",
-        description: "Fast heating and cooling dry terrestrial surface",
-        colour: [218, 184, 108]
-    }
-
-};
+const SURFACE_UNKNOWN =
+    0;
 
 
-/* ==========================================================
-   REGIONAL INFLUENCES
-========================================================== */
-
-const REGION_TYPES = [
-
-    {
-        id: 0,
-        key: "unassigned",
-        name: "Unassigned",
-        description: "Regional climatology not painted yet",
-        colour: [145, 150, 155]
-    },
-
-    {
-        id: 1,
-        key: "atlantic",
-        name: "Atlantic",
-        description: "Temperate North Atlantic maritime influence",
-        colour: [46, 96, 177]
-    },
-
-    {
-        id: 2,
-        key: "polar_maritime",
-        name: "Polar Maritime",
-        description: "Cold maritime influence from Iceland, Greenland and the subpolar Atlantic",
-        colour: [80, 137, 199]
-    },
-
-    {
-        id: 3,
-        key: "arctic_maritime",
-        name: "Arctic Maritime",
-        description: "Direct Arctic Ocean, Barents and high-latitude maritime influence",
-        colour: [104, 202, 226]
-    },
-
-    {
-        id: 4,
-        key: "north_sea",
-        name: "North Sea",
-        description: "North Sea regional maritime influence",
-        colour: [51, 167, 187]
-    },
-
-    {
-        id: 5,
-        key: "baltic_maritime",
-        name: "Baltic Maritime",
-        description: "Baltic Sea seasonal maritime influence",
-        colour: [45, 187, 145]
-    },
-
-    {
-        id: 6,
-        key: "mediterranean",
-        name: "Mediterranean",
-        description: "Mediterranean maritime and warm-sector influence",
-        colour: [228, 131, 52]
-    },
-
-    {
-        id: 7,
-        key: "black_sea",
-        name: "Black Sea",
-        description: "Black Sea regional maritime influence",
-        colour: [73, 104, 157]
-    },
-
-    {
-        id: 8,
-        key: "caspian_maritime",
-        name: "Caspian Maritime",
-        description: "Caspian thermal and moisture influence",
-        colour: [47, 147, 131]
-    },
-
-    {
-        id: 9,
-        key: "north_african",
-        name: "North African",
-        description: "Hot and dry North African / Saharan influence",
-        colour: [225, 177, 45]
-    },
-
-    {
-        id: 10,
-        key: "eurasian_continental",
-        name: "Eurasian Continental",
-        description: "Continental influence from eastern Europe and Eurasia",
-        colour: [177, 77, 65]
-    },
-
-    {
-        id: 11,
-        key: "british_landmass",
-        name: "British Landmass",
-        description: "Air modified by passage over Britain",
-        colour: [97, 153, 68]
-    },
-
-    {
-        id: 12,
-        key: "iberian_interior",
-        name: "Iberian Interior",
-        description: "Air modified over inland Iberia",
-        colour: [190, 105, 52]
-    },
-
-    {
-        id: 13,
-        key: "west_central_european",
-        name: "West-Central European",
-        description: "France, Benelux and western-central European landmass influence",
-        colour: [125, 143, 64]
-    },
-
-    {
-        id: 14,
-        key: "central_eastern_european",
-        name: "Central / Eastern European",
-        description: "Central and eastern European landmass influence",
-        colour: [149, 117, 56]
-    },
-
-    {
-        id: 15,
-        key: "scandinavian_interior",
-        name: "Scandinavian Interior",
-        description: "Air modified over Scandinavia",
-        colour: [91, 151, 108]
-    },
-
-    {
-        id: 16,
-        key: "balkan_modified",
-        name: "Balkan Modified",
-        description: "Regional Balkan landmass influence",
-        colour: [173, 85, 120]
-    }
-
-];
-
-const REGION_COUNT =
-    REGION_TYPES.length;
-
-const REGION_TOTAL_UNITS =
-    1000;
+const SURFACE_OCEAN =
+    1;
 
 
-/* ==========================================================
-   DATA
-========================================================== */
+const SURFACE_COAST =
+    2;
+
+
+const SURFACE_LAKE =
+    3;
+
+
+const SURFACE_LAND =
+    4;
+
 
 const surface =
     new Uint8Array(
@@ -1707,21 +1406,222 @@ const surface =
     );
 
 
+
+/* ==========================================================
+   CLIMATE REGIONS
+========================================================== */
+
+
+const REGION_TYPES = [
+
+    {
+        name:
+            "Atlantic",
+
+        colour:
+            [46, 96, 177]
+    },
+
+    {
+        name:
+            "Polar Maritime",
+
+        colour:
+            [80, 137, 199]
+    },
+
+    {
+        name:
+            "Arctic Maritime",
+
+        colour:
+            [104, 202, 226]
+    },
+
+    {
+        name:
+            "Greenland Ice-Sheet",
+
+        colour:
+            [190, 224, 235]
+    },
+
+    {
+        name:
+            "North Sea",
+
+        colour:
+            [51, 167, 187]
+    },
+
+    {
+        name:
+            "Baltic Maritime",
+
+        colour:
+            [45, 187, 145]
+    },
+
+    {
+        name:
+            "Mediterranean",
+
+        colour:
+            [228, 131, 52]
+    },
+
+    {
+        name:
+            "Black Sea",
+
+        colour:
+            [73, 104, 157]
+    },
+
+    {
+        name:
+            "Caspian Maritime",
+
+        colour:
+            [47, 147, 131]
+    },
+
+    {
+        name:
+            "North African",
+
+        colour:
+            [225, 177, 45]
+    },
+
+    {
+        name:
+            "Eurasian Continental",
+
+        colour:
+            [177, 77, 65]
+    },
+
+    {
+        name:
+            "British Landmass",
+
+        colour:
+            [97, 153, 68]
+    },
+
+    {
+        name:
+            "Iberian Interior",
+
+        colour:
+            [190, 105, 52]
+    },
+
+    {
+        name:
+            "West-Central European",
+
+        colour:
+            [125, 143, 64]
+    },
+
+    {
+        name:
+            "Central / Eastern European",
+
+        colour:
+            [149, 117, 56]
+    },
+
+    {
+        name:
+            "Scandinavian Interior",
+
+        colour:
+            [91, 151, 108]
+    },
+
+    {
+        name:
+            "Balkan Modified",
+
+        colour:
+            [173, 85, 120]
+    },
+
+    {
+        name:
+            "Anatolian Interior",
+
+        colour:
+            [181, 124, 74]
+    }
+
+];
+
+
+const REGION_COUNT =
+    REGION_TYPES.length;
+
+
+/*
+ * 1000 units means 0.1% precision.
+ */
+
+const REGIONAL_TOTAL =
+    1000;
+
+
 const regional =
     new Uint16Array(
+
         TOTAL_CELLS *
         REGION_COUNT
+
     );
 
 
-const temperatures =
+
+/* ==========================================================
+   WEATHER FIELD ARRAYS
+========================================================== */
+
+
+const temperature =
     new Float32Array(
         TOTAL_CELLS
     );
 
-temperatures.fill(
-    NaN
-);
+
+const pressure =
+    new Float32Array(
+        TOTAL_CELLS
+    );
+
+
+const windSpeed =
+    new Float32Array(
+        TOTAL_CELLS
+    );
+
+
+const windDirection =
+    new Float32Array(
+        TOTAL_CELLS
+    );
+
+
+const humidity =
+    new Uint8Array(
+        TOTAL_CELLS
+    );
+
+
+const cloud =
+    new Uint8Array(
+        TOTAL_CELLS
+    );
 
 
 const precipitation =
@@ -1730,40 +1630,87 @@ const precipitation =
     );
 
 
-const sky =
-    new Uint8Array(
-        TOTAL_CELLS
-    );
+temperature.fill(
+    NaN
+);
 
 
-const thunder =
-    new Uint8Array(
-        TOTAL_CELLS
-    );
+pressure.fill(
+    NaN
+);
+
+
+windSpeed.fill(
+    NaN
+);
+
+
+windDirection.fill(
+    NaN
+);
+
+
+
+/* ==========================================================
+   STATE
+========================================================== */
+
+
+let climateReady =
+    false;
+
+
+let weatherReady =
+    false;
+
+
+let selectedColumn =
+    null;
+
+
+let selectedRow =
+    null;
+
+
+let currentView =
+    "dominant";
+
+
+let currentInfluence =
+    0;
+
+
+let zoom =
+    1;
+
 
 
 /* ==========================================================
    DOM
 ========================================================== */
 
+
 const canvas =
     document.getElementById(
         "climateCanvas"
     );
 
-const ctx =
+
+const context =
     canvas.getContext(
         "2d"
     );
 
-ctx.imageSmoothingEnabled =
+
+context.imageSmoothingEnabled =
     false;
 
 
-const gridStage =
+const mapStage =
     document.getElementById(
-        "gridStage"
+        "mapStage"
     );
+
 
 const selectionBox =
     document.getElementById(
@@ -1771,182 +1718,57 @@ const selectionBox =
     );
 
 
-const inspectButton =
+const buildButton =
     document.getElementById(
-        "inspectButton"
-    );
-
-const paintSurfaceButton =
-    document.getElementById(
-        "paintSurfaceButton"
-    );
-
-const paintRegionButton =
-    document.getElementById(
-        "paintRegionButton"
+        "buildButton"
     );
 
 
-const surfaceViewButton =
+const weatherFieldButton =
     document.getElementById(
-        "surfaceViewButton"
-    );
-
-const regionSelectedViewButton =
-    document.getElementById(
-        "regionSelectedViewButton"
-    );
-
-const regionAllViewButton =
-    document.getElementById(
-        "regionAllViewButton"
-    );
-
-const temperatureViewButton =
-    document.getElementById(
-        "temperatureViewButton"
+        "weatherFieldButton"
     );
 
 
-const surfaceEditor =
+const selectedWeatherButton =
     document.getElementById(
-        "surfaceEditor"
-    );
-
-const regionEditor =
-    document.getElementById(
-        "regionEditor"
+        "selectedWeatherButton"
     );
 
 
-const surfaceBrush =
+const climateStatus =
     document.getElementById(
-        "surfaceBrush"
-    );
-
-const surfaceBrushSize =
-    document.getElementById(
-        "surfaceBrushSize"
-    );
-
-const surfaceBrushColour =
-    document.getElementById(
-        "surfaceBrushColour"
-    );
-
-const surfaceBrushName =
-    document.getElementById(
-        "surfaceBrushName"
-    );
-
-const surfaceBrushDescription =
-    document.getElementById(
-        "surfaceBrushDescription"
+        "climateStatus"
     );
 
 
-const regionBrush =
+const weatherStatus =
     document.getElementById(
-        "regionBrush"
-    );
-
-const regionTarget =
-    document.getElementById(
-        "regionTarget"
-    );
-
-const regionBrushSize =
-    document.getElementById(
-        "regionBrushSize"
-    );
-
-const regionHardness =
-    document.getElementById(
-        "regionHardness"
-    );
-
-const regionBrushColour =
-    document.getElementById(
-        "regionBrushColour"
-    );
-
-const regionBrushName =
-    document.getElementById(
-        "regionBrushName"
-    );
-
-const regionBrushDescription =
-    document.getElementById(
-        "regionBrushDescription"
+        "weatherStatus"
     );
 
 
-const maskBox =
+const progressOutput =
     document.getElementById(
-        "maskBox"
-    );
-
-const maskDescription =
-    document.getElementById(
-        "maskDescription"
+        "progressOutput"
     );
 
 
-const undoButton =
+const influenceSelect =
     document.getElementById(
-        "undoButton"
-    );
-
-const redoButton =
-    document.getElementById(
-        "redoButton"
-    );
-
-const saveButton =
-    document.getElementById(
-        "saveButton"
-    );
-
-const exportButton =
-    document.getElementById(
-        "exportButton"
-    );
-
-const importButton =
-    document.getElementById(
-        "importButton"
-    );
-
-const rebuildButton =
-    document.getElementById(
-        "rebuildButton"
-    );
-
-const importFile =
-    document.getElementById(
-        "importFile"
+        "influenceSelect"
     );
 
 
-const saveStatus =
+const legend =
     document.getElementById(
-        "saveStatus"
-    );
-
-const topSaveStatus =
-    document.getElementById(
-        "topSaveStatus"
+        "legend"
     );
 
 
-const activePalette =
+const weatherDate =
     document.getElementById(
-        "activePalette"
-    );
-
-const mapFooter =
-    document.getElementById(
-        "mapFooter"
+        "weatherDate"
     );
 
 
@@ -1955,9 +1777,10 @@ const selectionHint =
         "selectionHint"
     );
 
-const selectedCell =
+
+const selectionDetails =
     document.getElementById(
-        "selectedCell"
+        "selectionDetails"
     );
 
 
@@ -1966,228 +1789,96 @@ const coordinateMain =
         "coordinateMain"
     );
 
-const coordinateBounds =
+
+const coordinateSub =
     document.getElementById(
-        "coordinateBounds"
+        "coordinateSub"
     );
 
-
-const surfaceBox =
-    document.getElementById(
-        "surfaceBox"
-    );
 
 const surfaceOutput =
     document.getElementById(
         "surfaceOutput"
     );
 
-const thermalOutput =
-    document.getElementById(
-        "thermalOutput"
-    );
 
-const gridIndexOutput =
+const dominantOutput =
     document.getElementById(
-        "gridIndexOutput"
+        "dominantOutput"
     );
 
 
-const regionDominant =
+const maritimeOutput =
     document.getElementById(
-        "regionDominant"
-    );
-
-const regionEquation =
-    document.getElementById(
-        "regionEquation"
-    );
-
-const regionSummary =
-    document.getElementById(
-        "regionSummary"
-    );
-
-const assignedTotal =
-    document.getElementById(
-        "assignedTotal"
-    );
-
-const unassignedTotal =
-    document.getElementById(
-        "unassignedTotal"
-    );
-
-const regionTotal =
-    document.getElementById(
-        "regionTotal"
+        "maritimeOutput"
     );
 
 
-const weatherSection =
+const continentalOutput =
     document.getElementById(
-        "weatherSection"
+        "continentalOutput"
     );
 
-const temperatureInput =
+
+const climateList =
     document.getElementById(
-        "temperatureInput"
+        "climateList"
     );
 
-const precipitationInput =
+
+const weatherBox =
     document.getElementById(
-        "precipitationInput"
+        "weatherBox"
     );
 
-const skyInput =
+
+const weatherMain =
     document.getElementById(
-        "skyInput"
+        "weatherMain"
     );
 
-const thunderInput =
+
+const temperatureOutput =
     document.getElementById(
-        "thunderInput"
+        "temperatureOutput"
     );
 
-const stateOutput =
+
+const pressureOutput =
     document.getElementById(
-        "stateOutput"
+        "pressureOutput"
     );
 
-const realTemperatureOutput =
+
+const windOutput =
     document.getElementById(
-        "realTemperatureOutput"
+        "windOutput"
     );
 
-const minecraftTemperatureOutput =
+
+const humidityOutput =
     document.getElementById(
-        "minecraftTemperatureOutput"
+        "humidityOutput"
     );
 
-const precipitationTypeOutput =
+
+const cloudOutput =
     document.getElementById(
-        "precipitationTypeOutput"
+        "cloudOutput"
     );
 
-const warningOutput =
+
+const precipitationOutput =
     document.getElementById(
-        "warningOutput"
+        "precipitationOutput"
     );
 
-const applyWeatherButton =
-    document.getElementById(
-        "applyWeatherButton"
-    );
-
-const clearWeatherButton =
-    document.getElementById(
-        "clearWeatherButton"
-    );
 
 
 /* ==========================================================
-   EDITOR STATE
+   BASIC GRID HELPERS
 ========================================================== */
 
-let mode =
-    "inspect";
-
-
-let viewMode =
-    "surface";
-
-
-let zoom =
-    1;
-
-
-let selectedColumn =
-    null;
-
-let selectedRow =
-    null;
-
-
-let painting =
-    false;
-
-
-let lastPaintColumn =
-    null;
-
-let lastPaintRow =
-    null;
-
-
-let currentStroke =
-    null;
-
-
-let strokeSurfaceMask =
-    null;
-
-let strokeRegionMask =
-    null;
-
-
-let renderQueued =
-    false;
-
-
-let database =
-    null;
-
-
-let saveTimer =
-    null;
-
-
-const undoStack = [];
-const redoStack = [];
-
-const MAX_UNDO =
-    100;
-
-
-/* ==========================================================
-   REGIONAL INITIALISATION
-========================================================== */
-
-function regionalOffset(
-    index
-) {
-
-    return (
-        index *
-        REGION_COUNT
-    );
-}
-
-
-function initialiseRegionalBlank() {
-
-    regional.fill(
-        0
-    );
-
-
-    for (
-        let i = 0;
-        i < TOTAL_CELLS;
-        i++
-    ) {
-
-        regional[
-            regionalOffset(i)
-        ] =
-            REGION_TOTAL_UNITS;
-    }
-}
-
-
-/* ==========================================================
-   GRID HELPERS
-========================================================== */
 
 function cellIndex(
     column,
@@ -2199,45 +1890,58 @@ function cellIndex(
         GRID_WIDTH +
         column
     );
+
 }
 
 
-function getCellCoordinates(
+function regionalOffset(
+    index
+) {
+
+    return (
+        index *
+        REGION_COUNT
+    );
+
+}
+
+
+function cellCoordinates(
     column,
     row
 ) {
 
     const longitudeWest =
+
         MIN_LONGITUDE +
+
         column *
         CELL_DEGREES;
 
 
-    const longitudeEast =
-        longitudeWest +
-        CELL_DEGREES;
-
-
     const latitudeNorth =
+
         MAX_LATITUDE -
+
         row *
-        CELL_DEGREES;
-
-
-    const latitudeSouth =
-        latitudeNorth -
         CELL_DEGREES;
 
 
     return {
 
-        longitudeWest,
+        longitudeWest:
+            longitudeWest,
 
-        longitudeEast,
+        longitudeEast:
+            longitudeWest +
+            CELL_DEGREES,
 
-        latitudeNorth,
+        latitudeNorth:
+            latitudeNorth,
 
-        latitudeSouth,
+        latitudeSouth:
+            latitudeNorth -
+            CELL_DEGREES,
 
         longitudeCentre:
             longitudeWest +
@@ -2248,287 +1952,191 @@ function getCellCoordinates(
             latitudeNorth -
             CELL_DEGREES /
             2
+
     };
+
 }
 
 
 function formatLatitude(
-    value
+    latitude
 ) {
 
     return (
-        Math.abs(value)
-            .toFixed(2) +
+
+        Math.abs(
+            latitude
+        ).toFixed(2) +
+
         "°" +
+
         (
-            value >= 0
-            ? "N"
-            : "S"
+            latitude >= 0
+                ? "N"
+                : "S"
         )
+
     );
+
 }
 
 
 function formatLongitude(
-    value
+    longitude
 ) {
 
-    if (
-        Math.abs(value) <
-        0.000001
-    ) {
-
-        return "0.00°";
-    }
-
-
     return (
-        Math.abs(value)
-            .toFixed(2) +
+
+        Math.abs(
+            longitude
+        ).toFixed(2) +
+
         "°" +
+
         (
-            value >= 0
-            ? "E"
-            : "W"
+            longitude >= 0
+                ? "E"
+                : "W"
         )
+
     );
+
 }
+
+
+
+function clamp(
+    value,
+    minimum,
+    maximum
+) {
+
+    return Math.max(
+
+        minimum,
+
+        Math.min(
+            maximum,
+            value
+        )
+
+    );
+
+}
+
 
 
 /* ==========================================================
-   REGIONAL HELPERS
+   LAND FRACTION
 ========================================================== */
 
-function getRegionalTotal(
+
+function landFractionForCell(
     index
 ) {
 
-    const offset =
-        regionalOffset(
+    const type =
+        surface[
             index
-        );
-
-
-    let total =
-        0;
-
-
-    for (
-        let r = 0;
-        r < REGION_COUNT;
-        r++
-    ) {
-
-        total +=
-            regional[
-                offset + r
-            ];
-    }
-
-
-    return total;
-}
-
-
-function getDominantRegion(
-    index
-) {
-
-    const offset =
-        regionalOffset(
-            index
-        );
-
-
-    let bestId =
-        0;
-
-
-    let bestValue =
-        regional[
-            offset
         ];
 
 
-    for (
-        let r = 1;
-        r < REGION_COUNT;
-        r++
+    if (
+        type ===
+        SURFACE_LAND
     ) {
 
-        const value =
-            regional[
-                offset + r
-            ];
+        return 1;
 
-
-        if (
-            value >
-            bestValue
-        ) {
-
-            bestValue =
-                value;
-
-            bestId =
-                r;
-        }
     }
 
 
-    return bestId;
-}
-
-
-function getDominantRealRegion(
-    index
-) {
-
-    const offset =
-        regionalOffset(
-            index
-        );
-
-
-    let bestId =
-        -1;
-
-
-    let bestValue =
-        0;
-
-
-    for (
-        let r = 1;
-        r < REGION_COUNT;
-        r++
+    if (
+        type ===
+        SURFACE_LAKE
     ) {
 
-        const value =
-            regional[
-                offset + r
-            ];
+        return 0.10;
 
-
-        if (
-            value >
-            bestValue
-        ) {
-
-            bestValue =
-                value;
-
-            bestId =
-                r;
-        }
     }
 
 
-    return {
-        id: bestId,
-        value: bestValue
-    };
+    if (
+        type ===
+        SURFACE_COAST
+    ) {
+
+        return 0.08;
+
+    }
+
+
+    return 0;
+
 }
+
 
 
 /* ==========================================================
-   EXACT NORMALISATION
+   CLIMATE STORAGE
 ========================================================== */
 
-function normaliseRegionalCell(
-    index
+
+function writeRegionalClimate(
+    index,
+    normalized
 ) {
 
     const offset =
         regionalOffset(
             index
         );
-
-
-    let total =
-        0;
-
-
-    for (
-        let r = 0;
-        r < REGION_COUNT;
-        r++
-    ) {
-
-        total +=
-            regional[
-                offset + r
-            ];
-    }
-
-
-    if (
-        total ===
-        REGION_TOTAL_UNITS
-    ) {
-
-        return;
-    }
-
-
-    if (
-        total <=
-        0
-    ) {
-
-        for (
-            let r = 0;
-            r < REGION_COUNT;
-            r++
-        ) {
-
-            regional[
-                offset + r
-            ] =
-                0;
-        }
-
-
-        regional[
-            offset
-        ] =
-            REGION_TOTAL_UNITS;
-
-
-        return;
-    }
-
-
-    const fractions =
-        [];
 
 
     let used =
         0;
 
 
+    const remainderList =
+        [];
+
+
     for (
-        let r = 0;
-        r < REGION_COUNT;
-        r++
+        let region = 0;
+        region < REGION_COUNT;
+        region++
     ) {
 
-        const raw =
-            regional[
-                offset + r
-            ] /
-            total *
-            REGION_TOTAL_UNITS;
+        const name =
+            REGION_TYPES[
+                region
+            ].name;
+
+
+        const percentage =
+
+            normalized[
+                name
+            ] ||
+
+            0;
+
+
+        const exact =
+
+            percentage *
+            10;
 
 
         const base =
             Math.floor(
-                raw
+                exact
             );
 
 
         regional[
-            offset + r
+            offset +
+            region
         ] =
             base;
 
@@ -2537,28 +2145,37 @@ function normaliseRegionalCell(
             base;
 
 
-        fractions.push({
+        remainderList.push({
 
-            id:
-                r,
+            region:
+                region,
 
-            fraction:
-                raw -
+            remainder:
+                exact -
                 base
 
         });
+
     }
 
 
-    fractions.sort(
-        (a, b) =>
-            b.fraction -
-            a.fraction
+    remainderList.sort(
+
+        (
+            a,
+            b
+        ) =>
+
+        b.remainder -
+        a.remainder
+
     );
 
 
-    let remainder =
-        REGION_TOTAL_UNITS -
+    let missing =
+
+        REGIONAL_TOTAL -
+
         used;
 
 
@@ -2567,22 +2184,19 @@ function normaliseRegionalCell(
 
 
     while (
-        remainder >
+        missing >
         0
     ) {
 
-        const id =
-            fractions[
-                pointer
-            ].id;
-
-
         regional[
-            offset + id
+            offset +
+            remainderList[
+                pointer
+            ].region
         ]++;
 
 
-        remainder--;
+        missing--;
 
 
         pointer++;
@@ -2590,48 +2204,31 @@ function normaliseRegionalCell(
 
         if (
             pointer >=
-            fractions.length
+            remainderList.length
         ) {
 
             pointer =
                 0;
+
         }
+
     }
+
 }
 
-
-function normaliseAllRegional() {
-
-    for (
-        let i = 0;
-        i < TOTAL_CELLS;
-        i++
-    ) {
-
-        normaliseRegionalCell(
-            i
-        );
-    }
-}
 
 
 /* ==========================================================
-   REDUCE OTHER REAL INFLUENCES
+   READ CLIMATE
 ========================================================== */
 
-function reduceOtherRegions(
-    index,
-    selectedRegion,
-    amount
+
+function climateForIndex(
+    index
 ) {
 
-    if (
-        amount <=
-        0
-    ) {
-
-        return;
-    }
+    const output =
+        {};
 
 
     const offset =
@@ -2640,5215 +2237,113 @@ function reduceOtherRegions(
         );
 
 
-    const candidates =
-        [];
+    for (
+        let region = 0;
+        region < REGION_COUNT;
+        region++
+    ) {
+
+        output[
+            REGION_TYPES[
+                region
+            ].name
+        ] =
+
+            regional[
+                offset +
+                region
+            ] /
+
+            10;
+
+    }
 
 
-    let available =
+    return output;
+
+}
+
+
+
+/* ==========================================================
+   DOMINANT CLIMATE
+========================================================== */
+
+
+function dominantRegion(
+    index
+) {
+
+    const offset =
+        regionalOffset(
+            index
+        );
+
+
+    let bestRegion =
         0;
 
 
+    let best =
+        -1;
+
+
     for (
-        let r = 1;
-        r < REGION_COUNT;
-        r++
+        let region = 0;
+        region < REGION_COUNT;
+        region++
     ) {
 
-        if (
-            r ===
-            selectedRegion
-        ) {
-
-            continue;
-        }
-
-
         const value =
+
             regional[
-                offset + r
+                offset +
+                region
             ];
 
 
         if (
             value >
-            0
+            best
         ) {
 
-            candidates.push({
-
-                id:
-                    r,
-
-                value:
-                    value
-
-            });
-
-
-            available +=
+            best =
                 value;
-        }
-    }
 
+            bestRegion =
+                region;
 
-    if (
-        available <=
-        0
-    ) {
-
-        return;
-    }
-
-
-    amount =
-        Math.min(
-            amount,
-            available
-        );
-
-
-    const reductions =
-        [];
-
-
-    let removed =
-        0;
-
-
-    for (
-        const candidate
-        of candidates
-    ) {
-
-        const raw =
-            candidate.value /
-            available *
-            amount;
-
-
-        const base =
-            Math.floor(
-                raw
-            );
-
-
-        reductions.push({
-
-            id:
-                candidate.id,
-
-            amount:
-                base,
-
-            fraction:
-                raw -
-                base
-
-        });
-
-
-        removed +=
-            base;
-    }
-
-
-    reductions.sort(
-        (a, b) =>
-            b.fraction -
-            a.fraction
-    );
-
-
-    let remainder =
-        amount -
-        removed;
-
-
-    let pointer =
-        0;
-
-
-    while (
-        remainder >
-        0 &&
-        reductions.length >
-        0
-    ) {
-
-        const reduction =
-            reductions[
-                pointer
-            ];
-
-
-        const current =
-            regional[
-                offset +
-                reduction.id
-            ];
-
-
-        if (
-            reduction.amount <
-            current
-        ) {
-
-            reduction.amount++;
-
-            remainder--;
         }
 
-
-        pointer++;
-
-
-        if (
-            pointer >=
-            reductions.length
-        ) {
-
-            pointer =
-                0;
-        }
     }
 
 
-    for (
-        const reduction
-        of reductions
-    ) {
+    return bestRegion;
 
-        regional[
-            offset +
-            reduction.id
-        ] -=
-            reduction.amount;
-    }
 }
+
 
 
 /* ==========================================================
-   SET REGIONAL TARGET
+   NATURAL EARTH BASE MAP
 ========================================================== */
 
-function setRegionalTarget(
-    index,
-    regionId,
-    targetUnits,
-    alpha
-) {
 
-    const offset =
-        regionalOffset(
-            index
-        );
+const NATURAL_EARTH_BASE =
 
-
-    if (
-        regionId ===
-        0
-    ) {
-
-        const current =
-            regional[
-                offset
-            ];
-
-
-        const desired =
-            Math.round(
-                current +
-                (
-                    REGION_TOTAL_UNITS -
-                    current
-                ) *
-                alpha
-            );
-
-
-        const increase =
-            desired -
-            current;
-
-
-        if (
-            increase <=
-            0
-        ) {
-
-            return;
-        }
-
-
-        reduceOtherRegions(
-            index,
-            0,
-            increase
-        );
-
-
-        regional[
-            offset
-        ] =
-            desired;
-
-
-        normaliseRegionalCell(
-            index
-        );
-
-
-        return;
-    }
-
-
-    const current =
-        regional[
-            offset +
-            regionId
-        ];
-
-
-    let desired =
-        Math.round(
-            current +
-            (
-                targetUnits -
-                current
-            ) *
-            alpha
-        );
-
-
-    desired =
-        Math.max(
-            0,
-            Math.min(
-                REGION_TOTAL_UNITS,
-                desired
-            )
-        );
-
-
-    if (
-        desired ===
-        current
-    ) {
-
-        return;
-    }
-
-
-    if (
-        desired >
-        current
-    ) {
-
-        let needed =
-            desired -
-            current;
-
-
-        const unassigned =
-            regional[
-                offset
-            ];
-
-
-        const fromUnassigned =
-            Math.min(
-                needed,
-                unassigned
-            );
-
-
-        regional[
-            offset
-        ] -=
-            fromUnassigned;
-
-
-        needed -=
-            fromUnassigned;
-
-
-        if (
-            needed >
-            0
-        ) {
-
-            reduceOtherRegions(
-                index,
-                regionId,
-                needed
-            );
-        }
-
-
-        regional[
-            offset +
-            regionId
-        ] =
-            desired;
-    }
-
-
-    else {
-
-        const released =
-            current -
-            desired;
-
-
-        regional[
-            offset +
-            regionId
-        ] =
-            desired;
-
-
-        regional[
-            offset
-        ] +=
-            released;
-    }
-
-
-    normaliseRegionalCell(
-        index
-    );
-}
-
-
-/* ==========================================================
-   WEATHER TEMPERATURE
-========================================================== */
-
-function minecraftTemperature(
-    t
-) {
-
-    if (
-        t <=
-        0
-    ) {
-
-        return (
-            0.12 +
-            0.01 *
-            t
-        );
-    }
-
-
-    if (
-        t <=
-        1.2
-    ) {
-
-        return (
-            0.12 +
-            (
-                (
-                    0.145 -
-                    0.12
-                ) /
-                1.2
-            ) *
-            t
-        );
-    }
-
-
-    if (
-        t <=
-        1.5
-    ) {
-
-        return (
-            0.145 +
-            (
-                (
-                    0.150 -
-                    0.145
-                ) /
-                0.3
-            ) *
-            (
-                t -
-                1.2
-            )
-        );
-    }
-
-
-    if (
-        t <=
-        4
-    ) {
-
-        return (
-            0.150 +
-            0.02 *
-            (
-                t -
-                1.5
-            )
-        );
-    }
-
-
-    if (
-        t <=
-        5
-    ) {
-
-        return (
-            0.200 +
-            0.10 *
-            (
-                t -
-                4
-            )
-        );
-    }
-
-
-    return (
-        0.300 +
-        0.03 *
-        (
-            t -
-            5
-        )
-    );
-}
-
-
-function getPrecipitationType(
-    temperature,
-    wet
-) {
-
-    if (!wet) {
-        return "None";
-    }
-
-
-    if (
-        temperature <=
-        0
-    ) {
-        return "Snow";
-    }
-
-
-    if (
-        temperature <=
-        1.2
-    ) {
-        return "Wet snow";
-    }
-
-
-    if (
-        temperature <=
-        1.5
-    ) {
-        return "Snow / sleet mix";
-    }
-
-
-    if (
-        temperature <=
-        2
-    ) {
-        return "Rain with wet flakes";
-    }
-
-
-    if (
-        temperature <
-        5
-    ) {
-        return "Rain — hill snow possible";
-    }
-
-
-    return "Rain";
-}
-
-
-function formatTemperatureForId(
-    value
-) {
-
-    const rounded =
-        Math.round(
-            value *
-            10
-        ) /
-        10;
-
-
-    if (
-        Math.abs(
-            rounded -
-            Math.round(
-                rounded
-            )
-        ) <
-        0.00001
-    ) {
-
-        return String(
-            Math.round(
-                rounded
-            )
-        );
-    }
-
-
-    return rounded
-        .toFixed(1);
-}
-
-
-function buildWeatherState(
-    temperature,
-    wet,
-    overcast,
-    hasThunder
-) {
-
-    let state =
-        "europacraft:" +
-        formatTemperatureForId(
-            temperature
-        );
-
-
-    state +=
-        wet
-        ? "w"
-        : "d";
-
-
-    state +=
-        overcast
-        ? "o"
-        : "c";
-
-
-    if (
-        hasThunder
-    ) {
-
-        state +=
-            "t";
-    }
-
-
-    return state;
-}
-
-
-/* ==========================================================
-   TEMPERATURE COLOUR
-========================================================== */
-
-function hslToRgb(
-    h,
-    s,
-    l
-) {
-
-    s /=
-        100;
-
-    l /=
-        100;
-
-
-    const c =
-        (
-            1 -
-            Math.abs(
-                2 *
-                l -
-                1
-            )
-        ) *
-        s;
-
-
-    const x =
-        c *
-        (
-            1 -
-            Math.abs(
-                (
-                    (
-                        h /
-                        60
-                    ) %
-                    2
-                ) -
-                1
-            )
-        );
-
-
-    const m =
-        l -
-        c /
-        2;
-
-
-    let r =
-        0;
-
-    let g =
-        0;
-
-    let b =
-        0;
-
-
-    if (
-        h <
-        60
-    ) {
-
-        r = c;
-        g = x;
-    }
-
-
-    else if (
-        h <
-        120
-    ) {
-
-        r = x;
-        g = c;
-    }
-
-
-    else if (
-        h <
-        180
-    ) {
-
-        g = c;
-        b = x;
-    }
-
-
-    else if (
-        h <
-        240
-    ) {
-
-        g = x;
-        b = c;
-    }
-
-
-    else if (
-        h <
-        300
-    ) {
-
-        r = x;
-        b = c;
-    }
-
-
-    else {
-
-        r = c;
-        b = x;
-    }
-
-
-    return [
-
-        Math.round(
-            (
-                r +
-                m
-            ) *
-            255
-        ),
-
-        Math.round(
-            (
-                g +
-                m
-            ) *
-            255
-        ),
-
-        Math.round(
-            (
-                b +
-                m
-            ) *
-            255
-        )
-
-    ];
-}
-
-
-function temperatureColour(
-    temperature
-) {
-
-    const normalised =
-        Math.max(
-            0,
-            Math.min(
-                1,
-                (
-                    temperature +
-                    40
-                ) /
-                90
-            )
-        );
-
-
-    const hue =
-        220 -
-        normalised *
-        220;
-
-
-    return hslToRgb(
-        hue,
-        68,
-        52
-    );
-}
-
-
-/* ==========================================================
-   REGIONAL VISUAL STRENGTH
-
-   IMPORTANT:
-   This changes DISPLAY only.
-
-   Stored 10% remains exactly 10%.
-========================================================== */
-
-function regionalVisualStrength(
-    realFraction
-) {
-
-    if (
-        realFraction <=
-        0
-    ) {
-
-        return 0;
-    }
-
-
-    return Math.min(
-        1,
-        0.18 +
-        0.82 *
-        Math.sqrt(
-            realFraction
-        )
-    );
-}
-
-
-/* ==========================================================
-   COLOUR BLEND
-========================================================== */
-
-function blendColour(
-    base,
-    overlay,
-    amount
-) {
-
-    return [
-
-        Math.round(
-            base[0] *
-            (
-                1 -
-                amount
-            ) +
-            overlay[0] *
-            amount
-        ),
-
-        Math.round(
-            base[1] *
-            (
-                1 -
-                amount
-            ) +
-            overlay[1] *
-            amount
-        ),
-
-        Math.round(
-            base[2] *
-            (
-                1 -
-                amount
-            ) +
-            overlay[2] *
-            amount
-        )
-
-    ];
-}
-
-
-/* ==========================================================
-   ALL-INFLUENCE COMPOSITE
-========================================================== */
-
-function getCompositeRegionColour(
-    index
-) {
-
-    const offset =
-        regionalOffset(
-            index
-        );
-
-
-    const assigned =
-        REGION_TOTAL_UNITS -
-        regional[
-            offset
-        ];
-
-
-    if (
-        assigned <=
-        0
-    ) {
-
-        return null;
-    }
-
-
-    let red =
-        0;
-
-    let green =
-        0;
-
-    let blue =
-        0;
-
-
-    for (
-        let r = 1;
-        r < REGION_COUNT;
-        r++
-    ) {
-
-        const amount =
-            regional[
-                offset + r
-            ];
-
-
-        if (
-            amount <=
-            0
-        ) {
-
-            continue;
-        }
-
-
-        const colour =
-            REGION_TYPES[
-                r
-            ].colour;
-
-
-        red +=
-            colour[0] *
-            amount;
-
-
-        green +=
-            colour[1] *
-            amount;
-
-
-        blue +=
-            colour[2] *
-            amount;
-    }
-
-
-    return {
-
-        colour: [
-
-            Math.round(
-                red /
-                assigned
-            ),
-
-            Math.round(
-                green /
-                assigned
-            ),
-
-            Math.round(
-                blue /
-                assigned
-            )
-
-        ],
-
-        assignedFraction:
-            assigned /
-            REGION_TOTAL_UNITS
-    };
-}
-
-
-/* ==========================================================
-   RENDERING
-========================================================== */
-
-const mapImage =
-    ctx.createImageData(
-        GRID_WIDTH,
-        GRID_HEIGHT
-    );
-
-
-function scheduleRender() {
-
-    if (
-        renderQueued
-    ) {
-
-        return;
-    }
-
-
-    renderQueued =
-        true;
-
-
-    requestAnimationFrame(
-        () => {
-
-            renderQueued =
-                false;
-
-
-            renderGrid();
-        }
-    );
-}
-
-
-function renderGrid() {
-
-    const pixels =
-        mapImage.data;
-
-
-    const selectedRegion =
-        Number(
-            regionBrush.value ||
-            1
-        );
-
-
-    for (
-        let i = 0;
-        i < TOTAL_CELLS;
-        i++
-    ) {
-
-        const surfaceType =
-            SURFACE_TYPES[
-                surface[i]
-            ] ||
-            SURFACE_TYPES[0];
-
-
-        let colour =
-            surfaceType.colour;
-
-
-        /* TEMPERATURE */
-
-        if (
-            viewMode ===
-            "temperature" &&
-            !Number.isNaN(
-                temperatures[i]
-            )
-        ) {
-
-            colour =
-                temperatureColour(
-                    temperatures[i]
-                );
-        }
-
-
-        /* SELECTED REGIONAL INFLUENCE */
-
-        else if (
-            viewMode ===
-            "region-selected"
-        ) {
-
-            const offset =
-                regionalOffset(
-                    i
-                );
-
-
-            const realWeight =
-                regional[
-                    offset +
-                    selectedRegion
-                ] /
-                REGION_TOTAL_UNITS;
-
-
-            if (
-                realWeight >
-                0
-            ) {
-
-                const visual =
-                    regionalVisualStrength(
-                        realWeight
-                    );
-
-
-                colour =
-                    blendColour(
-                        surfaceType.colour,
-                        REGION_TYPES[
-                            selectedRegion
-                        ].colour,
-                        visual
-                    );
-            }
-        }
-
-
-        /* ALL REGIONAL INFLUENCES */
-
-        else if (
-            viewMode ===
-            "region-all"
-        ) {
-
-            const composite =
-                getCompositeRegionColour(
-                    i
-                );
-
-
-            if (
-                composite
-            ) {
-
-                const visual =
-                    regionalVisualStrength(
-                        composite.assignedFraction
-                    );
-
-
-                colour =
-                    blendColour(
-                        surfaceType.colour,
-                        composite.colour,
-                        visual
-                    );
-            }
-        }
-
-
-        const pixel =
-            i *
-            4;
-
-
-        pixels[
-            pixel
-        ] =
-            colour[0];
-
-
-        pixels[
-            pixel +
-            1
-        ] =
-            colour[1];
-
-
-        pixels[
-            pixel +
-            2
-        ] =
-            colour[2];
-
-
-        pixels[
-            pixel +
-            3
-        ] =
-            255;
-    }
-
-
-    ctx.putImageData(
-        mapImage,
-        0,
-        0
-    );
-
-
-    drawReferenceGrid();
-}
-
-
-function drawReferenceGrid() {
-
-    ctx.save();
-
-
-    ctx.strokeStyle =
-        "rgba(30,38,45,0.38)";
-
-
-    ctx.lineWidth =
-        1;
-
-
-    for (
-        let longitude = -25;
-        longitude <= 50;
-        longitude += 5
-    ) {
-
-        const column =
-            (
-                longitude -
-                MIN_LONGITUDE
-            ) /
-            CELL_DEGREES;
-
-
-        ctx.beginPath();
-
-
-        ctx.moveTo(
-            column +
-            0.5,
-            0
-        );
-
-
-        ctx.lineTo(
-            column +
-            0.5,
-            GRID_HEIGHT
-        );
-
-
-        ctx.stroke();
-    }
-
-
-    for (
-        let latitude = 30;
-        latitude <= 70;
-        latitude += 5
-    ) {
-
-        const row =
-            (
-                MAX_LATITUDE -
-                latitude
-            ) /
-            CELL_DEGREES;
-
-
-        ctx.beginPath();
-
-
-        ctx.moveTo(
-            0,
-            row +
-            0.5
-        );
-
-
-        ctx.lineTo(
-            GRID_WIDTH,
-            row +
-            0.5
-        );
-
-
-        ctx.stroke();
-    }
-
-
-    ctx.restore();
-}
-
-
-/* ==========================================================
-   ZOOM
-========================================================== */
-
-function setZoom(
-    newZoom
-) {
-
-    zoom =
-        newZoom;
-
-
-    const width =
-        GRID_WIDTH *
-        zoom;
-
-
-    const height =
-        GRID_HEIGHT *
-        zoom;
-
-
-    canvas.style.width =
-        width +
-        "px";
-
-
-    canvas.style.height =
-        height +
-        "px";
-
-
-    gridStage.style.width =
-        width +
-        "px";
-
-
-    gridStage.style.height =
-        height +
-        "px";
-
-
-    updateSelectionBox();
-}
-
-
-document
-    .querySelectorAll(
-        "[data-zoom]"
-    )
-    .forEach(
-        button => {
-
-            button.addEventListener(
-                "click",
-                () => {
-
-                    setZoom(
-                        Number(
-                            button.dataset.zoom
-                        )
-                    );
-                }
-            );
-        }
-    );
-
-
-/* ==========================================================
-   VIEW MODE
-========================================================== */
-
-function setView(
-    newView
-) {
-
-    viewMode =
-        newView;
-
-
-    surfaceViewButton
-        .classList
-        .toggle(
-            "active",
-            viewMode ===
-            "surface"
-        );
-
-
-    regionSelectedViewButton
-        .classList
-        .toggle(
-            "active",
-            viewMode ===
-            "region-selected"
-        );
-
-
-    regionAllViewButton
-        .classList
-        .toggle(
-            "active",
-            viewMode ===
-            "region-all"
-        );
-
-
-    temperatureViewButton
-        .classList
-        .toggle(
-            "active",
-            viewMode ===
-            "temperature"
-        );
-
-
-    if (
-        viewMode ===
-        "region-selected"
-    ) {
-
-        const region =
-            REGION_TYPES[
-                Number(
-                    regionBrush.value ||
-                    1
-                )
-            ];
-
-
-        mapFooter.innerHTML =
-            "<strong>Selected Influence:</strong> showing " +
-            region.name +
-            ". Low percentages are visually strengthened, but their stored values are unchanged.";
-    }
-
-
-    else if (
-        viewMode ===
-        "region-all"
-    ) {
-
-        mapFooter.innerHTML =
-            "<strong>All Influences:</strong> every assigned regional influence is blended together. " +
-            "Plain surface colour means the cell is still completely Unassigned.";
-    }
-
-
-    else if (
-        viewMode ===
-        "surface"
-    ) {
-
-        mapFooter.innerHTML =
-            "<strong>Surface:</strong> showing the five physical thermal surface types.";
-    }
-
-
-    else {
-
-        mapFooter.innerHTML =
-            "<strong>Temperature:</strong> showing manually assigned weather temperatures where available.";
-    }
-
-
-    renderGrid();
-}
-
-
-/* ==========================================================
-   EDIT MODE
-========================================================== */
-
-function setMode(
-    newMode
-) {
-
-    mode =
-        newMode;
-
-
-    inspectButton
-        .classList
-        .toggle(
-            "active",
-            mode ===
-            "inspect"
-        );
-
-
-    paintSurfaceButton
-        .classList
-        .toggle(
-            "active",
-            mode ===
-            "surface"
-        );
-
-
-    paintRegionButton
-        .classList
-        .toggle(
-            "active",
-            mode ===
-            "region"
-        );
-
-
-    surfaceEditor
-        .classList
-        .toggle(
-            "active",
-            mode ===
-            "surface"
-        );
-
-
-    regionEditor
-        .classList
-        .toggle(
-            "active",
-            mode ===
-            "region"
-        );
-
-
-    canvas.style.cursor =
-        mode ===
-        "inspect"
-        ? "crosshair"
-        : "cell";
-
-
-    if (
-        mode ===
-        "surface"
-    ) {
-
-        setView(
-            "surface"
-        );
-
-
-        buildSurfacePalette();
-    }
-
-
-    else if (
-        mode ===
-        "region"
-    ) {
-
-        if (
-            viewMode !==
-            "region-selected" &&
-            viewMode !==
-            "region-all"
-        ) {
-
-            setView(
-                "region-selected"
-            );
-        }
-
-
-        buildRegionPalette();
-    }
-}
-
-
-/* ==========================================================
-   BUTTON EVENTS
-========================================================== */
-
-inspectButton.addEventListener(
-    "click",
-    () => {
-
-        setMode(
-            "inspect"
-        );
-    }
-);
-
-
-paintSurfaceButton.addEventListener(
-    "click",
-    () => {
-
-        setMode(
-            "surface"
-        );
-    }
-);
-
-
-paintRegionButton.addEventListener(
-    "click",
-    () => {
-
-        setMode(
-            "region"
-        );
-    }
-);
-
-
-surfaceViewButton.addEventListener(
-    "click",
-    () => {
-
-        setView(
-            "surface"
-        );
-    }
-);
-
-
-regionSelectedViewButton.addEventListener(
-    "click",
-    () => {
-
-        setView(
-            "region-selected"
-        );
-    }
-);
-
-
-regionAllViewButton.addEventListener(
-    "click",
-    () => {
-
-        setView(
-            "region-all"
-        );
-    }
-);
-
-
-temperatureViewButton.addEventListener(
-    "click",
-    () => {
-
-        setView(
-            "temperature"
-        );
-    }
-);
-
-
-/* ==========================================================
-   REGION SELECTOR
-========================================================== */
-
-function populateRegionSelector() {
-
-    regionBrush.innerHTML =
-        "";
-
-
-    for (
-        const region
-        of REGION_TYPES
-    ) {
-
-        const option =
-            document.createElement(
-                "option"
-            );
-
-
-        option.value =
-            region.id;
-
-
-        option.textContent =
-            region.id ===
-            0
-            ? "Unassigned / Clear"
-            : region.name;
-
-
-        regionBrush.appendChild(
-            option
-        );
-    }
-
-
-    regionBrush.value =
-        "1";
-}
-
-
-/* ==========================================================
-   BRUSH UI
-========================================================== */
-
-function updateSurfaceBrushUI() {
-
-    const type =
-        SURFACE_TYPES[
-            Number(
-                surfaceBrush.value
-            )
-        ];
-
-
-    surfaceBrushColour.style.background =
-        `rgb(${type.colour.join(",")})`;
-
-
-    surfaceBrushName.textContent =
-        type.name;
-
-
-    surfaceBrushDescription.textContent =
-        type.description;
-}
-
-
-function updateRegionBrushUI() {
-
-    const region =
-        REGION_TYPES[
-            Number(
-                regionBrush.value
-            )
-        ];
-
-
-    regionBrushColour.style.background =
-        `rgb(${region.colour.join(",")})`;
-
-
-    regionBrushName.textContent =
-        region.name;
-
-
-    regionBrushDescription.textContent =
-        region.description;
-
-
-    if (
-        region.id ===
-        0
-    ) {
-
-        regionTarget.value =
-            "100.0";
-
-
-        regionTarget.disabled =
-            true;
-    }
-
-
-    else {
-
-        regionTarget.disabled =
-            false;
-
-
-        if (
-            Number(
-                regionTarget.value
-            ) ===
-            100
-        ) {
-
-            regionTarget.value =
-                "10.0";
-        }
-    }
-
-
-    if (
-        viewMode ===
-        "region-selected"
-    ) {
-
-        setView(
-            "region-selected"
-        );
-    }
-}
-
-
-surfaceBrush.addEventListener(
-    "change",
-    updateSurfaceBrushUI
-);
-
-
-regionBrush.addEventListener(
-    "change",
-    updateRegionBrushUI
-);
-
-
-/* ==========================================================
-   PALETTES
-========================================================== */
-
-function addPaletteItem(
-    name,
-    colour
-) {
-
-    const item =
-        document.createElement(
-            "div"
-        );
-
-
-    item.className =
-        "palette-item";
-
-
-    const swatch =
-        document.createElement(
-            "div"
-        );
-
-
-    swatch.className =
-        "palette-colour";
-
-
-    swatch.style.background =
-        `rgb(${colour.join(",")})`;
-
-
-    const text =
-        document.createElement(
-            "span"
-        );
-
-
-    text.textContent =
-        name;
-
-
-    item.appendChild(
-        swatch
-    );
-
-
-    item.appendChild(
-        text
-    );
-
-
-    activePalette.appendChild(
-        item
-    );
-}
-
-
-function buildSurfacePalette() {
-
-    activePalette.innerHTML =
-        "";
-
-
-    for (
-        let id = 1;
-        id <= 5;
-        id++
-    ) {
-
-        addPaletteItem(
-            SURFACE_TYPES[id].name,
-            SURFACE_TYPES[id].colour
-        );
-    }
-}
-
-
-function buildRegionPalette() {
-
-    activePalette.innerHTML =
-        "";
-
-
-    for (
-        const region
-        of REGION_TYPES
-    ) {
-
-        addPaletteItem(
-            region.name,
-            region.colour
-        );
-    }
-}
-
-
-/* ==========================================================
-   POINTER TO CELL
-========================================================== */
-
-function pointerToCell(
-    event
-) {
-
-    const rect =
-        canvas.getBoundingClientRect();
-
-
-    const x =
-        (
-            event.clientX -
-            rect.left
-        ) *
-        (
-            GRID_WIDTH /
-            rect.width
-        );
-
-
-    const y =
-        (
-            event.clientY -
-            rect.top
-        ) *
-        (
-            GRID_HEIGHT /
-            rect.height
-        );
-
-
-    return {
-
-        column:
-            Math.max(
-                0,
-                Math.min(
-                    GRID_WIDTH -
-                    1,
-                    Math.floor(
-                        x
-                    )
-                )
-            ),
-
-        row:
-            Math.max(
-                0,
-                Math.min(
-                    GRID_HEIGHT -
-                    1,
-                    Math.floor(
-                        y
-                    )
-                )
-            )
-    };
-}
-
-
-/* ==========================================================
-   SELECTION
-========================================================== */
-
-function selectCell(
-    column,
-    row
-) {
-
-    selectedColumn =
-        column;
-
-
-    selectedRow =
-        row;
-
-
-    updateSelectionBox();
-
-    loadSelectedCell();
-}
-
-
-function updateSelectionBox() {
-
-    if (
-        selectedColumn ===
-        null ||
-        selectedRow ===
-        null
-    ) {
-
-        selectionBox.style.display =
-            "none";
-
-
-        return;
-    }
-
-
-    selectionBox.style.display =
-        "block";
-
-
-    selectionBox.style.left =
-        (
-            selectedColumn *
-            zoom
-        ) +
-        "px";
-
-
-    selectionBox.style.top =
-        (
-            selectedRow *
-            zoom
-        ) +
-        "px";
-
-
-    selectionBox.style.width =
-        Math.max(
-            zoom,
-            1
-        ) +
-        "px";
-
-
-    selectionBox.style.height =
-        Math.max(
-            zoom,
-            1
-        ) +
-        "px";
-}
-
-
-/* ==========================================================
-   HISTORY HELPERS
-========================================================== */
-
-function rememberSurfaceBefore(
-    index
-) {
-
-    if (
-        !currentStroke.before.has(
-            index
-        )
-    ) {
-
-        currentStroke.before.set(
-            index,
-            surface[index]
-        );
-    }
-}
-
-
-function rememberRegionBefore(
-    index
-) {
-
-    if (
-        currentStroke.before.has(
-            index
-        )
-    ) {
-
-        return;
-    }
-
-
-    const offset =
-        regionalOffset(
-            index
-        );
-
-
-    currentStroke.before.set(
-        index,
-        Array.from(
-            regional.subarray(
-                offset,
-                offset +
-                REGION_COUNT
-            )
-        )
-    );
-}
-
-
-function arraysEqual(
-    a,
-    b
-) {
-
-    if (
-        a.length !==
-        b.length
-    ) {
-
-        return false;
-    }
-
-
-    for (
-        let i = 0;
-        i < a.length;
-        i++
-    ) {
-
-        if (
-            a[i] !==
-            b[i]
-        ) {
-
-            return false;
-        }
-    }
-
-
-    return true;
-}
-
-
-/* ==========================================================
-   SURFACE PAINTING
-========================================================== */
-
-function paintSurfaceAt(
-    centreColumn,
-    centreRow
-) {
-
-    const newType =
-        Number(
-            surfaceBrush.value
-        );
-
-
-    const size =
-        Number(
-            surfaceBrushSize.value
-        );
-
-
-    const radius =
-        Math.floor(
-            size /
-            2
-        );
-
-
-    for (
-        let dy = -radius;
-        dy <= radius;
-        dy++
-    ) {
-
-        for (
-            let dx = -radius;
-            dx <= radius;
-            dx++
-        ) {
-
-            if (
-                radius >
-                0 &&
-                (
-                    dx *
-                    dx +
-                    dy *
-                    dy
-                ) >
-                (
-                    radius *
-                    radius +
-                    0.5
-                )
-            ) {
-
-                continue;
-            }
-
-
-            const column =
-                centreColumn +
-                dx;
-
-
-            const row =
-                centreRow +
-                dy;
-
-
-            if (
-                column <
-                0 ||
-                column >=
-                GRID_WIDTH ||
-                row <
-                0 ||
-                row >=
-                GRID_HEIGHT
-            ) {
-
-                continue;
-            }
-
-
-            const index =
-                cellIndex(
-                    column,
-                    row
-                );
-
-
-            if (
-                strokeSurfaceMask !==
-                null &&
-                surface[index] !==
-                strokeSurfaceMask
-            ) {
-
-                continue;
-            }
-
-
-            if (
-                surface[index] ===
-                newType
-            ) {
-
-                continue;
-            }
-
-
-            rememberSurfaceBefore(
-                index
-            );
-
-
-            surface[index] =
-                newType;
-        }
-    }
-
-
-    scheduleRender();
-}
-
-
-/* ==========================================================
-   REGIONAL BRUSH FALLOFF
-========================================================== */
-
-function regionalBrushAlpha(
-    distance,
-    radius
-) {
-
-    if (
-        radius <=
-        0
-    ) {
-
-        return 1;
-    }
-
-
-    const hardness =
-        regionHardness.value;
-
-
-    if (
-        hardness ===
-        "hard"
-    ) {
-
-        return 1;
-    }
-
-
-    const normalised =
-        Math.min(
-            1,
-            distance /
-            (
-                radius +
-                0.5
-            )
-        );
-
-
-    if (
-        hardness ===
-        "medium"
-    ) {
-
-        return Math.max(
-            0.25,
-            1 -
-            normalised *
-            0.75
-        );
-    }
-
-
-    return Math.max(
-        0.05,
-        1 -
-        normalised
-    );
-}
-
-
-/* ==========================================================
-   REGIONAL MASK BASIS
-========================================================== */
-
-function getRegionalMaskBasis(
-    index
-) {
-
-    if (
-        !currentStroke ||
-        currentStroke.kind !==
-        "region"
-    ) {
-
-        return getDominantRegion(
-            index
-        );
-    }
-
-
-    if (
-        currentStroke.maskBasis.has(
-            index
-        )
-    ) {
-
-        return currentStroke.maskBasis.get(
-            index
-        );
-    }
-
-
-    const originalDominant =
-        getDominantRegion(
-            index
-        );
-
-
-    currentStroke.maskBasis.set(
-        index,
-        originalDominant
-    );
-
-
-    return originalDominant;
-}
-
-
-/* ==========================================================
-   REGIONAL PAINTING
-========================================================== */
-
-function paintRegionAt(
-    centreColumn,
-    centreRow
-) {
-
-    const regionId =
-        Number(
-            regionBrush.value
-        );
-
-
-    let target =
-        regionId ===
-        0
-        ? 100
-        : parseFloat(
-            regionTarget.value
-        );
-
-
-    if (
-        !Number.isFinite(
-            target
-        )
-    ) {
-
-        target =
-            10;
-    }
-
-
-    target =
-        Math.max(
-            0,
-            Math.min(
-                100,
-                target
-            )
-        );
-
-
-    const targetUnits =
-        Math.round(
-            target *
-            10
-        );
-
-
-    const size =
-        Number(
-            regionBrushSize.value
-        );
-
-
-    const radius =
-        Math.floor(
-            size /
-            2
-        );
-
-
-    for (
-        let dy = -radius;
-        dy <= radius;
-        dy++
-    ) {
-
-        for (
-            let dx = -radius;
-            dx <= radius;
-            dx++
-        ) {
-
-            const distance =
-                Math.sqrt(
-                    dx *
-                    dx +
-                    dy *
-                    dy
-                );
-
-
-            if (
-                radius >
-                0 &&
-                distance >
-                radius +
-                0.35
-            ) {
-
-                continue;
-            }
-
-
-            const column =
-                centreColumn +
-                dx;
-
-
-            const row =
-                centreRow +
-                dy;
-
-
-            if (
-                column <
-                0 ||
-                column >=
-                GRID_WIDTH ||
-                row <
-                0 ||
-                row >=
-                GRID_HEIGHT
-            ) {
-
-                continue;
-            }
-
-
-            const index =
-                cellIndex(
-                    column,
-                    row
-                );
-
-
-            if (
-                strokeRegionMask !==
-                null &&
-                getRegionalMaskBasis(
-                    index
-                ) !==
-                strokeRegionMask
-            ) {
-
-                continue;
-            }
-
-
-            rememberRegionBefore(
-                index
-            );
-
-
-            const alpha =
-                regionalBrushAlpha(
-                    distance,
-                    radius
-                );
-
-
-            setRegionalTarget(
-                index,
-                regionId,
-                targetUnits,
-                alpha
-            );
-        }
-    }
-
-
-    scheduleRender();
-}
-
-
-/* ==========================================================
-   LINE PAINTING
-========================================================== */
-
-function paintLine(
-    x0,
-    y0,
-    x1,
-    y1
-) {
-
-    const dx =
-        Math.abs(
-            x1 -
-            x0
-        );
-
-
-    const sx =
-        x0 <
-        x1
-        ? 1
-        : -1;
-
-
-    const dy =
-        -Math.abs(
-            y1 -
-            y0
-        );
-
-
-    const sy =
-        y0 <
-        y1
-        ? 1
-        : -1;
-
-
-    let error =
-        dx +
-        dy;
-
-
-    while (
-        true
-    ) {
-
-        if (
-            mode ===
-            "surface"
-        ) {
-
-            paintSurfaceAt(
-                x0,
-                y0
-            );
-        }
-
-
-        else if (
-            mode ===
-            "region"
-        ) {
-
-            paintRegionAt(
-                x0,
-                y0
-            );
-        }
-
-
-        if (
-            x0 ===
-            x1 &&
-            y0 ===
-            y1
-        ) {
-
-            break;
-        }
-
-
-        const e2 =
-            2 *
-            error;
-
-
-        if (
-            e2 >=
-            dy
-        ) {
-
-            error +=
-                dy;
-
-
-            x0 +=
-                sx;
-        }
-
-
-        if (
-            e2 <=
-            dx
-        ) {
-
-            error +=
-                dx;
-
-
-            y0 +=
-                sy;
-        }
-    }
-}
-
-
-/* ==========================================================
-   BEGIN STROKE
-========================================================== */
-
-function beginPaint(
-    column,
-    row,
-    ctrlMask
-) {
-
-    painting =
-        true;
-
-
-    lastPaintColumn =
-        column;
-
-
-    lastPaintRow =
-        row;
-
-
-    currentStroke = {
-
-        kind:
-            mode,
-
-        before:
-            new Map(),
-
-        maskBasis:
-            new Map()
-
-    };
-
-
-    const index =
-        cellIndex(
-            column,
-            row
-        );
-
-
-    strokeSurfaceMask =
-        null;
-
-
-    strokeRegionMask =
-        null;
-
-
-    if (
-        ctrlMask
-    ) {
-
-        if (
-            mode ===
-            "surface"
-        ) {
-
-            strokeSurfaceMask =
-                surface[
-                    index
-                ];
-
-
-            maskBox.classList.add(
-                "active-mask"
-            );
-
-
-            maskDescription.textContent =
-                "Surface mask active: only " +
-                SURFACE_TYPES[
-                    strokeSurfaceMask
-                ].name +
-                " cells can change.";
-        }
-
-
-        else if (
-            mode ===
-            "region"
-        ) {
-
-            strokeRegionMask =
-                getDominantRegion(
-                    index
-                );
-
-
-            currentStroke.maskBasis.set(
-                index,
-                strokeRegionMask
-            );
-
-
-            maskBox.classList.add(
-                "active-mask"
-            );
-
-
-            maskDescription.textContent =
-                "Regional mask active: only cells originally dominated by " +
-                REGION_TYPES[
-                    strokeRegionMask
-                ].name +
-                " can change.";
-        }
-    }
-
-
-    if (
-        mode ===
-        "surface"
-    ) {
-
-        paintSurfaceAt(
-            column,
-            row
-        );
-    }
-
-
-    else if (
-        mode ===
-        "region"
-    ) {
-
-        paintRegionAt(
-            column,
-            row
-        );
-    }
-}
-
-
-/* ==========================================================
-   CONTINUE / FINISH
-========================================================== */
-
-function continuePaint(
-    column,
-    row
-) {
-
-    if (
-        !painting
-    ) {
-
-        return;
-    }
-
-
-    paintLine(
-        lastPaintColumn,
-        lastPaintRow,
-        column,
-        row
-    );
-
-
-    lastPaintColumn =
-        column;
-
-
-    lastPaintRow =
-        row;
-}
-
-
-function finishPaint() {
-
-    if (
-        !painting
-    ) {
-
-        return;
-    }
-
-
-    painting =
-        false;
-
-
-    const changes =
-        [];
-
-
-    for (
-        const [
-            index,
-            before
-        ]
-        of currentStroke.before.entries()
-    ) {
-
-        if (
-            currentStroke.kind ===
-            "surface"
-        ) {
-
-            const after =
-                surface[
-                    index
-                ];
-
-
-            if (
-                before !==
-                after
-            ) {
-
-                changes.push({
-
-                    index:
-                        index,
-
-                    before:
-                        before,
-
-                    after:
-                        after
-
-                });
-            }
-        }
-
-
-        else {
-
-            const offset =
-                regionalOffset(
-                    index
-                );
-
-
-            const after =
-                Array.from(
-                    regional.subarray(
-                        offset,
-                        offset +
-                        REGION_COUNT
-                    )
-                );
-
-
-            if (
-                !arraysEqual(
-                    before,
-                    after
-                )
-            ) {
-
-                changes.push({
-
-                    index:
-                        index,
-
-                    before:
-                        before,
-
-                    after:
-                        after
-
-                });
-            }
-        }
-    }
-
-
-    if (
-        changes.length >
-        0
-    ) {
-
-        undoStack.push({
-
-            kind:
-                currentStroke.kind,
-
-            changes:
-                changes
-
-        });
-
-
-        if (
-            undoStack.length >
-            MAX_UNDO
-        ) {
-
-            undoStack.shift();
-        }
-
-
-        redoStack.length =
-            0;
-
-
-        updateUndoButtons();
-
-        queueSave();
-    }
-
-
-    currentStroke =
-        null;
-
-
-    strokeSurfaceMask =
-        null;
-
-
-    strokeRegionMask =
-        null;
-
-
-    maskBox.classList.remove(
-        "active-mask"
-    );
-
-
-    maskDescription.innerHTML =
-        "Hold <kbd>Ctrl</kbd> before starting a drag to restrict the stroke to the type underneath the starting cell.";
-
-
-    if (
-        lastPaintColumn !==
-        null &&
-        lastPaintRow !==
-        null
-    ) {
-
-        selectCell(
-            lastPaintColumn,
-            lastPaintRow
-        );
-    }
-}
-
-
-/* ==========================================================
-   POINTER EVENTS
-========================================================== */
-
-canvas.addEventListener(
-    "pointerdown",
-    event => {
-
-        const cell =
-            pointerToCell(
-                event
-            );
-
-
-        selectCell(
-            cell.column,
-            cell.row
-        );
-
-
-        if (
-            mode ===
-            "inspect"
-        ) {
-
-            return;
-        }
-
-
-        event.preventDefault();
-
-
-        canvas.setPointerCapture(
-            event.pointerId
-        );
-
-
-        beginPaint(
-            cell.column,
-            cell.row,
-            event.ctrlKey ||
-            event.metaKey
-        );
-    }
-);
-
-
-canvas.addEventListener(
-    "pointermove",
-    event => {
-
-        if (
-            !painting
-        ) {
-
-            return;
-        }
-
-
-        event.preventDefault();
-
-
-        const cell =
-            pointerToCell(
-                event
-            );
-
-
-        continuePaint(
-            cell.column,
-            cell.row
-        );
-    }
-);
-
-
-canvas.addEventListener(
-    "pointerup",
-    finishPaint
-);
-
-
-canvas.addEventListener(
-    "pointercancel",
-    finishPaint
-);
-
-
-/* ==========================================================
-   UNDO / REDO
-========================================================== */
-
-function updateUndoButtons() {
-
-    undoButton.disabled =
-        undoStack.length ===
-        0;
-
-
-    redoButton.disabled =
-        redoStack.length ===
-        0;
-}
-
-
-function applyHistory(
-    item,
-    useAfter
-) {
-
-    for (
-        const change
-        of item.changes
-    ) {
-
-        const value =
-            useAfter
-            ? change.after
-            : change.before;
-
-
-        if (
-            item.kind ===
-            "surface"
-        ) {
-
-            surface[
-                change.index
-            ] =
-                value;
-        }
-
-
-        else {
-
-            const offset =
-                regionalOffset(
-                    change.index
-                );
-
-
-            for (
-                let r = 0;
-                r < REGION_COUNT;
-                r++
-            ) {
-
-                regional[
-                    offset + r
-                ] =
-                    value[r];
-            }
-        }
-    }
-}
-
-
-function undo() {
-
-    if (
-        undoStack.length ===
-        0
-    ) {
-
-        return;
-    }
-
-
-    const item =
-        undoStack.pop();
-
-
-    applyHistory(
-        item,
-        false
-    );
-
-
-    redoStack.push(
-        item
-    );
-
-
-    updateUndoButtons();
-
-    scheduleRender();
-
-    refreshSelectedCell();
-
-    queueSave();
-}
-
-
-function redo() {
-
-    if (
-        redoStack.length ===
-        0
-    ) {
-
-        return;
-    }
-
-
-    const item =
-        redoStack.pop();
-
-
-    applyHistory(
-        item,
-        true
-    );
-
-
-    undoStack.push(
-        item
-    );
-
-
-    updateUndoButtons();
-
-    scheduleRender();
-
-    refreshSelectedCell();
-
-    queueSave();
-}
-
-
-undoButton.addEventListener(
-    "click",
-    undo
-);
-
-
-redoButton.addEventListener(
-    "click",
-    redo
-);
-
-
-/* ==========================================================
-   CTRL+Z / CTRL+Y
-========================================================== */
-
-window.addEventListener(
-    "keydown",
-    event => {
-
-        const active =
-            document.activeElement;
-
-
-        const editing =
-            active instanceof
-                HTMLInputElement ||
-            active instanceof
-                HTMLTextAreaElement ||
-            active instanceof
-                HTMLSelectElement;
-
-
-        if (
-            editing
-        ) {
-
-            return;
-        }
-
-
-        if (
-            event.ctrlKey &&
-            !event.shiftKey &&
-            event.key.toLowerCase() ===
-            "z"
-        ) {
-
-            event.preventDefault();
-
-            undo();
-        }
-
-
-        if (
-            event.ctrlKey &&
-            event.key.toLowerCase() ===
-            "y"
-        ) {
-
-            event.preventDefault();
-
-            redo();
-        }
-
-
-        if (
-            event.ctrlKey &&
-            event.shiftKey &&
-            event.key.toLowerCase() ===
-            "z"
-        ) {
-
-            event.preventDefault();
-
-            redo();
-        }
-    }
-);
-
-
-/* ==========================================================
-   REGIONAL INSPECTOR
-========================================================== */
-
-function updateRegionalInspector(
-    index
-) {
-
-    const offset =
-        regionalOffset(
-            index
-        );
-
-
-    const unassigned =
-        regional[
-            offset
-        ];
-
-
-    const assigned =
-        REGION_TOTAL_UNITS -
-        unassigned;
-
-
-    const total =
-        getRegionalTotal(
-            index
-        );
-
-
-    const realDominant =
-        getDominantRealRegion(
-            index
-        );
-
-
-    if (
-        assigned ===
-        0 ||
-        realDominant.id ===
-        -1
-    ) {
-
-        regionDominant.textContent =
-            "No regional influence assigned yet.";
-    }
-
-
-    else {
-
-        regionDominant.textContent =
-            "Strongest assigned influence: " +
-            REGION_TYPES[
-                realDominant.id
-            ].name +
-            " — " +
-            (
-                realDominant.value /
-                10
-            ).toFixed(1) +
-            "%";
-    }
-
-
-    regionEquation.textContent =
-        (
-            assigned /
-            10
-        ).toFixed(1) +
-        "% assigned + " +
-        (
-            unassigned /
-            10
-        ).toFixed(1) +
-        "% unassigned = " +
-        (
-            total /
-            10
-        ).toFixed(1) +
-        "%";
-
-
-    regionSummary.innerHTML =
-        "";
-
-
-    let rowsAdded =
-        0;
-
-
-    for (
-        let r = 1;
-        r < REGION_COUNT;
-        r++
-    ) {
-
-        const units =
-            regional[
-                offset + r
-            ];
-
-
-        if (
-            units <=
-            0
-        ) {
-
-            continue;
-        }
-
-
-        rowsAdded++;
-
-
-        const percentage =
-            units /
-            10;
-
-
-        const row =
-            document.createElement(
-                "div"
-            );
-
-
-        row.className =
-            "region-row";
-
-
-        const top =
-            document.createElement(
-                "div"
-            );
-
-
-        top.className =
-            "region-row-top";
-
-
-        const name =
-            document.createElement(
-                "span"
-            );
-
-
-        name.className =
-            "region-name";
-
-
-        name.textContent =
-            REGION_TYPES[
-                r
-            ].name;
-
-
-        const value =
-            document.createElement(
-                "span"
-            );
-
-
-        value.className =
-            "region-value";
-
-
-        value.textContent =
-            percentage.toFixed(1) +
-            "%";
-
-
-        top.appendChild(
-            name
-        );
-
-
-        top.appendChild(
-            value
-        );
-
-
-        const track =
-            document.createElement(
-                "div"
-            );
-
-
-        track.className =
-            "region-track";
-
-
-        const fill =
-            document.createElement(
-                "div"
-            );
-
-
-        fill.className =
-            "region-fill";
-
-
-        fill.style.width =
-            percentage +
-            "%";
-
-
-        fill.style.background =
-            `rgb(${REGION_TYPES[r].colour.join(",")})`;
-
-
-        track.appendChild(
-            fill
-        );
-
-
-        row.appendChild(
-            top
-        );
-
-
-        row.appendChild(
-            track
-        );
-
-
-        regionSummary.appendChild(
-            row
-        );
-    }
-
-
-    if (
-        rowsAdded ===
-        0
-    ) {
-
-        const empty =
-            document.createElement(
-                "div"
-            );
-
-
-        empty.className =
-            "region-empty";
-
-
-        empty.textContent =
-            "No actual regional influences have been painted into this cell yet.";
-
-
-        regionSummary.appendChild(
-            empty
-        );
-    }
-
-
-    assignedTotal.textContent =
-        (
-            assigned /
-            10
-        ).toFixed(1) +
-        "%";
-
-
-    unassignedTotal.textContent =
-        (
-            unassigned /
-            10
-        ).toFixed(1) +
-        "%";
-
-
-    regionTotal.textContent =
-        (
-            total /
-            10
-        ).toFixed(1) +
-        "%";
-
-
-    regionTotal.style.color =
-        total ===
-        REGION_TOTAL_UNITS
-        ? "#202830"
-        : "#a22";
-}
-
-
-/* ==========================================================
-   SELECTED CELL
-========================================================== */
-
-function loadSelectedCell() {
-
-    if (
-        selectedColumn ===
-        null ||
-        selectedRow ===
-        null
-    ) {
-
-        return;
-    }
-
-
-    selectionHint.style.display =
-        "none";
-
-
-    selectedCell.style.display =
-        "block";
-
-
-    weatherSection.style.display =
-        "block";
-
-
-    const index =
-        cellIndex(
-            selectedColumn,
-            selectedRow
-        );
-
-
-    const coordinates =
-        getCellCoordinates(
-            selectedColumn,
-            selectedRow
-        );
-
-
-    coordinateMain.textContent =
-        formatLatitude(
-            coordinates.latitudeCentre
-        ) +
-        ", " +
-        formatLongitude(
-            coordinates.longitudeCentre
-        );
-
-
-    coordinateBounds.innerHTML =
-        "Latitude: " +
-        formatLatitude(
-            coordinates.latitudeNorth
-        ) +
-        " → " +
-        formatLatitude(
-            coordinates.latitudeSouth
-        ) +
-        "<br>" +
-        "Longitude: " +
-        formatLongitude(
-            coordinates.longitudeWest
-        ) +
-        " → " +
-        formatLongitude(
-            coordinates.longitudeEast
-        );
-
-
-    gridIndexOutput.textContent =
-        selectedColumn +
-        ", " +
-        selectedRow;
-
-
-    updateSelectedSurface(
-        index
-    );
-
-
-    updateRegionalInspector(
-        index
-    );
-
-
-    if (
-        Number.isNaN(
-            temperatures[
-                index
-            ]
-        )
-    ) {
-
-        temperatureInput.value =
-            "2.2";
-
-
-        precipitationInput.value =
-            "0";
-
-
-        skyInput.value =
-            "0";
-
-
-        thunderInput.value =
-            "0";
-    }
-
-
-    else {
-
-        temperatureInput.value =
-            temperatures[
-                index
-            ].toFixed(1);
-
-
-        precipitationInput.value =
-            precipitation[
-                index
-            ];
-
-
-        skyInput.value =
-            sky[
-                index
-            ];
-
-
-        thunderInput.value =
-            thunder[
-                index
-            ];
-    }
-
-
-    updateWeatherPreview();
-}
-
-
-function refreshSelectedCell() {
-
-    if (
-        selectedColumn ===
-        null ||
-        selectedRow ===
-        null
-    ) {
-
-        return;
-    }
-
-
-    const index =
-        cellIndex(
-            selectedColumn,
-            selectedRow
-        );
-
-
-    updateSelectedSurface(
-        index
-    );
-
-
-    updateRegionalInspector(
-        index
-    );
-}
-
-
-function updateSelectedSurface(
-    index
-) {
-
-    const type =
-        SURFACE_TYPES[
-            surface[
-                index
-            ]
-        ] ||
-        SURFACE_TYPES[0];
-
-
-    surfaceBox.textContent =
-        type.name
-            .toUpperCase();
-
-
-    surfaceBox.style.background =
-        `rgb(${type.colour.join(",")})`;
-
-
-    surfaceOutput.textContent =
-        type.name;
-
-
-    thermalOutput.textContent =
-        type.description;
-}
-
-
-/* ==========================================================
-   WEATHER FORM
-========================================================== */
-
-function getWeatherForm() {
-
-    let temperature =
-        parseFloat(
-            temperatureInput.value
-        );
-
-
-    if (
-        !Number.isFinite(
-            temperature
-        )
-    ) {
-
-        temperature =
-            0;
-    }
-
-
-    temperature =
-        Math.max(
-            -60,
-            Math.min(
-                60,
-                temperature
-            )
-        );
-
-
-    temperature =
-        Math.round(
-            temperature *
-            10
-        ) /
-        10;
-
-
-    let wet =
-        precipitationInput.value ===
-        "1";
-
-
-    let overcast =
-        skyInput.value ===
-        "1";
-
-
-    let hasThunder =
-        thunderInput.value ===
-        "1";
-
-
-    let warning =
-        "";
-
-
-    if (
-        hasThunder
-    ) {
-
-        wet =
-            true;
-
-
-        overcast =
-            true;
-    }
-
-
-    if (
-        wet
-    ) {
-
-        overcast =
-            true;
-    }
-
-
-    if (
-        hasThunder &&
-        temperature <=
-        SNOW_BOUNDARY
-    ) {
-
-        hasThunder =
-            false;
-
-
-        warning =
-            "Thunder removed because this cell is at or below the fixed 1.5°C snow boundary.";
-    }
-
-
-    precipitationInput.value =
-        wet
-        ? "1"
-        : "0";
-
-
-    skyInput.value =
-        overcast
-        ? "1"
-        : "0";
-
-
-    thunderInput.value =
-        hasThunder
-        ? "1"
-        : "0";
-
-
-    return {
-
-        temperature,
-
-        wet,
-
-        overcast,
-
-        hasThunder,
-
-        warning
-
-    };
-}
-
-
-function updateWeatherPreview() {
-
-    if (
-        selectedColumn ===
-        null ||
-        selectedRow ===
-        null
-    ) {
-
-        return;
-    }
-
-
-    const weather =
-        getWeatherForm();
-
-
-    stateOutput.textContent =
-        buildWeatherState(
-            weather.temperature,
-            weather.wet,
-            weather.overcast,
-            weather.hasThunder
-        );
-
-
-    realTemperatureOutput.textContent =
-        weather.temperature
-            .toFixed(1) +
-        "°C";
-
-
-    minecraftTemperatureOutput.textContent =
-        minecraftTemperature(
-            weather.temperature
-        ).toFixed(3);
-
-
-    precipitationTypeOutput.textContent =
-        getPrecipitationType(
-            weather.temperature,
-            weather.wet
-        );
-
-
-    warningOutput.textContent =
-        weather.warning;
-}
-
-
-temperatureInput.addEventListener(
-    "input",
-    updateWeatherPreview
-);
-
-
-precipitationInput.addEventListener(
-    "change",
-    updateWeatherPreview
-);
-
-
-skyInput.addEventListener(
-    "change",
-    updateWeatherPreview
-);
-
-
-thunderInput.addEventListener(
-    "change",
-    updateWeatherPreview
-);
-
-
-/* ==========================================================
-   APPLY WEATHER
-========================================================== */
-
-applyWeatherButton.addEventListener(
-    "click",
-    () => {
-
-        if (
-            selectedColumn ===
-            null ||
-            selectedRow ===
-            null
-        ) {
-
-            return;
-        }
-
-
-        const weather =
-            getWeatherForm();
-
-
-        const index =
-            cellIndex(
-                selectedColumn,
-                selectedRow
-            );
-
-
-        temperatures[
-            index
-        ] =
-            weather.temperature;
-
-
-        precipitation[
-            index
-        ] =
-            weather.wet
-            ? 1
-            : 0;
-
-
-        sky[
-            index
-        ] =
-            weather.overcast
-            ? 1
-            : 0;
-
-
-        thunder[
-            index
-        ] =
-            weather.hasThunder
-            ? 1
-            : 0;
-
-
-        scheduleRender();
-
-        queueSave();
-
-        updateWeatherPreview();
-    }
-);
-
-
-/* ==========================================================
-   CLEAR WEATHER
-========================================================== */
-
-clearWeatherButton.addEventListener(
-    "click",
-    () => {
-
-        if (
-            selectedColumn ===
-            null ||
-            selectedRow ===
-            null
-        ) {
-
-            return;
-        }
-
-
-        const index =
-            cellIndex(
-                selectedColumn,
-                selectedRow
-            );
-
-
-        temperatures[
-            index
-        ] =
-            NaN;
-
-
-        precipitation[
-            index
-        ] =
-            0;
-
-
-        sky[
-            index
-        ] =
-            0;
-
-
-        thunder[
-            index
-        ] =
-            0;
-
-
-        scheduleRender();
-
-        queueSave();
-
-        loadSelectedCell();
-    }
-);
-
-
-/* ==========================================================
-   INDEXEDDB
-========================================================== */
-
-function openDatabase() {
-
-    return new Promise(
-        (
-            resolve,
-            reject
-        ) => {
-
-            const request =
-                indexedDB.open(
-                    "EuropaCraftClimate",
-                    1
-                );
-
-
-            request.onupgradeneeded =
-                event => {
-
-                    const db =
-                        event.target.result;
-
-
-                    if (
-                        !db.objectStoreNames
-                            .contains(
-                                "climate"
-                            )
-                    ) {
-
-                        db.createObjectStore(
-                            "climate",
-                            {
-                                keyPath:
-                                    "id"
-                            }
-                        );
-                    }
-                };
-
-
-            request.onsuccess =
-                () => {
-
-                    database =
-                        request.result;
-
-
-                    resolve();
-                };
-
-
-            request.onerror =
-                () => {
-
-                    reject(
-                        request.error
-                    );
-                };
-        }
-    );
-}
-
-
-/* ==========================================================
-   SAVE
-========================================================== */
-
-function saveState() {
-
-    if (
-        !database
-    ) {
-
-        saveStatus.textContent =
-            "Browser storage unavailable.";
-
-
-        topSaveStatus.textContent =
-            "Unavailable";
-
-
-        return Promise.resolve();
-    }
-
-
-    saveStatus.textContent =
-        "Saving...";
-
-
-    topSaveStatus.textContent =
-        "Saving";
-
-
-    return new Promise(
-        (
-            resolve,
-            reject
-        ) => {
-
-            const transaction =
-                database.transaction(
-                    "climate",
-                    "readwrite"
-                );
-
-
-            const store =
-                transaction.objectStore(
-                    "climate"
-                );
-
-
-            store.put({
-
-                id:
-                    "main",
-
-                version:
-                    6,
-
-                surface:
-                    surface
-                        .slice()
-                        .buffer,
-
-                regional:
-                    regional
-                        .slice()
-                        .buffer,
-
-                regionCount:
-                    REGION_COUNT,
-
-                temperatures:
-                    temperatures
-                        .slice()
-                        .buffer,
-
-                precipitation:
-                    precipitation
-                        .slice()
-                        .buffer,
-
-                sky:
-                    sky
-                        .slice()
-                        .buffer,
-
-                thunder:
-                    thunder
-                        .slice()
-                        .buffer,
-
-                updated:
-                    Date.now()
-
-            });
-
-
-            transaction.oncomplete =
-                () => {
-
-                    const time =
-                        new Date()
-                            .toLocaleTimeString();
-
-
-                    saveStatus.textContent =
-                        "Automatically saved at " +
-                        time;
-
-
-                    topSaveStatus.textContent =
-                        "Saved";
-
-
-                    resolve();
-                };
-
-
-            transaction.onerror =
-                () => {
-
-                    saveStatus.textContent =
-                        "Save failed.";
-
-
-                    topSaveStatus.textContent =
-                        "Save error";
-
-
-                    reject(
-                        transaction.error
-                    );
-                };
-        }
-    );
-}
-
-
-function queueSave() {
-
-    clearTimeout(
-        saveTimer
-    );
-
-
-    saveStatus.textContent =
-        "Unsaved changes...";
-
-
-    topSaveStatus.textContent =
-        "Unsaved";
-
-
-    saveTimer =
-        setTimeout(
-            saveState,
-            450
-        );
-}
-
-
-saveButton.addEventListener(
-    "click",
-    saveState
-);
-
-
-/* ==========================================================
-   OLD SURFACE MIGRATION
-========================================================== */
-
-function migrateOldSurface(
-    saved,
-    version
-) {
-
-    const migrated =
-        new Uint8Array(
-            TOTAL_CELLS
-        );
-
-
-    for (
-        let i = 0;
-        i < TOTAL_CELLS;
-        i++
-    ) {
-
-        const value =
-            saved[
-                i
-            ];
-
-
-        if (
-            version ===
-            2
-        ) {
-
-            if (
-                value ===
-                1
-            ) {
-
-                migrated[
-                    i
-                ] =
-                    1;
-            }
-
-
-            else if (
-                value ===
-                2
-            ) {
-
-                migrated[
-                    i
-                ] =
-                    2;
-            }
-
-
-            else if (
-                value ===
-                3
-            ) {
-
-                migrated[
-                    i
-                ] =
-                    3;
-            }
-
-
-            else if (
-                value >=
-                4 &&
-                value <=
-                7
-            ) {
-
-                migrated[
-                    i
-                ] =
-                    4;
-            }
-
-
-            else if (
-                value ===
-                8
-            ) {
-
-                migrated[
-                    i
-                ] =
-                    5;
-            }
-
-
-            else {
-
-                migrated[
-                    i
-                ] =
-                    0;
-            }
-        }
-
-
-        else {
-
-            migrated[
-                i
-            ] =
-                (
-                    value <=
-                    5
-                )
-                ? value
-                : 0;
-        }
-    }
-
-
-    return migrated;
-}
-
-
-/* ==========================================================
-   LOAD SAVED STATE
-========================================================== */
-
-function loadSavedState() {
-
-    if (
-        !database
-    ) {
-
-        return Promise.resolve(
-            false
-        );
-    }
-
-
-    return new Promise(
-        (
-            resolve,
-            reject
-        ) => {
-
-            const transaction =
-                database.transaction(
-                    "climate",
-                    "readonly"
-                );
-
-
-            const store =
-                transaction.objectStore(
-                    "climate"
-                );
-
-
-            const request =
-                store.get(
-                    "main"
-                );
-
-
-            request.onsuccess =
-                () => {
-
-                    const data =
-                        request.result;
-
-
-                    if (
-                        !data
-                    ) {
-
-                        resolve(
-                            false
-                        );
-
-
-                        return;
-                    }
-
-
-                    try {
-
-                        const rawSurface =
-                            new Uint8Array(
-                                data.surface
-                            );
-
-
-                        if (
-                            rawSurface.length !==
-                            TOTAL_CELLS
-                        ) {
-
-                            resolve(
-                                false
-                            );
-
-
-                            return;
-                        }
-
-
-                        surface.set(
-                            migrateOldSurface(
-                                rawSurface,
-                                data.version
-                            )
-                        );
-
-
-                        initialiseRegionalBlank();
-
-
-                        if (
-                            data.regional &&
-                            data.regionCount ===
-                            REGION_COUNT
-                        ) {
-
-                            const savedRegional =
-                                new Uint16Array(
-                                    data.regional
-                                );
-
-
-                            if (
-                                savedRegional.length ===
-                                regional.length
-                            ) {
-
-                                regional.set(
-                                    savedRegional
-                                );
-
-
-                                normaliseAllRegional();
-                            }
-                        }
-
-
-                        if (
-                            data.temperatures
-                        ) {
-
-                            const saved =
-                                new Float32Array(
-                                    data.temperatures
-                                );
-
-
-                            if (
-                                saved.length ===
-                                TOTAL_CELLS
-                            ) {
-
-                                temperatures.set(
-                                    saved
-                                );
-                            }
-                        }
-
-
-                        if (
-                            data.precipitation
-                        ) {
-
-                            const saved =
-                                new Uint8Array(
-                                    data.precipitation
-                                );
-
-
-                            if (
-                                saved.length ===
-                                TOTAL_CELLS
-                            ) {
-
-                                precipitation.set(
-                                    saved
-                                );
-                            }
-                        }
-
-
-                        if (
-                            data.sky
-                        ) {
-
-                            const saved =
-                                new Uint8Array(
-                                    data.sky
-                                );
-
-
-                            if (
-                                saved.length ===
-                                TOTAL_CELLS
-                            ) {
-
-                                sky.set(
-                                    saved
-                                );
-                            }
-                        }
-
-
-                        if (
-                            data.thunder
-                        ) {
-
-                            const saved =
-                                new Uint8Array(
-                                    data.thunder
-                                );
-
-
-                            if (
-                                saved.length ===
-                                TOTAL_CELLS
-                            ) {
-
-                                thunder.set(
-                                    saved
-                                );
-                            }
-                        }
-
-
-                        resolve(
-                            true
-                        );
-                    }
-
-
-                    catch (
-                        error
-                    ) {
-
-                        console.error(
-                            error
-                        );
-
-
-                        resolve(
-                            false
-                        );
-                    }
-                };
-
-
-            request.onerror =
-                () => {
-
-                    reject(
-                        request.error
-                    );
-                };
-        }
-    );
-}
-
-
-/* ==========================================================
-   BASE64
-========================================================== */
-
-function typedArrayToBase64(
-    typedArray
-) {
-
-    const bytes =
-        new Uint8Array(
-            typedArray.buffer,
-            typedArray.byteOffset,
-            typedArray.byteLength
-        );
-
-
-    let binary =
-        "";
-
-
-    const chunkSize =
-        32768;
-
-
-    for (
-        let i = 0;
-        i < bytes.length;
-        i += chunkSize
-    ) {
-
-        binary +=
-            String.fromCharCode(
-                ...bytes.subarray(
-                    i,
-                    i +
-                    chunkSize
-                )
-            );
-    }
-
-
-    return btoa(
-        binary
-    );
-}
-
-
-function base64ToBytes(
-    text
-) {
-
-    const binary =
-        atob(
-            text
-        );
-
-
-    const result =
-        new Uint8Array(
-            binary.length
-        );
-
-
-    for (
-        let i = 0;
-        i < binary.length;
-        i++
-    ) {
-
-        result[
-            i
-        ] =
-            binary.charCodeAt(
-                i
-            );
-    }
-
-
-    return result;
-}
-
-
-/* ==========================================================
-   EXPORT
-========================================================== */
-
-exportButton.addEventListener(
-    "click",
-    () => {
-
-        const definitions =
-            REGION_TYPES.map(
-                region => ({
-
-                    id:
-                        region.id,
-
-                    key:
-                        region.key,
-
-                    name:
-                        region.name
-
-                })
-            );
-
-
-        const data = {
-
-            format:
-                "EuropaCraft Climate Map",
-
-            version:
-                6,
-
-            grid: {
-
-                west:
-                    MIN_LONGITUDE,
-
-                east:
-                    MAX_LONGITUDE,
-
-                south:
-                    MIN_LATITUDE,
-
-                north:
-                    MAX_LATITUDE,
-
-                resolution:
-                    CELL_DEGREES,
-
-                blocksPerDegree:
-                    BLOCKS_PER_DEGREE
-
-            },
-
-            regionalPrecisionUnits:
-                REGION_TOTAL_UNITS,
-
-            regionDefinitions:
-                definitions,
-
-            regionCount:
-                REGION_COUNT,
-
-            surface:
-                typedArrayToBase64(
-                    surface
-                ),
-
-            regional:
-                typedArrayToBase64(
-                    regional
-                ),
-
-            temperatures:
-                typedArrayToBase64(
-                    temperatures
-                ),
-
-            precipitation:
-                typedArrayToBase64(
-                    precipitation
-                ),
-
-            sky:
-                typedArrayToBase64(
-                    sky
-                ),
-
-            thunder:
-                typedArrayToBase64(
-                    thunder
-                )
-
-        };
-
-
-        const blob =
-            new Blob(
-                [
-                    JSON.stringify(
-                        data
-                    )
-                ],
-                {
-                    type:
-                        "application/json"
-                }
-            );
-
-
-        const url =
-            URL.createObjectURL(
-                blob
-            );
-
-
-        const link =
-            document.createElement(
-                "a"
-            );
-
-
-        link.href =
-            url;
-
-
-        link.download =
-            "europacraft-climate-map-v6.json";
-
-
-        link.click();
-
-
-        setTimeout(
-            () => {
-
-                URL.revokeObjectURL(
-                    url
-                );
-            },
-            1000
-        );
-    }
-);
-
-
-/* ==========================================================
-   IMPORT
-========================================================== */
-
-importButton.addEventListener(
-    "click",
-    () => {
-
-        importFile.click();
-    }
-);
-
-
-importFile.addEventListener(
-    "change",
-    async () => {
-
-        const file =
-            importFile.files[
-                0
-            ];
-
-
-        if (
-            !file
-        ) {
-
-            return;
-        }
-
-
-        try {
-
-            const text =
-                await file.text();
-
-
-            const data =
-                JSON.parse(
-                    text
-                );
-
-
-            if (
-                data.format !==
-                "EuropaCraft Climate Map"
-            ) {
-
-                throw new Error(
-                    "Not a EuropaCraft climate map."
-                );
-            }
-
-
-            const surfaceBytes =
-                base64ToBytes(
-                    data.surface
-                );
-
-
-            if (
-                surfaceBytes.length !==
-                TOTAL_CELLS
-            ) {
-
-                throw new Error(
-                    "Incorrect surface grid size."
-                );
-            }
-
-
-            surface.set(
-                migrateOldSurface(
-                    surfaceBytes,
-                    data.version
-                )
-            );
-
-
-            initialiseRegionalBlank();
-
-
-            if (
-                data.regional &&
-                data.regionCount ===
-                REGION_COUNT
-            ) {
-
-                const bytes =
-                    base64ToBytes(
-                        data.regional
-                    );
-
-
-                const imported =
-                    new Uint16Array(
-                        bytes.buffer
-                    );
-
-
-                if (
-                    imported.length ===
-                    regional.length
-                ) {
-
-                    regional.set(
-                        imported
-                    );
-
-
-                    normaliseAllRegional();
-                }
-            }
-
-
-            if (
-                data.temperatures
-            ) {
-
-                const bytes =
-                    base64ToBytes(
-                        data.temperatures
-                    );
-
-
-                const imported =
-                    new Float32Array(
-                        bytes.buffer
-                    );
-
-
-                if (
-                    imported.length ===
-                    TOTAL_CELLS
-                ) {
-
-                    temperatures.set(
-                        imported
-                    );
-                }
-            }
-
-
-            if (
-                data.precipitation
-            ) {
-
-                const imported =
-                    base64ToBytes(
-                        data.precipitation
-                    );
-
-
-                if (
-                    imported.length ===
-                    TOTAL_CELLS
-                ) {
-
-                    precipitation.set(
-                        imported
-                    );
-                }
-            }
-
-
-            if (
-                data.sky
-            ) {
-
-                const imported =
-                    base64ToBytes(
-                        data.sky
-                    );
-
-
-                if (
-                    imported.length ===
-                    TOTAL_CELLS
-                ) {
-
-                    sky.set(
-                        imported
-                    );
-                }
-            }
-
-
-            if (
-                data.thunder
-            ) {
-
-                const imported =
-                    base64ToBytes(
-                        data.thunder
-                    );
-
-
-                if (
-                    imported.length ===
-                    TOTAL_CELLS
-                ) {
-
-                    thunder.set(
-                        imported
-                    );
-                }
-            }
-
-
-            undoStack.length =
-                0;
-
-
-            redoStack.length =
-                0;
-
-
-            updateUndoButtons();
-
-            renderGrid();
-
-            refreshSelectedCell();
-
-
-            await saveState();
-
-
-            alert(
-                "EuropaCraft climate map imported successfully."
-            );
-        }
-
-
-        catch (
-            error
-        ) {
-
-            console.error(
-                error
-            );
-
-
-            alert(
-                "Import failed: " +
-                error.message
-            );
-        }
-
-
-        importFile.value =
-            "";
-    }
-);
-
-
-/* ==========================================================
-   NATURAL EARTH
-========================================================== */
-
-const DATA_BASE =
     "https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@ca96624a56bd078437bca8184e78163e5039ad19/geojson/";
 
 
-async function downloadGeoJSON(
+async function getGeoJSON(
     filename
 ) {
 
     const response =
         await fetch(
-            DATA_BASE +
+
+            NATURAL_EARTH_BASE +
             filename
+
         );
 
 
@@ -7857,100 +2352,112 @@ async function downloadGeoJSON(
     ) {
 
         throw new Error(
-            "Could not load " +
+            "Could not download " +
             filename
         );
+
     }
 
 
     return await response.json();
+
 }
 
 
+
 /* ==========================================================
-   NATURAL EARTH RASTER
+   GEOGRAPHY RASTER
 ========================================================== */
+
 
 const MASK_SCALE =
     3;
 
 
 const MASK_WIDTH =
+
     GRID_WIDTH *
     MASK_SCALE;
 
 
 const MASK_HEIGHT =
+
     GRID_HEIGHT *
     MASK_SCALE;
 
 
-function geographicX(
+function geoX(
     longitude
 ) {
 
     return (
+
         (
             longitude -
             MIN_LONGITUDE
         ) /
+
         (
             MAX_LONGITUDE -
             MIN_LONGITUDE
-        )
-    ) *
-    MASK_WIDTH;
+        ) *
+
+        MASK_WIDTH
+
+    );
+
 }
 
 
-function geographicY(
+function geoY(
     latitude
 ) {
 
     return (
+
         (
             MAX_LATITUDE -
             latitude
         ) /
+
         (
             MAX_LATITUDE -
             MIN_LATITUDE
-        )
-    ) *
-    MASK_HEIGHT;
+        ) *
+
+        MASK_HEIGHT
+
+    );
+
 }
 
 
+
 function traceRing(
-    context,
+    ctx,
     ring
 ) {
 
     if (
         !ring ||
-        ring.length ===
-        0
+        ring.length === 0
     ) {
 
         return;
+
     }
 
 
-    context.moveTo(
-        geographicX(
-            ring[
-                0
-            ][
-                0
-            ]
+    ctx.moveTo(
+
+        geoX(
+            ring[0][0]
         ),
-        geographicY(
-            ring[
-                0
-            ][
-                1
-            ]
+
+        geoY(
+            ring[0][1]
         )
+
     );
 
 
@@ -7960,64 +2467,30 @@ function traceRing(
         i++
     ) {
 
-        context.lineTo(
-            geographicX(
-                ring[
-                    i
-                ][
-                    0
-                ]
+        ctx.lineTo(
+
+            geoX(
+                ring[i][0]
             ),
-            geographicY(
-                ring[
-                    i
-                ][
-                    1
-                ]
+
+            geoY(
+                ring[i][1]
             )
+
         );
+
     }
 
 
-    context.closePath();
+    ctx.closePath();
+
 }
 
-
-function drawPolygon(
-    context,
-    polygon,
-    colour
-) {
-
-    context.beginPath();
-
-
-    for (
-        const ring
-        of polygon
-    ) {
-
-        traceRing(
-            context,
-            ring
-        );
-    }
-
-
-    context.fillStyle =
-        colour;
-
-
-    context.fill(
-        "evenodd"
-    );
-}
 
 
 function drawGeometry(
-    context,
-    geometry,
-    colour
+    ctx,
+    geometry
 ) {
 
     if (
@@ -8025,6 +2498,7 @@ function drawGeometry(
     ) {
 
         return;
+
     }
 
 
@@ -8033,11 +2507,26 @@ function drawGeometry(
         "Polygon"
     ) {
 
-        drawPolygon(
-            context,
-            geometry.coordinates,
-            colour
+        ctx.beginPath();
+
+
+        for (
+            const ring
+            of geometry.coordinates
+        ) {
+
+            traceRing(
+                ctx,
+                ring
+            );
+
+        }
+
+
+        ctx.fill(
+            "evenodd"
         );
+
     }
 
 
@@ -8051,21 +2540,42 @@ function drawGeometry(
             of geometry.coordinates
         ) {
 
-            drawPolygon(
-                context,
-                polygon,
-                colour
+            ctx.beginPath();
+
+
+            for (
+                const ring
+                of polygon
+            ) {
+
+                traceRing(
+                    ctx,
+                    ring
+                );
+
+            }
+
+
+            ctx.fill(
+                "evenodd"
             );
+
         }
+
     }
+
 }
 
 
+
 function drawGeoJSON(
-    context,
-    geojson,
-    colour
+    ctx,
+    geojson
 ) {
+
+    ctx.fillStyle =
+        "white";
+
 
     if (
         geojson.type ===
@@ -8078,91 +2588,44 @@ function drawGeoJSON(
         ) {
 
             drawGeometry(
-                context,
-                feature.geometry,
-                colour
+                ctx,
+                feature.geometry
             );
+
         }
+
     }
 
-
-    else if (
-        geojson.type ===
-        "Feature"
-    ) {
-
-        drawGeometry(
-            context,
-            geojson.geometry,
-            colour
-        );
-    }
-
-
-    else {
-
-        drawGeometry(
-            context,
-            geojson,
-            colour
-        );
-    }
 }
 
 
+
 /* ==========================================================
-   REBUILD SURFACE ONLY
+   BUILD PHYSICAL SURFACE
 ========================================================== */
 
-async function buildBaseSurface() {
 
-    saveStatus.textContent =
-        "Downloading geographical base...";
+async function buildSurface() {
 
-
-    topSaveStatus.textContent =
-        "Building map";
+    progressOutput.textContent =
+        "Downloading Natural Earth coastline and lakes...";
 
 
     const [
-        landData,
-        lakeData
+        land,
+        lakes
     ] =
         await Promise.all([
 
-            downloadGeoJSON(
+            getGeoJSON(
                 "ne_10m_land.geojson"
             ),
 
-            downloadGeoJSON(
+            getGeoJSON(
                 "ne_10m_lakes.geojson"
             )
 
         ]);
-
-
-    let islandData =
-        null;
-
-
-    try {
-
-        islandData =
-            await downloadGeoJSON(
-                "ne_10m_minor_islands.geojson"
-            );
-    }
-
-
-    catch (
-        error
-    ) {
-
-        console.warn(
-            "Minor islands unavailable.",
-            error
-        );
-    }
 
 
     const landCanvas =
@@ -8203,21 +2666,8 @@ async function buildBaseSurface() {
 
     drawGeoJSON(
         landContext,
-        landData,
-        "white"
+        land
     );
-
-
-    if (
-        islandData
-    ) {
-
-        drawGeoJSON(
-            landContext,
-            islandData,
-            "white"
-        );
-    }
 
 
     const lakeCanvas =
@@ -8258,26 +2708,29 @@ async function buildBaseSurface() {
 
     drawGeoJSON(
         lakeContext,
-        lakeData,
-        "white"
+        lakes
     );
 
 
     const landPixels =
         landContext.getImageData(
+
             0,
             0,
             MASK_WIDTH,
             MASK_HEIGHT
+
         ).data;
 
 
     const lakePixels =
         lakeContext.getImageData(
+
             0,
             0,
             MASK_WIDTH,
             MASK_HEIGHT
+
         ).data;
 
 
@@ -8287,12 +2740,6 @@ async function buildBaseSurface() {
         row++
     ) {
 
-        const sampleY =
-            row *
-            MASK_SCALE +
-            1;
-
-
         for (
             let column = 0;
             column < GRID_WIDTH;
@@ -8300,12 +2747,21 @@ async function buildBaseSurface() {
         ) {
 
             const sampleX =
+
                 column *
                 MASK_SCALE +
                 1;
 
 
-            const pixel =
+            const sampleY =
+
+                row *
+                MASK_SCALE +
+                1;
+
+
+            const pixelIndex =
+
                 (
                     sampleY *
                     MASK_WIDTH +
@@ -8323,7 +2779,7 @@ async function buildBaseSurface() {
 
             if (
                 lakePixels[
-                    pixel
+                    pixelIndex
                 ] >
                 127
             ) {
@@ -8331,13 +2787,14 @@ async function buildBaseSurface() {
                 surface[
                     index
                 ] =
-                    3;
+                    SURFACE_LAKE;
+
             }
 
 
             else if (
                 landPixels[
-                    pixel
+                    pixelIndex
                 ] >
                 127
             ) {
@@ -8345,7 +2802,8 @@ async function buildBaseSurface() {
                 surface[
                     index
                 ] =
-                    4;
+                    SURFACE_LAND;
+
             }
 
 
@@ -8354,139 +2812,291 @@ async function buildBaseSurface() {
                 surface[
                     index
                 ] =
-                    1;
+                    SURFACE_OCEAN;
+
             }
+
         }
+
     }
 
 
-    undoStack.length =
-        0;
+    /*
+     * Mark immediate sea cells next to land as coastal /
+     * shallow sea.
+
+     * This gives the weather system a useful coastline band.
+     */
+
+    const original =
+        surface.slice();
 
 
-    redoStack.length =
-        0;
+    for (
+        let row = 1;
+        row < GRID_HEIGHT - 1;
+        row++
+    ) {
+
+        for (
+            let column = 1;
+            column < GRID_WIDTH - 1;
+            column++
+        ) {
+
+            const index =
+                cellIndex(
+                    column,
+                    row
+                );
 
 
-    updateUndoButtons();
+            if (
+                original[
+                    index
+                ] !==
+                SURFACE_OCEAN
+            ) {
 
-    renderGrid();
+                continue;
 
-    refreshSelectedCell();
+            }
 
 
-    await saveState();
+            let besideLand =
+                false;
+
+
+            for (
+                let y = -1;
+                y <= 1;
+                y++
+            ) {
+
+                for (
+                    let x = -1;
+                    x <= 1;
+                    x++
+                ) {
+
+                    const neighbour =
+                        cellIndex(
+
+                            column +
+                            x,
+
+                            row +
+                            y
+
+                        );
+
+
+                    if (
+                        original[
+                            neighbour
+                        ] ===
+                        SURFACE_LAND
+                    ) {
+
+                        besideLand =
+                            true;
+
+                    }
+
+                }
+
+            }
+
+
+            if (
+                besideLand
+            ) {
+
+                surface[
+                    index
+                ] =
+                    SURFACE_COAST;
+
+            }
+
+        }
+
+    }
+
 }
 
 
+
 /* ==========================================================
-   REBUILD BUTTON
+   GENERATE CLIMATE
 ========================================================== */
 
-rebuildButton.addEventListener(
-    "click",
-    async () => {
 
-        const confirmed =
-            confirm(
-                "Rebuild the PHYSICAL SURFACE from Natural Earth?\n\nThis removes manual surface painting but DOES NOT delete regional influence painting."
+async function buildClimate() {
+
+    if (
+        !window.EuropaClimate
+    ) {
+
+        throw new Error(
+            "europacraft-climate-v3.js is not loaded."
+        );
+
+    }
+
+
+    climateStatus.textContent =
+        "Generating";
+
+
+    for (
+        let row = 0;
+        row < GRID_HEIGHT;
+        row++
+    ) {
+
+        for (
+            let column = 0;
+            column < GRID_WIDTH;
+            column++
+        ) {
+
+            const index =
+                cellIndex(
+                    column,
+                    row
+                );
+
+
+            const coordinates =
+                cellCoordinates(
+                    column,
+                    row
+                );
+
+
+            const result =
+                window.EuropaClimate.getClimate(
+
+                    coordinates.latitudeCentre,
+
+                    coordinates.longitudeCentre,
+
+                    {
+
+                        landFraction:
+                            landFractionForCell(
+                                index
+                            )
+
+                    }
+
+                );
+
+
+            writeRegionalClimate(
+
+                index,
+
+                result.normalized
+
             );
+
+        }
 
 
         if (
-            !confirmed
+            row %
+            5 ===
+            0
         ) {
 
-            return;
-        }
+            const percentage =
+
+                Math.round(
+
+                    row /
+                    GRID_HEIGHT *
+                    100
+
+                );
 
 
-        try {
+            progressOutput.textContent =
 
-            await buildBaseSurface();
-        }
+                "Generating climate field: " +
+
+                percentage +
+
+                "%";
 
 
-        catch (
-            error
-        ) {
+            await new Promise(
 
-            console.error(
-                error
+                resolve =>
+                    setTimeout(
+                        resolve,
+                        0
+                    )
+
             );
 
-
-            alert(
-                "The base map could not be rebuilt."
-            );
         }
+
     }
-);
+
+
+    climateReady =
+        true;
+
+
+    climateStatus.textContent =
+        "Ready";
+
+
+    progressOutput.textContent =
+        "Physical map and regional climate field are ready.";
+
+
+    render();
+
+}
+
 
 
 /* ==========================================================
-   INITIALISE
+   BUILD EVERYTHING
 ========================================================== */
 
-async function initialise() {
 
-    initialiseRegionalBlank();
+async function buildEverything() {
 
-
-    populateRegionSelector();
-
-
-    updateSurfaceBrushUI();
-
-    updateRegionBrushUI();
+    buildButton.disabled =
+        true;
 
 
-    buildSurfacePalette();
+    buildButton.textContent =
+        "Building...";
 
 
-    updateUndoButtons();
-
-
-    renderGrid();
-
-
-    setZoom(
-        1
-    );
+    climateStatus.textContent =
+        "Building surface";
 
 
     try {
 
-        await openDatabase();
+        await buildSurface();
 
 
-        const saved =
-            await loadSavedState();
+        render();
 
 
-        if (
-            saved
-        ) {
-
-            renderGrid();
+        await buildClimate();
 
 
-            saveStatus.textContent =
-                "Saved EuropaCraft climate map restored.";
+        buildButton.textContent =
+            "Rebuild Map and Climate";
 
-
-            topSaveStatus.textContent =
-                "Saved map loaded";
-
-
-            queueSave();
-        }
-
-
-        else {
-
-            await buildBaseSurface();
-        }
     }
 
 
@@ -8499,41 +3109,2318 @@ async function initialise() {
         );
 
 
-        topSaveStatus.textContent =
-            "Storage error";
+        progressOutput.textContent =
+            "Build failed: " +
+            error.message;
 
 
-        saveStatus.textContent =
-            "Browser storage failed. Building temporary map...";
+        climateStatus.textContent =
+            "Error";
+
+    }
 
 
-        try {
+    finally {
 
-            await buildBaseSurface();
+        buildButton.disabled =
+            false;
+
+    }
+
+}
+
+
+
+/* ==========================================================
+   WEATHER FIELD
+========================================================== */
+
+
+function precipitationCode(
+    type
+) {
+
+    if (
+        type ===
+        "rain"
+    ) {
+
+        return 1;
+
+    }
+
+
+    if (
+        type ===
+        "sleet"
+    ) {
+
+        return 2;
+
+    }
+
+
+    if (
+        type ===
+        "snow"
+    ) {
+
+        return 3;
+
+    }
+
+
+    return 0;
+
+}
+
+
+
+async function generateWeatherField() {
+
+    if (
+        !climateReady
+    ) {
+
+        alert(
+            "Build the climate field first."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        !window.EuropaWeather
+    ) {
+
+        alert(
+            "europacraft-weather-v1.js is not loaded."
+        );
+
+        return;
+
+    }
+
+
+    weatherFieldButton.disabled =
+        true;
+
+
+    weatherStatus.textContent =
+        "Generating";
+
+
+    const date =
+        new Date(
+            weatherDate.value
+        );
+
+
+    /*
+     * Weather is calculated every second cell in this
+     * first version.
+
+     * Each result fills a 2 × 2 cell block.
+
+     * Therefore the climate remains at 0.1° resolution,
+     * but the first weather field is approximately 0.2°.
+
+     * This makes generation much faster while we are still
+     * developing the atmospheric engine.
+     */
+
+    const step =
+        2;
+
+
+    for (
+        let row = 0;
+        row < GRID_HEIGHT;
+        row += step
+    ) {
+
+        for (
+            let column = 0;
+            column < GRID_WIDTH;
+            column += step
+        ) {
+
+            const index =
+                cellIndex(
+                    column,
+                    row
+                );
+
+
+            const coordinates =
+                cellCoordinates(
+                    column,
+                    row
+                );
+
+
+            const result =
+                window.EuropaWeather.simulate(
+
+                    coordinates.latitudeCentre,
+
+                    coordinates.longitudeCentre,
+
+                    date,
+
+                    {
+
+                        landFraction:
+                            landFractionForCell(
+                                index
+                            )
+
+                    }
+
+                );
+
+
+            for (
+                let y = 0;
+                y < step;
+                y++
+            ) {
+
+                for (
+                    let x = 0;
+                    x < step;
+                    x++
+                ) {
+
+                    const targetColumn =
+                        column +
+                        x;
+
+
+                    const targetRow =
+                        row +
+                        y;
+
+
+                    if (
+                        targetColumn >=
+                        GRID_WIDTH ||
+
+                        targetRow >=
+                        GRID_HEIGHT
+                    ) {
+
+                        continue;
+
+                    }
+
+
+                    const target =
+                        cellIndex(
+
+                            targetColumn,
+
+                            targetRow
+
+                        );
+
+
+                    temperature[
+                        target
+                    ] =
+                        result.temperatureC;
+
+
+                    pressure[
+                        target
+                    ] =
+                        result.pressureHpa;
+
+
+                    windSpeed[
+                        target
+                    ] =
+                        result.wind.speedMs;
+
+
+                    windDirection[
+                        target
+                    ] =
+                        result.wind.directionDeg;
+
+
+                    humidity[
+                        target
+                    ] =
+                        Math.round(
+                            result.humidityPct
+                        );
+
+
+                    cloud[
+                        target
+                    ] =
+                        Math.round(
+
+                            result.cloudFraction *
+                            100
+
+                        );
+
+
+                    precipitation[
+                        target
+                    ] =
+                        precipitationCode(
+                            result.precipitationType
+                        );
+
+                }
+
+            }
+
         }
 
 
-        catch (
-            mapError
+        if (
+            row %
+            10 ===
+            0
         ) {
 
-            console.error(
-                mapError
+            progressOutput.textContent =
+
+                "Generating weather field: " +
+
+                Math.round(
+
+                    row /
+                    GRID_HEIGHT *
+                    100
+
+                ) +
+
+                "%";
+
+
+            await new Promise(
+
+                resolve =>
+                    setTimeout(
+                        resolve,
+                        0
+                    )
+
+            );
+
+        }
+
+    }
+
+
+    weatherReady =
+        true;
+
+
+    weatherStatus.textContent =
+        "Ready";
+
+
+    weatherFieldButton.disabled =
+        false;
+
+
+    progressOutput.textContent =
+        "Europe weather field generated for " +
+        date.toLocaleString() +
+        ".";
+
+
+    render();
+
+
+    updateSelectedCell();
+
+}
+
+
+
+/* ==========================================================
+   COLOUR FUNCTIONS
+========================================================== */
+
+
+function surfaceColour(
+    type
+) {
+
+    switch (
+        type
+    ) {
+
+        case SURFACE_OCEAN:
+
+            return [
+                77,
+                135,
+                176
+            ];
+
+
+        case SURFACE_COAST:
+
+            return [
+                111,
+                174,
+                202
+            ];
+
+
+        case SURFACE_LAKE:
+
+            return [
+                148,
+                199,
+                218
+            ];
+
+
+        case SURFACE_LAND:
+
+            return [
+                193,
+                188,
+                154
+            ];
+
+
+        default:
+
+            return [
+                210,
+                214,
+                217
+            ];
+
+    }
+
+}
+
+
+
+function interpolateColour(
+    a,
+    b,
+    amount
+) {
+
+    amount =
+        clamp(
+            amount,
+            0,
+            1
+        );
+
+
+    return [
+
+        Math.round(
+            a[0] +
+            (
+                b[0] -
+                a[0]
+            ) *
+            amount
+        ),
+
+        Math.round(
+            a[1] +
+            (
+                b[1] -
+                a[1]
+            ) *
+            amount
+        ),
+
+        Math.round(
+            a[2] +
+            (
+                b[2] -
+                a[2]
+            ) *
+            amount
+        )
+
+    ];
+
+}
+
+
+
+function temperatureColour(
+    value
+) {
+
+    if (
+        !Number.isFinite(
+            value
+        )
+    ) {
+
+        return [
+            210,
+            210,
+            210
+        ];
+
+    }
+
+
+    if (
+        value <=
+        -20
+    ) {
+
+        return [
+            95,
+            75,
+            170
+        ];
+
+    }
+
+
+    if (
+        value <=
+        0
+    ) {
+
+        return interpolateColour(
+
+            [
+                95,
+                75,
+                170
+            ],
+
+            [
+                105,
+                190,
+                225
+            ],
+
+            (
+                value +
+                20
+            ) /
+            20
+
+        );
+
+    }
+
+
+    if (
+        value <=
+        15
+    ) {
+
+        return interpolateColour(
+
+            [
+                105,
+                190,
+                225
+            ],
+
+            [
+                225,
+                220,
+                115
+            ],
+
+            value /
+            15
+
+        );
+
+    }
+
+
+    if (
+        value <=
+        30
+    ) {
+
+        return interpolateColour(
+
+            [
+                225,
+                220,
+                115
+            ],
+
+            [
+                225,
+                110,
+                55
+            ],
+
+            (
+                value -
+                15
+            ) /
+            15
+
+        );
+
+    }
+
+
+    return [
+        185,
+        55,
+        45
+    ];
+
+}
+
+
+
+function pressureColour(
+    value
+) {
+
+    const amount =
+        clamp(
+
+            (
+                value -
+                985
+            ) /
+            55,
+
+            0,
+            1
+
+        );
+
+
+    return interpolateColour(
+
+        [
+            105,
+            130,
+            205
+        ],
+
+        [
+            225,
+            195,
+            115
+        ],
+
+        amount
+
+    );
+
+}
+
+
+
+function windColour(
+    value
+) {
+
+    const amount =
+        clamp(
+
+            value /
+            30,
+
+            0,
+            1
+
+        );
+
+
+    return interpolateColour(
+
+        [
+            230,
+            235,
+            237
+        ],
+
+        [
+            90,
+            85,
+            155
+        ],
+
+        amount
+
+    );
+
+}
+
+
+
+function cloudColour(
+    value
+) {
+
+    const amount =
+        clamp(
+
+            value /
+            100,
+
+            0,
+            1
+
+        );
+
+
+    const shade =
+        Math.round(
+
+            245 -
+            amount *
+            150
+
+        );
+
+
+    return [
+
+        shade,
+        shade,
+        shade
+
+    ];
+
+}
+
+
+
+function precipitationColour(
+    code
+) {
+
+    switch (
+        code
+    ) {
+
+        case 1:
+
+            return [
+                65,
+                125,
+                205
+            ];
+
+
+        case 2:
+
+            return [
+                145,
+                115,
+                190
+            ];
+
+
+        case 3:
+
+            return [
+                225,
+                240,
+                250
+            ];
+
+
+        default:
+
+            return [
+                225,
+                226,
+                218
+            ];
+
+    }
+
+}
+
+
+
+/* ==========================================================
+   RENDER
+========================================================== */
+
+
+function render() {
+
+    const image =
+        context.createImageData(
+
+            GRID_WIDTH,
+
+            GRID_HEIGHT
+
+        );
+
+
+    const pixels =
+        image.data;
+
+
+    for (
+        let index = 0;
+        index < TOTAL_CELLS;
+        index++
+    ) {
+
+        let colour;
+
+
+        if (
+            currentView ===
+            "surface"
+        ) {
+
+            colour =
+                surfaceColour(
+                    surface[
+                        index
+                    ]
+                );
+
+        }
+
+
+        else if (
+            currentView ===
+            "dominant"
+        ) {
+
+            if (
+                !climateReady
+            ) {
+
+                colour =
+                    surfaceColour(
+                        surface[
+                            index
+                        ]
+                    );
+
+            }
+
+            else {
+
+                const region =
+                    dominantRegion(
+                        index
+                    );
+
+
+                colour =
+                    REGION_TYPES[
+                        region
+                    ].colour;
+
+            }
+
+        }
+
+
+        else if (
+            currentView ===
+            "influence"
+        ) {
+
+            const offset =
+                regionalOffset(
+                    index
+                );
+
+
+            const value =
+
+                regional[
+                    offset +
+                    currentInfluence
+                ] /
+
+                REGIONAL_TOTAL;
+
+
+            /*
+             * Square root brightens low percentages so
+             * 5–10% influence is still visible.
+             */
+
+            const visible =
+                Math.sqrt(
+                    value
+                );
+
+
+            colour =
+                interpolateColour(
+
+                    [
+                        238,
+                        239,
+                        237
+                    ],
+
+                    REGION_TYPES[
+                        currentInfluence
+                    ].colour,
+
+                    visible
+
+                );
+
+        }
+
+
+        else if (
+            currentView ===
+            "temperature"
+        ) {
+
+            colour =
+                weatherReady
+
+                ? temperatureColour(
+                    temperature[
+                        index
+                    ]
+                )
+
+                : [
+                    215,
+                    215,
+                    215
+                ];
+
+        }
+
+
+        else if (
+            currentView ===
+            "pressure"
+        ) {
+
+            colour =
+                weatherReady
+
+                ? pressureColour(
+                    pressure[
+                        index
+                    ]
+                )
+
+                : [
+                    215,
+                    215,
+                    215
+                ];
+
+        }
+
+
+        else if (
+            currentView ===
+            "wind"
+        ) {
+
+            colour =
+                weatherReady
+
+                ? windColour(
+                    windSpeed[
+                        index
+                    ]
+                )
+
+                : [
+                    215,
+                    215,
+                    215
+                ];
+
+        }
+
+
+        else if (
+            currentView ===
+            "cloud"
+        ) {
+
+            colour =
+                weatherReady
+
+                ? cloudColour(
+                    cloud[
+                        index
+                    ]
+                )
+
+                : [
+                    215,
+                    215,
+                    215
+                ];
+
+        }
+
+
+        else if (
+            currentView ===
+            "precipitation"
+        ) {
+
+            colour =
+                weatherReady
+
+                ? precipitationColour(
+                    precipitation[
+                        index
+                    ]
+                )
+
+                : [
+                    215,
+                    215,
+                    215
+                ];
+
+        }
+
+
+        else {
+
+            colour =
+                [
+                    220,
+                    220,
+                    220
+                ];
+
+        }
+
+
+        const pixel =
+            index *
+            4;
+
+
+        pixels[
+            pixel
+        ] =
+            colour[
+                0
+            ];
+
+
+        pixels[
+            pixel +
+            1
+        ] =
+            colour[
+                1
+            ];
+
+
+        pixels[
+            pixel +
+            2
+        ] =
+            colour[
+                2
+            ];
+
+
+        pixels[
+            pixel +
+            3
+        ] =
+            255;
+
+    }
+
+
+    context.putImageData(
+
+        image,
+
+        0,
+        0
+
+    );
+
+}
+
+
+
+/* ==========================================================
+   COMPASS
+========================================================== */
+
+
+function compassName(
+    degrees
+) {
+
+    const names = [
+
+        "N",
+        "NNE",
+        "NE",
+        "ENE",
+        "E",
+        "ESE",
+        "SE",
+        "SSE",
+
+        "S",
+        "SSW",
+        "SW",
+        "WSW",
+        "W",
+        "WNW",
+        "NW",
+        "NNW"
+
+    ];
+
+
+    const index =
+
+        Math.round(
+
+            degrees /
+            22.5
+
+        ) %
+
+        16;
+
+
+    return names[
+        index
+    ];
+
+}
+
+
+
+/* ==========================================================
+   SELECTED CELL WEATHER
+========================================================== */
+
+
+function weatherForSelectedCell() {
+
+    if (
+        selectedColumn ===
+        null ||
+
+        selectedRow ===
+        null
+    ) {
+
+        return;
+
+    }
+
+
+    if (
+        !window.EuropaWeather
+    ) {
+
+        alert(
+            "Weather engine is not loaded."
+        );
+
+        return;
+
+    }
+
+
+    const index =
+        cellIndex(
+
+            selectedColumn,
+
+            selectedRow
+
+        );
+
+
+    const coordinates =
+        cellCoordinates(
+
+            selectedColumn,
+
+            selectedRow
+
+        );
+
+
+    const date =
+        new Date(
+            weatherDate.value
+        );
+
+
+    const result =
+        window.EuropaWeather.simulate(
+
+            coordinates.latitudeCentre,
+
+            coordinates.longitudeCentre,
+
+            date,
+
+            {
+
+                landFraction:
+                    landFractionForCell(
+                        index
+                    )
+
+            }
+
+        );
+
+
+    temperature[
+        index
+    ] =
+        result.temperatureC;
+
+
+    pressure[
+        index
+    ] =
+        result.pressureHpa;
+
+
+    windSpeed[
+        index
+    ] =
+        result.wind.speedMs;
+
+
+    windDirection[
+        index
+    ] =
+        result.wind.directionDeg;
+
+
+    humidity[
+        index
+    ] =
+        Math.round(
+            result.humidityPct
+        );
+
+
+    cloud[
+        index
+    ] =
+        Math.round(
+
+            result.cloudFraction *
+            100
+
+        );
+
+
+    precipitation[
+        index
+    ] =
+        precipitationCode(
+            result.precipitationType
+        );
+
+
+    showWeatherResult(
+        result
+    );
+
+}
+
+
+
+/* ==========================================================
+   WEATHER RESULT
+========================================================== */
+
+
+function showWeatherResult(
+    result
+) {
+
+    weatherBox.style.display =
+        "block";
+
+
+    weatherMain.textContent =
+
+        result.precipitationType
+            .toUpperCase() +
+
+        " · " +
+
+        result.temperatureC
+            .toFixed(1) +
+
+        "°C";
+
+
+    temperatureOutput.textContent =
+
+        result.temperatureC
+            .toFixed(1) +
+
+        "°C";
+
+
+    pressureOutput.textContent =
+
+        result.pressureHpa
+            .toFixed(1) +
+
+        " hPa";
+
+
+    windOutput.textContent =
+
+        compassName(
+            result.wind.directionDeg
+        ) +
+
+        " " +
+
+        result.wind.speedMs
+            .toFixed(1) +
+
+        " m/s · " +
+
+        result.wind.directionDeg
+            .toFixed(0) +
+
+        "°";
+
+
+    humidityOutput.textContent =
+
+        result.humidityPct
+            .toFixed(0) +
+
+        "%";
+
+
+    cloudOutput.textContent =
+
+        Math.round(
+
+            result.cloudFraction *
+            100
+
+        ) +
+
+        "%";
+
+
+    precipitationOutput.textContent =
+
+        result.precipitationType +
+
+        " · " +
+
+        Math.round(
+
+            result.precipitationChance *
+            100
+
+        ) +
+
+        "%";
+
+}
+
+
+
+/* ==========================================================
+   UPDATE SELECTED CELL
+========================================================== */
+
+
+function updateSelectedCell() {
+
+    if (
+        selectedColumn ===
+        null ||
+
+        selectedRow ===
+        null
+    ) {
+
+        return;
+
+    }
+
+
+    const index =
+        cellIndex(
+
+            selectedColumn,
+
+            selectedRow
+
+        );
+
+
+    const coordinates =
+        cellCoordinates(
+
+            selectedColumn,
+
+            selectedRow
+
+        );
+
+
+    selectionHint.style.display =
+        "none";
+
+
+    selectionDetails.style.display =
+        "block";
+
+
+    coordinateMain.textContent =
+
+        formatLatitude(
+            coordinates.latitudeCentre
+        ) +
+
+        ", " +
+
+        formatLongitude(
+            coordinates.longitudeCentre
+        );
+
+
+    coordinateSub.textContent =
+
+        formatLatitude(
+            coordinates.latitudeNorth
+        ) +
+
+        " to " +
+
+        formatLatitude(
+            coordinates.latitudeSouth
+        ) +
+
+        " · " +
+
+        formatLongitude(
+            coordinates.longitudeWest
+        ) +
+
+        " to " +
+
+        formatLongitude(
+            coordinates.longitudeEast
+        );
+
+
+    const surfaceNames = {
+
+        0:
+            "Unknown",
+
+        1:
+            "Ocean",
+
+        2:
+            "Coastal / shallow sea",
+
+        3:
+            "Lake",
+
+        4:
+            "Land"
+
+    };
+
+
+    surfaceOutput.textContent =
+
+        surfaceNames[
+            surface[
+                index
+            ]
+        ] ||
+
+        "Unknown";
+
+
+    if (
+        !climateReady
+    ) {
+
+        dominantOutput.textContent =
+            "Not generated";
+
+
+        climateList.innerHTML =
+            "";
+
+
+        return;
+
+    }
+
+
+    const regionalData =
+        climateForIndex(
+            index
+        );
+
+
+    const dominant =
+        dominantRegion(
+            index
+        );
+
+
+    dominantOutput.textContent =
+
+        REGION_TYPES[
+            dominant
+        ].name;
+
+
+    const coordinatesResult =
+        window.EuropaClimate.getIndices(
+
+            coordinates.latitudeCentre,
+
+            coordinates.longitudeCentre,
+
+            {
+
+                landFraction:
+                    landFractionForCell(
+                        index
+                    )
+
+            }
+
+        );
+
+
+    maritimeOutput.textContent =
+
+        (
+            coordinatesResult
+                .indices
+                .maritime *
+            100
+        ).toFixed(1) +
+
+        "%";
+
+
+    continentalOutput.textContent =
+
+        (
+            coordinatesResult
+                .indices
+                .continental *
+            100
+        ).toFixed(1) +
+
+        "%";
+
+
+    const ordered =
+        Object.entries(
+            regionalData
+        )
+        .sort(
+
+            (
+                a,
+                b
+            ) =>
+
+            b[1] -
+            a[1]
+
+        );
+
+
+    climateList.innerHTML =
+        "";
+
+
+    for (
+        const [
+            name,
+            value
+        ]
+        of ordered
+    ) {
+
+        if (
+            value <
+            0.1
+        ) {
+
+            continue;
+
+        }
+
+
+        const regionIndex =
+            REGION_TYPES.findIndex(
+
+                region =>
+                    region.name ===
+                    name
+
             );
 
 
-            saveStatus.textContent =
-                "Could not load geographical base.";
-        }
+        const colour =
+            REGION_TYPES[
+                regionIndex
+            ].colour;
+
+
+        const row =
+            document.createElement(
+                "div"
+            );
+
+
+        row.className =
+            "climate-row";
+
+
+        row.innerHTML =
+
+            '<div class="climate-row-top">' +
+
+            '<span>' +
+            name +
+            '</span>' +
+
+            '<strong>' +
+            value.toFixed(1) +
+            '%</strong>' +
+
+            '</div>' +
+
+            '<div class="climate-track">' +
+
+            '<div class="climate-fill" style="' +
+
+            'width:' +
+            value +
+            '%;' +
+
+            'background:rgb(' +
+            colour.join(",") +
+            ');' +
+
+            '"></div>' +
+
+            '</div>';
+
+
+        climateList.appendChild(
+            row
+        );
+
     }
+
+
+    if (
+        weatherReady &&
+        Number.isFinite(
+            temperature[
+                index
+            ]
+        )
+    ) {
+
+        const code =
+            precipitation[
+                index
+            ];
+
+
+        const precipitationNames = {
+
+            0:
+                "dry",
+
+            1:
+                "rain",
+
+            2:
+                "sleet",
+
+            3:
+                "snow"
+
+        };
+
+
+        weatherBox.style.display =
+            "block";
+
+
+        weatherMain.textContent =
+
+            precipitationNames[
+                code
+            ].toUpperCase() +
+
+            " · " +
+
+            temperature[
+                index
+            ].toFixed(1) +
+
+            "°C";
+
+
+        temperatureOutput.textContent =
+
+            temperature[
+                index
+            ].toFixed(1) +
+
+            "°C";
+
+
+        pressureOutput.textContent =
+
+            pressure[
+                index
+            ].toFixed(1) +
+
+            " hPa";
+
+
+        windOutput.textContent =
+
+            compassName(
+                windDirection[
+                    index
+                ]
+            ) +
+
+            " " +
+
+            windSpeed[
+                index
+            ].toFixed(1) +
+
+            " m/s";
+
+
+        humidityOutput.textContent =
+
+            humidity[
+                index
+            ] +
+
+            "%";
+
+
+        cloudOutput.textContent =
+
+            cloud[
+                index
+            ] +
+
+            "%";
+
+
+        precipitationOutput.textContent =
+
+            precipitationNames[
+                code
+            ];
+
+    }
+
+}
+
+
+
+/* ==========================================================
+   CANVAS CLICK
+========================================================== */
+
+
+canvas.addEventListener(
+
+    "click",
+
+    event => {
+
+        const rectangle =
+            canvas.getBoundingClientRect();
+
+
+        const x =
+
+            (
+                event.clientX -
+                rectangle.left
+            ) /
+
+            rectangle.width;
+
+
+        const y =
+
+            (
+                event.clientY -
+                rectangle.top
+            ) /
+
+            rectangle.height;
+
+
+        selectedColumn =
+            clamp(
+
+                Math.floor(
+                    x *
+                    GRID_WIDTH
+                ),
+
+                0,
+
+                GRID_WIDTH -
+                1
+
+            );
+
+
+        selectedRow =
+            clamp(
+
+                Math.floor(
+                    y *
+                    GRID_HEIGHT
+                ),
+
+                0,
+
+                GRID_HEIGHT -
+                1
+
+            );
+
+
+        selectionBox.style.display =
+            "block";
+
+
+        selectionBox.style.left =
+
+            (
+                selectedColumn *
+                zoom
+            ) +
+
+            "px";
+
+
+        selectionBox.style.top =
+
+            (
+                selectedRow *
+                zoom
+            ) +
+
+            "px";
+
+
+        selectionBox.style.width =
+
+            zoom +
+
+            "px";
+
+
+        selectionBox.style.height =
+
+            zoom +
+
+            "px";
+
+
+        updateSelectedCell();
+
+    }
+
+);
+
+
+
+/* ==========================================================
+   VIEW BUTTONS
+========================================================== */
+
+
+for (
+    const button
+    of document.querySelectorAll(
+        "[data-view]"
+    )
+) {
+
+    button.addEventListener(
+
+        "click",
+
+        () => {
+
+            currentView =
+                button.dataset.view;
+
+
+            for (
+                const other
+                of document.querySelectorAll(
+                    "[data-view]"
+                )
+            ) {
+
+                other.classList.remove(
+                    "active"
+                );
+
+            }
+
+
+            button.classList.add(
+                "active"
+            );
+
+
+            render();
+
+        }
+
+    );
+
+}
+
+
+
+/* ==========================================================
+   ZOOM
+========================================================== */
+
+
+function setZoom(
+    value
+) {
+
+    zoom =
+        value;
+
+
+    canvas.style.width =
+
+        (
+            GRID_WIDTH *
+            zoom
+        ) +
+
+        "px";
+
+
+    canvas.style.height =
+
+        (
+            GRID_HEIGHT *
+            zoom
+        ) +
+
+        "px";
+
+
+    mapStage.style.width =
+
+        (
+            GRID_WIDTH *
+            zoom
+        ) +
+
+        "px";
+
+
+    mapStage.style.height =
+
+        (
+            GRID_HEIGHT *
+            zoom
+        ) +
+
+        "px";
+
+
+    if (
+        selectedColumn !==
+        null
+    ) {
+
+        selectionBox.style.left =
+
+            (
+                selectedColumn *
+                zoom
+            ) +
+
+            "px";
+
+
+        selectionBox.style.top =
+
+            (
+                selectedRow *
+                zoom
+            ) +
+
+            "px";
+
+
+        selectionBox.style.width =
+
+            zoom +
+
+            "px";
+
+
+        selectionBox.style.height =
+
+            zoom +
+
+            "px";
+
+    }
+
+}
+
+
+
+for (
+    const button
+    of document.querySelectorAll(
+        "[data-zoom]"
+    )
+) {
+
+    button.addEventListener(
+
+        "click",
+
+        () => {
+
+            setZoom(
+
+                Number(
+                    button.dataset.zoom
+                )
+
+            );
+
+        }
+
+    );
+
+}
+
+
+
+/* ==========================================================
+   CLIMATE SELECTOR
+========================================================== */
+
+
+function buildClimateSelector() {
+
+    influenceSelect.innerHTML =
+        "";
+
+
+    legend.innerHTML =
+        "";
+
+
+    REGION_TYPES.forEach(
+
+        (
+            region,
+            index
+        ) => {
+
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+
+            option.value =
+                index;
+
+
+            option.textContent =
+                region.name;
+
+
+            influenceSelect.appendChild(
+                option
+            );
+
+
+            const legendItem =
+                document.createElement(
+                    "div"
+                );
+
+
+            legendItem.className =
+                "legend-item";
+
+
+            legendItem.innerHTML =
+
+                '<div class="legend-colour" style="' +
+
+                'background:rgb(' +
+                region.colour.join(",") +
+                ');' +
+
+                '"></div>' +
+
+                '<span>' +
+                region.name +
+                '</span>';
+
+
+            legend.appendChild(
+                legendItem
+            );
+
+        }
+
+    );
+
+
+    influenceSelect.addEventListener(
+
+        "change",
+
+        () => {
+
+            currentInfluence =
+                Number(
+                    influenceSelect.value
+                );
+
+
+            currentView =
+                "influence";
+
+
+            for (
+                const button
+                of document.querySelectorAll(
+                    "[data-view]"
+                )
+            ) {
+
+                button.classList.toggle(
+
+                    "active",
+
+                    button.dataset.view ===
+                    "influence"
+
+                );
+
+            }
+
+
+            render();
+
+        }
+
+    );
+
+}
+
+
+
+/* ==========================================================
+   BUTTON EVENTS
+========================================================== */
+
+
+buildButton.addEventListener(
+
+    "click",
+
+    buildEverything
+
+);
+
+
+weatherFieldButton.addEventListener(
+
+    "click",
+
+    () => {
+
+        generateWeatherField()
+
+            .catch(
+
+                error => {
+
+                    console.error(
+                        error
+                    );
+
+
+                    weatherStatus.textContent =
+                        "Error";
+
+
+                    weatherFieldButton.disabled =
+                        false;
+
+
+                    progressOutput.textContent =
+                        "Weather generation failed: " +
+                        error.message;
+
+                }
+
+            );
+
+    }
+
+);
+
+
+selectedWeatherButton.addEventListener(
+
+    "click",
+
+    weatherForSelectedCell
+
+);
+
+
+
+/* ==========================================================
+   INITIALISE
+========================================================== */
+
+
+function initialise() {
+
+    buildClimateSelector();
+
+
+    setZoom(
+        1
+    );
+
+
+    render();
+
+
+    if (
+        !window.EuropaClimate
+    ) {
+
+        climateStatus.textContent =
+            "Climate JS missing";
+
+
+        progressOutput.textContent =
+            "europacraft-climate-v3.js could not be loaded.";
+
+    }
+
+
+    else if (
+        !window.EuropaWeather
+    ) {
+
+        weatherStatus.textContent =
+            "Weather JS missing";
+
+
+        progressOutput.textContent =
+            "Climate loaded, but europacraft-weather-v1.js could not be loaded.";
+
+    }
+
+
+    else {
+
+        climateStatus.textContent =
+            "Engine loaded";
+
+
+        weatherStatus.textContent =
+            "Engine loaded";
+
+
+        progressOutput.innerHTML =
+
+            "Both engines loaded. Press " +
+
+            "<strong>Build Map and Climate</strong>.";
+
+    }
+
 }
 
 
 initialise();
 
+
 })();
 
 </script>
 
+
 </body>
+
 </html>
