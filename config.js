@@ -1,91 +1,92 @@
 /* ============================================================================
    EuropaCraft Weather Simulator
-   USER-EDITABLE MASTER CONFIGURATION
-   Version: 7.1
-   ============================================================================
+   Central Configuration
+   Version 7.2
 
-   THIS IS THE FILE YOU SHOULD EDIT FIRST.
+   FILE:
+       config.js
 
-   Most ordinary climate and terrain tuning should be possible from here
-   without opening the physics files.
+   PURPOSE
 
-   Major editable areas:
+   This is the main editable configuration file for the EuropaCraft climate
+   and weather simulator.
 
-   1. MAP
-      - Geographic bounds
-      - Grid resolution
+   Routine tuning should be done HERE rather than inside the physics modules.
 
-   2. TERRAIN
-      - Land/sea smoothing
-      - Mountain ranges
-      - Regional terrain features
+   STANDARD PHYSICS TIMESTEP:
+       4 simulated minutes
 
-   3. CLIMATE
-      - Maritime strength
-      - Continentality
-      - Seasonal lag
-      - Climate-region anchors
-      - Local modifiers
-
-   4. ATMOSPHERE
-      - Mixing
-      - Pressure
-      - Wind limits
-
-   5. OCEAN
-      - SST response
-      - Air-sea heat transfer
-
-   6. MOISTURE
-      - Evaporation
-      - Condensation
-      - Clouds
-      - Precipitation
-
-   7. RADIATION
-      - Day/night heating and cooling
-
-   8. SNOW
-      - Snow/rain/sleet thresholds
-      - Snow accumulation and melting
 ============================================================================ */
 
 (function (global) {
 "use strict";
 
+
 const CONFIG = {
 
-    version: "7.1-configurable-geography",
+    version:
+        "7.2-europacraft-weather",
+
 
     /* ========================================================================
-       MAP
+       MAP BOUNDS
        ======================================================================== */
 
     bounds: {
-        west: -26,
-        east: 52,
-        south: 30,
-        north: 74
+
+        west:
+            -26,
+
+        east:
+            52,
+
+        south:
+            30,
+
+        north:
+            74
     },
 
+
+    /* ========================================================================
+       MODEL GRID
+       ======================================================================== */
+
     grid: {
+
         /*
-         * Physics grid.
-         *
-         * 195 × 110 is deliberately much smaller than the rendered map.
-         * The renderer interpolates it smoothly.
-         *
-         * Increasing these values improves local detail but increases CPU use.
+         * Persistent atmosphere grid.
          */
-        nx: 195,
-        ny: 110,
 
-        physicsStepMinutes: 10,
+        nx:
+            195,
 
-        maxWindMs: 52,
+        ny:
+            110,
 
-        minPressureHpa: 930,
-        maxPressureHpa: 1060
+
+        /*
+         * STANDARD EUROPAcraft PHYSICS STEP
+
+         * 4 minutes is the normal simulation timestep.
+
+         * The physics engine is timestep-aware, so this may later be changed
+         * to 1 minute for a higher-detail mode without rewriting the model.
+         */
+
+        physicsStepMinutes:
+            4,
+
+
+        maxWindMs:
+            52,
+
+
+        minPressureHpa:
+            935,
+
+        maxPressureHpa:
+            1065
     },
 
 
@@ -95,842 +96,1231 @@ const CONFIG = {
 
     terrain: {
 
-        /*
-         * Controls how far coastlines affect nearby inland cells.
-         *
-         * This is NOT the atmospheric maritime influence itself.
-         * It is only a static geographic coastal-distance field.
-         */
-        coastInfluenceKm: 450,
+        coastInfluenceKm:
+            450,
 
-        /*
-         * Rough land/sea transition softness.
-         * 0 = sharp
-         * higher values = smoother coastal interpolation
-         */
-        coastSoftness: 0.16,
+        coastSoftness:
+            0.16,
 
-        /*
-         * Background altitude used for ordinary lowland terrain.
-         */
-        lowlandBaseM: 65,
 
-        /*
-         * Maximum permitted generated terrain altitude.
-         */
-        maxAltitudeM: 3600,
+        lowlandBaseM:
+            65,
 
-        /*
-         * Terrain roughness controls.
-         *
-         * These are subtle deterministic variations, NOT visual random noise.
-         */
-        roughness: {
-            enabled: true,
-            amplitudeM: 45,
-            scaleDegrees: 1.8
-        },
+        maxAltitudeM:
+            3600,
 
-        /*
-         * Mountain ranges.
-         *
-         * centerLat / centerLon = middle
-         * radiusLat / radiusLon = spread
-         * heightM = central terrain addition
-         *
-         * These are broad terrain fields rather than exact DEM data.
-         */
+
+        roughnessAmplitudeM:
+            85,
+
+        roughnessScale:
+            0.085,
+
+
         mountains: [
 
             {
-                name: "Alps",
-                centerLat: 46.6,
-                centerLon: 10.3,
-                radiusLat: 2.1,
-                radiusLon: 5.4,
-                heightM: 2350
+                name:
+                    "Alps",
+
+                lat:
+                    46.4,
+
+                lon:
+                    10.4,
+
+                sigmaLat:
+                    1.25,
+
+                sigmaLon:
+                    3.8,
+
+                heightM:
+                    2700
             },
 
             {
-                name: "Pyrenees",
-                centerLat: 42.7,
-                centerLon: 0.2,
-                radiusLat: 1.35,
-                radiusLon: 4.4,
-                heightM: 1900
+                name:
+                    "Pyrenees",
+
+                lat:
+                    42.65,
+
+                lon:
+                    0.6,
+
+                sigmaLat:
+                    0.75,
+
+                sigmaLon:
+                    2.9,
+
+                heightM:
+                    2350
             },
 
             {
-                name: "Carpathians",
-                centerLat: 47.3,
-                centerLon: 24.3,
-                radiusLat: 2.5,
-                radiusLon: 6.4,
-                heightM: 1450
+                name:
+                    "Carpathians",
+
+                lat:
+                    47.5,
+
+                lon:
+                    24.0,
+
+                sigmaLat:
+                    1.7,
+
+                sigmaLon:
+                    4.4,
+
+                heightM:
+                    1800
             },
 
             {
-                name: "Dinaric Alps",
-                centerLat: 44.0,
-                centerLon: 17.2,
-                radiusLat: 3.3,
-                radiusLon: 3.1,
-                heightM: 1300
+                name:
+                    "Dinaric Alps",
+
+                lat:
+                    44.2,
+
+                lon:
+                    17.4,
+
+                sigmaLat:
+                    2.0,
+
+                sigmaLon:
+                    1.6,
+
+                heightM:
+                    1500
             },
 
             {
-                name: "Balkan Mountains",
-                centerLat: 42.7,
-                centerLon: 24.4,
-                radiusLat: 2.0,
-                radiusLon: 4.5,
-                heightM: 1150
+                name:
+                    "Balkan Mountains",
+
+                lat:
+                    42.8,
+
+                lon:
+                    24.7,
+
+                sigmaLat:
+                    1.1,
+
+                sigmaLon:
+                    2.8,
+
+                heightM:
+                    1350
             },
 
             {
-                name: "Scandinavian Mountains",
-                centerLat: 63.2,
-                centerLon: 8.0,
-                radiusLat: 8.7,
-                radiusLon: 3.0,
-                heightM: 1450
+                name:
+                    "Scandinavian Mountains",
+
+                lat:
+                    64.0,
+
+                lon:
+                    12.5,
+
+                sigmaLat:
+                    5.5,
+
+                sigmaLon:
+                    2.1,
+
+                heightM:
+                    1750
             },
 
             {
-                name: "Scottish Highlands",
-                centerLat: 57.0,
-                centerLon: -4.5,
-                radiusLat: 2.4,
-                radiusLon: 2.8,
-                heightM: 650
+                name:
+                    "Scottish Highlands",
+
+                lat:
+                    57.2,
+
+                lon:
+                    -4.5,
+
+                sigmaLat:
+                    1.3,
+
+                sigmaLon:
+                    1.7,
+
+                heightM:
+                    850
             },
 
             {
-                name: "Iberian Plateau",
-                centerLat: 40.3,
-                centerLon: -3.8,
-                radiusLat: 4.0,
-                radiusLon: 5.0,
-                heightM: 620
+                name:
+                    "Iberian Plateau",
+
+                lat:
+                    40.5,
+
+                lon:
+                    -4.2,
+
+                sigmaLat:
+                    2.7,
+
+                sigmaLon:
+                    4.0,
+
+                heightM:
+                    650
             },
 
             {
-                name: "Anatolian Plateau",
-                centerLat: 39.2,
-                centerLon: 33.2,
-                radiusLat: 4.3,
-                radiusLon: 8.5,
-                heightM: 930
+                name:
+                    "Anatolian Plateau",
+
+                lat:
+                    39.0,
+
+                lon:
+                    32.5,
+
+                sigmaLat:
+                    2.6,
+
+                sigmaLon:
+                    5.8,
+
+                heightM:
+                    1050
             },
 
             {
-                name: "Apennines",
-                centerLat: 42.2,
-                centerLon: 13.0,
-                radiusLat: 5.1,
-                radiusLon: 1.6,
-                heightM: 1050
+                name:
+                    "Apennines",
+
+                lat:
+                    42.6,
+
+                lon:
+                    13.0,
+
+                sigmaLat:
+                    2.8,
+
+                sigmaLon:
+                    1.0,
+
+                heightM:
+                    1300
             },
 
             {
-                name: "Caucasus West",
-                centerLat: 43.2,
-                centerLon: 40.5,
-                radiusLat: 1.5,
-                radiusLon: 5.0,
-                heightM: 2350
+                name:
+                    "Caucasus West",
+
+                lat:
+                    42.5,
+
+                lon:
+                    43.0,
+
+                sigmaLat:
+                    1.0,
+
+                sigmaLon:
+                    3.3,
+
+                heightM:
+                    2850
             }
         ]
     },
 
 
     /* ========================================================================
-       CLIMATE
+       CLIMATE NORMALS
+
+       These influence climatological normals and initialization.
+
+       They do NOT directly generate weather anomalies.
        ======================================================================== */
 
     climate: {
 
-        /*
-         * Global climate tuning.
-         */
+        globalTemperatureOffsetC:
+            0,
 
-        globalTemperatureOffsetC: 0,
 
-        /*
-         * Latitude cooling.
-         *
-         * Increase to make northern Europe colder relative to the south.
-         */
-        latitudeCoolingCPerDegree: 0.43,
+        latitudeCoolingCPerDegree:
+            0.52,
 
-        latitudeReference: 35,
 
-        /*
-         * Standard environmental lapse rate.
-         */
-        lapseRateCPerKm: 6.1,
+        lapseRateCPerKm:
+            6.5,
 
-        /*
-         * Seasonal amplitude.
-         *
-         * Northern and continental areas automatically receive larger
-         * seasonal ranges.
-         */
-        seasonalAmplitudeBaseC: 7.2,
 
-        seasonalAmplitudeLatitudeFactor: 0.17,
+        seasonalAmplitudeC:
+            11.5,
 
-        seasonalAmplitudeContinentalFactor: 8.5,
 
-        /*
-         * Seasonal thermal lag.
-         *
-         * Approximate day of warmest annual temperature.
-         *
-         * 205 = late July
-         * 220 = early/mid August
-         */
-        landSeasonalPeakDay: 205,
-        seaSeasonalPeakDay: 225,
+        seasonalWarmPeakDay:
+            205,
 
-        /*
-         * Maritime influence.
-         *
-         * THIS IS ONE OF THE MOST IMPORTANT TUNING SECTIONS.
-         */
+        seasonalColdPeakDay:
+            20,
+
 
         maritime: {
 
-            /*
-             * Maximum static geographic maritime influence near sea.
-             */
-            maximum: 1.0,
+            seasonalAmplitudeReduction:
+                0.48,
 
-            /*
-             * Distance over which strong oceanic moderation penetrates inland.
-             */
-            penetrationKm: 600,
-
-            /*
-             * How rapidly it falls away inland.
-             * Higher = sharper coast/interior transition.
-             */
-            falloffPower: 1.35,
-
-            /*
-             * Static reduction in annual temperature range.
-             *
-             * Dynamic weather still performs real air-sea modification.
-             */
-            seasonalRangeReductionC: 6.5,
-
-            /*
-             * Static reduction in day/night temperature range.
-             */
-            diurnalRangeReductionC: 4.0
+            diurnalRangeReduction:
+                0.55
         },
 
-        /*
-         * Continentality.
-         */
 
         continental: {
 
-            inlandStrength: 1.0,
+            seasonalAmplitudeBoost:
+                0.72,
 
-            seasonalRangeAdditionC: 7.5,
-
-            diurnalRangeAdditionC: 3.5,
-
-            winterCoolingC: 2.0,
-
-            summerHeatingC: 1.3
+            diurnalRangeBoost:
+                0.65
         },
 
-        /*
-         * Diurnal temperature range.
-         */
 
         diurnal: {
-            maritimeC: 4.5,
-            mixedC: 7.5,
-            continentalC: 11.0,
-            aridInteriorC: 14.0
+
+            maritimeRangeC:
+                4.5,
+
+            inlandRangeC:
+                10.5,
+
+            dryInteriorRangeC:
+                14.0
         },
 
-        /*
-         * Climate influence types.
-         *
-         * Keep these names stable because other files can refer to them.
-         */
 
         types: [
+
             "Atlantic",
+
             "Polar Maritime",
+
             "Arctic Maritime",
+
             "Greenland Ice-Sheet",
+
             "North Sea",
+
             "Baltic Maritime",
+
             "Mediterranean",
+
             "Black Sea",
+
             "Caspian Maritime",
+
             "North African",
+
             "Eurasian Continental",
+
             "British Landmass",
+
             "Iberian Interior",
+
             "West-Central European",
+
             "Central / Eastern European",
+
             "Scandinavian Interior",
+
             "Balkan Modified",
+
             "Anatolian Interior"
         ],
 
-        /*
-         * Broad climate source anchors.
-         *
-         * strength:
-         *      General importance.
-         *
-         * radiusKm:
-         *      Geographic spread.
-         *
-         * weights:
-         *      Independent raw climate influences.
-         *      THEY DO NOT NEED TO TOTAL 100.
-         *
-         * The climate engine normalises them afterwards.
-         */
+
+        /* ====================================================================
+           BROAD CLIMATE ANCHORS
+
+           These are geographical bias/control points.
+
+           They should not behave as isolated circular weather systems.
+           ==================================================================== */
 
         anchors: [
 
             {
-                name: "North Atlantic",
-                lat: 54,
-                lon: -18,
-                radiusKm: 1800,
-                strength: 1.0,
-                weights: {
-                    "Atlantic": 100,
-                    "Polar Maritime": 30
-                }
+                name:
+                    "North Atlantic",
+
+                lat:
+                    55,
+
+                lon:
+                    -18,
+
+                radiusKm:
+                    1800,
+
+                type:
+                    "Atlantic",
+
+                strength:
+                    1.0
             },
 
             {
-                name: "Icelandic Atlantic",
-                lat: 64.5,
-                lon: -20,
-                radiusKm: 1250,
-                strength: 1.0,
-                weights: {
-                    "Atlantic": 70,
-                    "Polar Maritime": 80,
-                    "Arctic Maritime": 20
-                }
+                name:
+                    "Icelandic Atlantic",
+
+                lat:
+                    64.5,
+
+                lon:
+                    -20,
+
+                radiusKm:
+                    950,
+
+                type:
+                    "Polar Maritime",
+
+                strength:
+                    0.85
             },
 
             {
-                name: "Greenland Sea",
-                lat: 72,
-                lon: -10,
-                radiusKm: 1000,
-                strength: 1.0,
-                weights: {
-                    "Polar Maritime": 65,
-                    "Arctic Maritime": 90,
-                    "Greenland Ice-Sheet": 20
-                }
+                name:
+                    "Arctic Maritime",
+
+                lat:
+                    72,
+
+                lon:
+                    15,
+
+                radiusKm:
+                    1300,
+
+                type:
+                    "Arctic Maritime",
+
+                strength:
+                    0.90
             },
 
             {
-                name: "Norwegian Sea",
-                lat: 66,
-                lon: 5,
-                radiusKm: 1200,
-                strength: 1.0,
-                weights: {
-                    "Atlantic": 45,
-                    "Polar Maritime": 85,
-                    "Arctic Maritime": 30
-                }
+                name:
+                    "North Sea",
+
+                lat:
+                    56,
+
+                lon:
+                    3,
+
+                radiusKm:
+                    850,
+
+                type:
+                    "North Sea",
+
+                strength:
+                    0.95
             },
 
             {
-                name: "Barents",
-                lat: 72,
-                lon: 30,
-                radiusKm: 1100,
-                strength: 1.0,
-                weights: {
-                    "Polar Maritime": 50,
-                    "Arctic Maritime": 100,
-                    "Eurasian Continental": 15
-                }
+                name:
+                    "Baltic",
+
+                lat:
+                    58,
+
+                lon:
+                    20,
+
+                radiusKm:
+                    850,
+
+                type:
+                    "Baltic Maritime",
+
+                strength:
+                    0.90
             },
 
             {
-                name: "North Sea",
-                lat: 56,
-                lon: 3,
-                radiusKm: 900,
-                strength: 1.15,
-                weights: {
-                    "North Sea": 100,
-                    "Atlantic": 45,
-                    "Polar Maritime": 20,
-                    "British Landmass": 15
-                }
+                name:
+                    "Mediterranean",
+
+                lat:
+                    38,
+
+                lon:
+                    15,
+
+                radiusKm:
+                    1800,
+
+                type:
+                    "Mediterranean",
+
+                strength:
+                    1.0
             },
 
             {
-                name: "Baltic",
-                lat: 58,
-                lon: 19,
-                radiusKm: 850,
-                strength: 1.1,
-                weights: {
-                    "Baltic Maritime": 100,
-                    "Central / Eastern European": 35,
-                    "Scandinavian Interior": 25
-                }
+                name:
+                    "Black Sea",
+
+                lat:
+                    43,
+
+                lon:
+                    33,
+
+                radiusKm:
+                    800,
+
+                type:
+                    "Black Sea",
+
+                strength:
+                    0.95
             },
 
             {
-                name: "Western Mediterranean",
-                lat: 39,
-                lon: 5,
-                radiusKm: 1200,
-                strength: 1.0,
-                weights: {
-                    "Mediterranean": 100,
-                    "North African": 20,
-                    "West-Central European": 15
-                }
+                name:
+                    "Eastern Continental",
+
+                lat:
+                    55,
+
+                lon:
+                    38,
+
+                radiusKm:
+                    1800,
+
+                type:
+                    "Eurasian Continental",
+
+                strength:
+                    1.0
             },
 
             {
-                name: "Central Mediterranean",
-                lat: 38,
-                lon: 16,
-                radiusKm: 1200,
-                strength: 1.0,
-                weights: {
-                    "Mediterranean": 100,
-                    "North African": 25,
-                    "Balkan Modified": 15
-                }
+                name:
+                    "Iberian Interior",
+
+                lat:
+                    40,
+
+                lon:
+                    -4,
+
+                radiusKm:
+                    850,
+
+                type:
+                    "Iberian Interior",
+
+                strength:
+                    0.95
             },
 
             {
-                name: "Eastern Mediterranean",
-                lat: 36,
-                lon: 28,
-                radiusKm: 1250,
-                strength: 1.0,
-                weights: {
-                    "Mediterranean": 90,
-                    "North African": 20,
-                    "Anatolian Interior": 20,
-                    "Balkan Modified": 15
-                }
+                name:
+                    "Central Europe",
+
+                lat:
+                    50,
+
+                lon:
+                    12,
+
+                radiusKm:
+                    1250,
+
+                type:
+                    "West-Central European",
+
+                strength:
+                    0.90
             },
 
             {
-                name: "Black Sea",
-                lat: 43,
-                lon: 34,
-                radiusKm: 850,
-                strength: 1.0,
-                weights: {
-                    "Black Sea": 100,
-                    "Central / Eastern European": 35,
-                    "Balkan Modified": 15
-                }
+                name:
+                    "Eastern Europe",
+
+                lat:
+                    51,
+
+                lon:
+                    25,
+
+                radiusKm:
+                    1300,
+
+                type:
+                    "Central / Eastern European",
+
+                strength:
+                    0.95
             },
 
             {
-                name: "Western Russia",
-                lat: 56,
-                lon: 40,
-                radiusKm: 1800,
-                strength: 1.05,
-                weights: {
-                    "Eurasian Continental": 100,
-                    "Central / Eastern European": 60
-                }
+                name:
+                    "Scandinavian Interior",
+
+                lat:
+                    63,
+
+                lon:
+                    17,
+
+                radiusKm:
+                    1000,
+
+                type:
+                    "Scandinavian Interior",
+
+                strength:
+                    1.0
             },
 
             {
-                name: "Central Europe",
-                lat: 50,
-                lon: 12,
-                radiusKm: 1500,
-                strength: 1.0,
-                weights: {
-                    "West-Central European": 100,
-                    "Central / Eastern European": 55,
-                    "Atlantic": 20
-                }
+                name:
+                    "Balkans",
+
+                lat:
+                    43,
+
+                lon:
+                    21,
+
+                radiusKm:
+                    1000,
+
+                type:
+                    "Balkan Modified",
+
+                strength:
+                    0.95
             },
 
             {
-                name: "Balkans",
-                lat: 43.5,
-                lon: 21,
-                radiusKm: 1050,
-                strength: 1.0,
-                weights: {
-                    "Balkan Modified": 100,
-                    "Central / Eastern European": 35,
-                    "Mediterranean": 25
-                }
-            },
+                name:
+                    "Anatolian Interior",
 
-            {
-                name: "Anatolia",
-                lat: 39,
-                lon: 34,
-                radiusKm: 950,
-                strength: 1.0,
-                weights: {
-                    "Anatolian Interior": 100,
-                    "Mediterranean": 25,
-                    "Eurasian Continental": 20
-                }
-            },
+                lat:
+                    39,
 
-            {
-                name: "Iberian Interior",
-                lat: 40,
-                lon: -4,
-                radiusKm: 850,
-                strength: 1.0,
-                weights: {
-                    "Iberian Interior": 100,
-                    "Mediterranean": 35,
-                    "Atlantic": 20
-                }
+                lon:
+                    33,
+
+                radiusKm:
+                    950,
+
+                type:
+                    "Anatolian Interior",
+
+                strength:
+                    1.0
             }
         ],
 
-        /*
-         * Local climate refinements.
-         *
-         * These exist to stop broad interpolation from flattening important
-         * European regional differences.
-         *
-         * You can add more regions here without modifying climate.js.
-         */
+
+        /* ====================================================================
+           LOCAL SUBREGIONAL REFINEMENT
+
+           These are used by climate-v3 to avoid broad-region stretching.
+           ==================================================================== */
 
         localModifiers: [
 
             {
-                name: "Western Norway",
-                lat: 61.5,
-                lon: 5.5,
-                radiusKm: 430,
-                strength: 1.0,
-                weights: {
-                    "Atlantic": 80,
-                    "Polar Maritime": 45
-                }
+                name:
+                    "Western Norway",
+
+                lat:
+                    61.5,
+
+                lon:
+                    6.0,
+
+                radiusKm:
+                    520,
+
+                temperatureOffsetC:
+                    1.0,
+
+                maritimeBoost:
+                    0.32,
+
+                continentalBoost:
+                    -0.25
             },
 
             {
-                name: "Scandinavian Interior",
-                lat: 62,
-                lon: 15,
-                radiusKm: 680,
-                strength: 1.0,
-                weights: {
-                    "Scandinavian Interior": 90,
-                    "Eurasian Continental": 30
-                }
+                name:
+                    "Scandinavian Interior",
+
+                lat:
+                    63.0,
+
+                lon:
+                    16.0,
+
+                radiusKm:
+                    700,
+
+                temperatureOffsetC:
+                    -1.1,
+
+                maritimeBoost:
+                    -0.18,
+
+                continentalBoost:
+                    0.30
             },
 
             {
-                name: "Western Britain and Ireland",
-                lat: 53.5,
-                lon: -7,
-                radiusKm: 550,
-                strength: 1.0,
-                weights: {
-                    "Atlantic": 70,
-                    "British Landmass": 45,
-                    "Polar Maritime": 15
-                }
+                name:
+                    "Western Britain and Ireland",
+
+                lat:
+                    53.5,
+
+                lon:
+                    -6.0,
+
+                radiusKm:
+                    650,
+
+                temperatureOffsetC:
+                    0.5,
+
+                maritimeBoost:
+                    0.30,
+
+                continentalBoost:
+                    -0.24
             },
 
             {
-                name: "Eastern England",
-                lat: 52.5,
-                lon: 0.5,
-                radiusKm: 420,
-                strength: 0.8,
-                weights: {
-                    "British Landmass": 60,
-                    "North Sea": 40,
-                    "West-Central European": 20
-                }
+                name:
+                    "Eastern England",
+
+                lat:
+                    52.5,
+
+                lon:
+                    0.5,
+
+                radiusKm:
+                    420,
+
+                temperatureOffsetC:
+                    -0.1,
+
+                maritimeBoost:
+                    -0.08,
+
+                continentalBoost:
+                    0.14
             },
 
             {
-                name: "Scotland",
-                lat: 57,
-                lon: -4,
-                radiusKm: 460,
-                strength: 0.8,
-                weights: {
-                    "British Landmass": 65,
-                    "Atlantic": 45,
-                    "Polar Maritime": 35
-                }
+                name:
+                    "Scotland",
+
+                lat:
+                    57.0,
+
+                lon:
+                    -4.0,
+
+                radiusKm:
+                    480,
+
+                temperatureOffsetC:
+                    -1.0,
+
+                maritimeBoost:
+                    0.12,
+
+                continentalBoost:
+                    -0.05
             },
 
             {
-                name: "Brittany",
-                lat: 48.2,
-                lon: -3,
-                radiusKm: 350,
-                strength: 0.8,
-                weights: {
-                    "Atlantic": 75,
-                    "West-Central European": 35
-                }
+                name:
+                    "Brittany",
+
+                lat:
+                    48.2,
+
+                lon:
+                    -3.0,
+
+                radiusKm:
+                    380,
+
+                temperatureOffsetC:
+                    0.1,
+
+                maritimeBoost:
+                    0.28,
+
+                continentalBoost:
+                    -0.22
             },
 
             {
-                name: "Central France",
-                lat: 47,
-                lon: 2.5,
-                radiusKm: 540,
-                strength: 0.9,
-                weights: {
-                    "West-Central European": 85,
-                    "Atlantic": 25
-                }
+                name:
+                    "Central France",
+
+                lat:
+                    47.0,
+
+                lon:
+                    2.5,
+
+                radiusKm:
+                    600,
+
+                temperatureOffsetC:
+                    0,
+
+                maritimeBoost:
+                    -0.08,
+
+                continentalBoost:
+                    0.10
             },
 
             {
-                name: "Provence",
-                lat: 43.7,
-                lon: 5.5,
-                radiusKm: 320,
-                strength: 0.9,
-                weights: {
-                    "Mediterranean": 80,
-                    "West-Central European": 20
-                }
+                name:
+                    "Provence",
+
+                lat:
+                    43.8,
+
+                lon:
+                    5.5,
+
+                radiusKm:
+                    350,
+
+                temperatureOffsetC:
+                    1.2,
+
+                maritimeBoost:
+                    0.14,
+
+                continentalBoost:
+                    -0.12
             },
 
             {
-                name: "Galicia",
-                lat: 42.8,
-                lon: -8,
-                radiusKm: 330,
-                strength: 0.9,
-                weights: {
-                    "Atlantic": 80,
-                    "Iberian Interior": 25
-                }
+                name:
+                    "Galicia",
+
+                lat:
+                    42.8,
+
+                lon:
+                    -8.0,
+
+                radiusKm:
+                    380,
+
+                temperatureOffsetC:
+                    0.2,
+
+                maritimeBoost:
+                    0.34,
+
+                continentalBoost:
+                    -0.26
             },
 
             {
-                name: "Castile",
-                lat: 40.5,
-                lon: -4,
-                radiusKm: 500,
-                strength: 1.0,
-                weights: {
-                    "Iberian Interior": 100
-                }
+                name:
+                    "Castile",
+
+                lat:
+                    40.7,
+
+                lon:
+                    -4.0,
+
+                radiusKm:
+                    600,
+
+                temperatureOffsetC:
+                    0,
+
+                maritimeBoost:
+                    -0.20,
+
+                continentalBoost:
+                    0.34
             },
 
             {
-                name: "Mediterranean Spain",
-                lat: 39,
-                lon: -0.5,
-                radiusKm: 430,
-                strength: 1.0,
-                weights: {
-                    "Mediterranean": 85,
-                    "Iberian Interior": 25
-                }
+                name:
+                    "Mediterranean Spain",
+
+                lat:
+                    39.0,
+
+                lon:
+                    -0.5,
+
+                radiusKm:
+                    500,
+
+                temperatureOffsetC:
+                    1.1,
+
+                maritimeBoost:
+                    0.20,
+
+                continentalBoost:
+                    -0.13
             },
 
             {
-                name: "Po Valley",
-                lat: 45.1,
-                lon: 10,
-                radiusKm: 360,
-                strength: 1.0,
-                weights: {
-                    "West-Central European": 45,
-                    "Central / Eastern European": 25,
-                    "Mediterranean": 25
-                }
+                name:
+                    "Po Valley",
+
+                lat:
+                    45.2,
+
+                lon:
+                    10.0,
+
+                radiusKm:
+                    450,
+
+                temperatureOffsetC:
+                    -0.2,
+
+                maritimeBoost:
+                    -0.12,
+
+                continentalBoost:
+                    0.23
             },
 
             {
-                name: "Southern Italy",
-                lat: 39,
-                lon: 16,
-                radiusKm: 500,
-                strength: 1.0,
-                weights: {
-                    "Mediterranean": 100,
-                    "North African": 20
-                }
+                name:
+                    "Southern Italy",
+
+                lat:
+                    40.0,
+
+                lon:
+                    16.0,
+
+                radiusKm:
+                    650,
+
+                temperatureOffsetC:
+                    1.5,
+
+                maritimeBoost:
+                    0.24,
+
+                continentalBoost:
+                    -0.18
             },
 
             {
-                name: "Slovenia",
-                lat: 46.1,
-                lon: 14.8,
-                radiusKm: 260,
-                strength: 1.0,
-                weights: {
-                    "West-Central European": 45,
-                    "Balkan Modified": 35,
-                    "Mediterranean": 15
-                }
+                name:
+                    "Slovenia",
+
+                lat:
+                    46.1,
+
+                lon:
+                    14.7,
+
+                radiusKm:
+                    260,
+
+                temperatureOffsetC:
+                    -0.3,
+
+                maritimeBoost:
+                    0.02,
+
+                continentalBoost:
+                    0.13
             },
 
             {
-                name: "Zagreb Interior Croatia",
-                lat: 45.8,
-                lon: 16.0,
-                radiusKm: 300,
-                strength: 1.0,
-                weights: {
-                    "Central / Eastern European": 55,
-                    "Balkan Modified": 45,
-                    "Mediterranean": 10
-                }
+                name:
+                    "Zagreb Interior Croatia",
+
+                lat:
+                    45.8,
+
+                lon:
+                    16.0,
+
+                radiusKm:
+                    300,
+
+                temperatureOffsetC:
+                    -0.2,
+
+                maritimeBoost:
+                    -0.12,
+
+                continentalBoost:
+                    0.30
             },
 
             {
-                name: "Dalmatia",
-                lat: 43.5,
-                lon: 16.4,
-                radiusKm: 390,
-                strength: 1.2,
-                weights: {
-                    "Mediterranean": 95,
-                    "Balkan Modified": 35
-                }
+                name:
+                    "Dalmatia",
+
+                lat:
+                    43.7,
+
+                lon:
+                    16.3,
+
+                radiusKm:
+                    420,
+
+                temperatureOffsetC:
+                    1.6,
+
+                maritimeBoost:
+                    0.34,
+
+                continentalBoost:
+                    -0.28
             },
 
             {
-                name: "Transylvania",
-                lat: 46.5,
-                lon: 24.5,
-                radiusKm: 430,
-                strength: 1.1,
-                weights: {
-                    "Central / Eastern European": 80,
-                    "Balkan Modified": 25,
-                    "Eurasian Continental": 25
-                }
+                name:
+                    "Transylvania",
+
+                lat:
+                    46.5,
+
+                lon:
+                    24.5,
+
+                radiusKm:
+                    430,
+
+                temperatureOffsetC:
+                    -0.6,
+
+                maritimeBoost:
+                    -0.16,
+
+                continentalBoost:
+                    0.35
             },
 
             {
-                name: "Wallachia",
-                lat: 44.4,
-                lon: 26,
-                radiusKm: 470,
-                strength: 1.0,
-                weights: {
-                    "Central / Eastern European": 65,
-                    "Balkan Modified": 40,
-                    "Black Sea": 15
-                }
+                name:
+                    "Wallachia",
+
+                lat:
+                    44.6,
+
+                lon:
+                    25.0,
+
+                radiusKm:
+                    430,
+
+                temperatureOffsetC:
+                    0.2,
+
+                maritimeBoost:
+                    -0.07,
+
+                continentalBoost:
+                    0.26
             },
 
             {
-                name: "Pomerania",
-                lat: 54,
-                lon: 16,
-                radiusKm: 430,
-                strength: 1.0,
-                weights: {
-                    "Baltic Maritime": 65,
-                    "Central / Eastern European": 50,
-                    "North Sea": 10
-                }
+                name:
+                    "Pomerania",
+
+                lat:
+                    54.1,
+
+                lon:
+                    16.2,
+
+                radiusKm:
+                    400,
+
+                temperatureOffsetC:
+                    0,
+
+                maritimeBoost:
+                    0.18,
+
+                continentalBoost:
+                    -0.10
             },
 
             {
-                name: "Greater Poland",
-                lat: 52.3,
-                lon: 17,
-                radiusKm: 420,
-                strength: 1.0,
-                weights: {
-                    "Central / Eastern European": 80,
-                    "West-Central European": 25,
-                    "Baltic Maritime": 15
-                }
+                name:
+                    "Greater Poland",
+
+                lat:
+                    52.2,
+
+                lon:
+                    17.0,
+
+                radiusKm:
+                    430,
+
+                temperatureOffsetC:
+                    0,
+
+                maritimeBoost:
+                    -0.08,
+
+                continentalBoost:
+                    0.19
             },
 
             {
-                name: "Masovia",
-                lat: 52.2,
-                lon: 21,
-                radiusKm: 430,
-                strength: 1.0,
-                weights: {
-                    "Central / Eastern European": 85,
-                    "Eurasian Continental": 20
-                }
+                name:
+                    "Masovia",
+
+                lat:
+                    52.3,
+
+                lon:
+                    21.0,
+
+                radiusKm:
+                    420,
+
+                temperatureOffsetC:
+                    -0.1,
+
+                maritimeBoost:
+                    -0.13,
+
+                continentalBoost:
+                    0.26
             },
 
             {
-                name: "Ukraine Interior",
-                lat: 49,
-                lon: 32,
-                radiusKm: 720,
-                strength: 1.0,
-                weights: {
-                    "Central / Eastern European": 60,
-                    "Eurasian Continental": 70
-                }
+                name:
+                    "Ukraine Interior",
+
+                lat:
+                    49.0,
+
+                lon:
+                    31.0,
+
+                radiusKm:
+                    800,
+
+                temperatureOffsetC:
+                    -0.3,
+
+                maritimeBoost:
+                    -0.22,
+
+                continentalBoost:
+                    0.38
             },
 
             {
-                name: "Crimea Black Sea Coast",
-                lat: 44.8,
-                lon: 34,
-                radiusKm: 320,
-                strength: 1.0,
-                weights: {
-                    "Black Sea": 80,
-                    "Mediterranean": 20,
-                    "Central / Eastern European": 20
-                }
+                name:
+                    "Crimea Black Sea Coast",
+
+                lat:
+                    44.8,
+
+                lon:
+                    34.0,
+
+                radiusKm:
+                    330,
+
+                temperatureOffsetC:
+                    1.0,
+
+                maritimeBoost:
+                    0.25,
+
+                continentalBoost:
+                    -0.18
             },
 
             {
-                name: "Central Anatolia",
-                lat: 39,
-                lon: 33,
-                radiusKm: 600,
-                strength: 1.0,
-                weights: {
-                    "Anatolian Interior": 100,
-                    "Eurasian Continental": 20
-                }
+                name:
+                    "Central Anatolia",
+
+                lat:
+                    39.0,
+
+                lon:
+                    33.0,
+
+                radiusKm:
+                    700,
+
+                temperatureOffsetC:
+                    -0.4,
+
+                maritimeBoost:
+                    -0.26,
+
+                continentalBoost:
+                    0.40
             },
 
             {
-                name: "Aegean Turkey",
-                lat: 38.5,
-                lon: 27,
-                radiusKm: 420,
-                strength: 1.0,
-                weights: {
-                    "Mediterranean": 85,
-                    "Anatolian Interior": 25
-                }
+                name:
+                    "Aegean Turkey",
+
+                lat:
+                    38.5,
+
+                lon:
+                    27.0,
+
+                radiusKm:
+                    400,
+
+                temperatureOffsetC:
+                    1.3,
+
+                maritimeBoost:
+                    0.28,
+
+                continentalBoost:
+                    -0.24
             }
         ]
     },
@@ -942,19 +1332,35 @@ const CONFIG = {
 
     ocean: {
 
-        heatCapacityFactor: 0.035,
+        heatCapacityFactor:
+            0.035,
 
-        airSeaHeatExchange: 0.020,
 
-        evaporationFactor: 0.010,
+        airSeaHeatExchange:
+            0.020,
 
-        windExchangeBoost: 0.065,
 
-        seasonalRelaxation: 0.0015,
+        evaporationFactor:
+            0.010,
 
-        minSstC: -2.0,
 
-        maxSstC: 31.0
+        windExchangeBoost:
+            0.065,
+
+
+        seasonalRelaxation:
+            0.0015,
+
+
+        oceanMixingPerHour:
+            0.005,
+
+
+        minSstC:
+            -2,
+
+        maxSstC:
+            31
     },
 
 
@@ -964,23 +1370,47 @@ const CONFIG = {
 
     atmosphere: {
 
-        pressureRelaxation: 0.010,
+        /*
+         * Surface drag is expressed as an hourly fractional tendency.
+         */
 
-        thermalPressureCoupling: 0.030,
+        surfaceDragLand:
+            0.055,
 
-        moistureDiffusion: 0.010,
+        surfaceDragSea:
+            0.020,
 
-        temperatureDiffusion: 0.006,
 
-        momentumDiffusion: 0.010,
+        /*
+         * Boundary-layer mixing.
+         */
 
-        surfaceDragLand: 0.11,
+        mixingRateLand:
+            0.055,
 
-        surfaceDragSea: 0.055,
+        mixingRateSea:
+            0.040,
 
-        mixingRateLand: 0.045,
 
-        mixingRateSea: 0.030
+        /*
+         * Weak numerical diffusion.
+
+         * These should remain low; fronts should not be smeared away.
+         */
+
+        temperatureDiffusion:
+            0.018,
+
+        moistureDiffusion:
+            0.014,
+
+
+        /*
+         * Numerical wind damping.
+         */
+
+        windRelaxation:
+            0.12
     },
 
 
@@ -990,17 +1420,24 @@ const CONFIG = {
 
     moisture: {
 
-        condensationRate: 0.32,
+        condensationRate:
+            0.70,
 
-        cloudDecay: 0.10,
 
-        precipEfficiency: 0.48,
+        evaporationRate:
+            0.22,
 
-        frontalLiftFactor: 0.85,
 
-        orographicLiftFactor: 0.50,
+        cloudFormationRh:
+            0.78,
 
-        convectiveLiftFactor: 0.35
+
+        cloudSaturationRh:
+            0.96,
+
+
+        maximumSpecificHumidity:
+            0.045
     },
 
 
@@ -1010,77 +1447,184 @@ const CONFIG = {
 
     radiation: {
 
-        landHeating: 0.080,
+        solarHeatingStrength:
+            1.0,
 
-        landCooling: 0.060,
 
-        seaHeating: 0.012,
+        clearSkyNightCooling:
+            1.0,
 
-        cloudShortwaveSuppression: 0.72,
 
-        cloudLongwaveRetention: 0.72,
+        cloudShortwaveReduction:
+            0.68,
 
-        snowAlbedoCooling: 0.55
+
+        cloudLongwaveRetention:
+            0.76,
+
+
+        humidityLongwaveRetention:
+            0.20,
+
+
+        snowAlbedo:
+            0.72,
+
+
+        normalGroundAlbedo:
+            0.20
     },
 
 
     /* ========================================================================
-       PRECIPITATION / SNOW
+       PRECIPITATION PHASE
+
+       Minecraft-compatible thresholds.
        ======================================================================== */
 
     precipitationPhase: {
 
-        snowMaxC: 1.5,
+        snowMaxC:
+            1.5,
 
-        sleetMaxC: 3.0
-    },
-
-
-    snow: {
-
-        accumulationEfficiency: 0.11,
-
-        meltRate: 0.035,
-
-        minimumPersistentDepthCm: 0.2
+        sleetMaxC:
+            3.0
     },
 
 
     /* ========================================================================
-       USER STEERING ARROWS
+       SNOW
+       ======================================================================== */
+
+    snow: {
+
+        accumulationEfficiency:
+            1.0,
+
+
+        minimumPersistentDepthCm:
+            0.05,
+
+
+        liquidToSnowRatio:
+            10,
+
+
+        meltTemperatureC:
+            0.0,
+
+
+        groundInsulationStrength:
+            0.70
+    },
+
+
+    /* ========================================================================
+       SYNOPTIC / USER FORCING
        ======================================================================== */
 
     forcing: {
 
-        maxArrows: 8,
+        maxArrows:
+            12,
 
-        defaultWidthKm: 850,
 
-        defaultSpeedKmh: 40,
+        defaultWidthKm:
+            600,
 
-        defaultStrength: 0.60,
 
-        maxSpeedKmh: 140
+        defaultSpeedKmh:
+            40,
+
+
+        maxSpeedKmh:
+            140,
+
+
+        defaultStrength:
+            0.75,
+
+
+        arrowFalloffPower:
+            2.0
     },
 
 
     /* ========================================================================
-       WEATHER STATIONS / HISTORY
+       HISTORY
+
+       Physics itself runs every FOUR minutes.
+
+       Weather stations keep each real 4-minute observation.
+
+       UI may interpolate between those observations for arbitrary displayed
+       minutes.
+
+       Full atmosphere snapshots are saved hourly for timeline rewinding.
        ======================================================================== */
 
     history: {
 
-        snapshotEveryMinutes: 60,
+        snapshotEveryMinutes:
+            60,
 
-        maxSnapshots: 24 * 35,
 
-        stationSampleEveryMinutes: 10,
+        snapshotRetentionDays:
+            35,
 
-        maxStationSamples: 24 * 6 * 90
+
+        stationSampleEveryMinutes:
+            4,
+
+
+        stationRetentionDays:
+            90
+    },
+
+
+    /* ========================================================================
+       DISPLAY DEFAULTS
+
+       Renderer may override these independently.
+       ======================================================================== */
+
+    display: {
+
+        width:
+            780,
+
+        height:
+            440,
+
+
+        defaultLayer:
+            "temperature",
+
+
+        isobars:
+            true,
+
+
+        isobarIntervalHpa:
+            4,
+
+
+        windVectors:
+            false,
+
+
+        frontOverlay:
+            false
     }
 };
 
 
-global.EuropaConfig = CONFIG;
+/* ============================================================================
+   EXPORT
+============================================================================ */
+
+global.EuropaConfig = Object.freeze(
+    CONFIG
+);
 
 })(window);
