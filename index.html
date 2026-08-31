@@ -1,4 +1,4 @@
-<!doctype html>
+<!doctype html><!doctype html>
 <html lang="en">
 
 <head>
@@ -224,7 +224,7 @@
       background: #142435;
     }
 
-    #particles,
+    #particleCanvas,
     #overlay {
       pointer-events: none;
     }
@@ -522,7 +522,7 @@
         </button>
 
         <button
-          id="particles"
+          id="particlesToggle"
           class="active"
         >
           Wind
@@ -909,7 +909,7 @@
       ></canvas>
 
       <canvas
-        id="particles"
+        id="particleCanvas"
         width="780"
         height="440"
       ></canvas>
@@ -999,28 +999,18 @@
 </div>
 
 <script src="config.js"></script>
-
 <script src="europacraft-utils.js"></script>
-
 <script src="europacraft-terrain.js"></script>
-
 <script src="europacraft-climate-v3.js"></script>
-
 <script src="europacraft-ocean.js"></script>
-
 <script src="europacraft-synoptic.js"></script>
-
 <script src="europacraft-atmosphere.js"></script>
-
 <script src="europacraft-physics.js"></script>
-
 <script src="europacraft-history.js"></script>
-
 <script src="europacraft-renderer.js"></script>
-
 <script src="europacraft-weather.js"></script>
 
-<!-- null1.js is intentionally NOT loaded. -->
+<!-- null1.js intentionally unused -->
 
 <script>
 (() => {
@@ -1325,14 +1315,14 @@
         );
     };
 
-  $('particles').onclick =
+  $('particlesToggle').onclick =
     () => {
       world.renderer
         .showParticles =
         !world.renderer
           .showParticles;
 
-      $('particles')
+      $('particlesToggle')
         .classList
         .toggle(
           'active',
@@ -1837,7 +1827,7 @@
           $('overlay'),
 
         particles:
-          $('particles')
+          $('particleCanvas')
       });
 
       $('bootStatus')
