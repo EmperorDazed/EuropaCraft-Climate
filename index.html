@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
 <meta charset="UTF-8">
 
 <meta
@@ -11,5416 +9,2573 @@
 >
 
 <title>
-EuropaCraft Climate and Weather System
+    EuropaCraft Climate and Weather Laboratory
 </title>
-
 
 <style>
 
-* {
-    box-sizing: border-box;
-}
+    * {
+        box-sizing: border-box;
+    }
+
+    html,
+    body {
+        margin: 0;
+        padding: 0;
+        background: #eef2f4;
+        color: #17212b;
+        font-family:
+            Arial,
+            Helvetica,
+            sans-serif;
+    }
+
+    body {
+        min-width: 900px;
+    }
+
+    #app {
+        width: 100%;
+    }
+
+    #toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+
+        padding: 8px 10px;
+
+        background: white;
+
+        border-bottom:
+            1px solid #b8c2ca;
+    }
+
+    .group {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+
+        padding-right: 8px;
+        margin-right: 4px;
+
+        border-right:
+            1px solid #d7dde2;
+    }
+
+    .group:last-child {
+        border-right: 0;
+    }
+
+    button,
+    input,
+    select {
+        font: inherit;
+    }
+
+    button {
+        min-height: 34px;
+
+        padding:
+            5px
+            10px;
+
+        border:
+            1px solid #aeb9c2;
+
+        border-radius:
+            4px;
+
+        background:
+            #ffffff;
+
+        color:
+            #17212b;
+
+        cursor:
+            pointer;
+    }
+
+    button:hover {
+        background:
+            #f2f5f7;
+    }
+
+    button.active {
+        background:
+            #17212b;
+
+        color:
+            white;
+
+        border-color:
+            #17212b;
+    }
+
+    button.primary {
+        background:
+            #17212b;
 
+        color:
+            white;
 
-html,
-body {
-    margin: 0;
-    padding: 0;
-}
+        border-color:
+            #17212b;
+    }
 
+    input {
+        min-height: 34px;
 
-body {
+        padding:
+            4px
+            6px;
 
-    font-family:
-        Arial,
-        Helvetica,
-        sans-serif;
+        border:
+            1px solid #aeb9c2;
 
-    background:
-        #f1f3f5;
+        border-radius:
+            4px;
+    }
 
-    color:
-        #202830;
+    #dateInput {
+        width: 196px;
+    }
 
-}
+    #seedInput {
+        width: 112px;
+    }
 
-
-header {
-
-    background:
-        white;
-
-    border-bottom:
-        1px solid #ccd3d9;
-
-    padding:
-        17px 22px;
-
-}
-
-
-header h1 {
-
-    margin:
-        0 0 4px 0;
-
-    font-size:
-        25px;
-
-}
-
-
-header p {
-
-    margin:
-        0;
-
-    color:
-        #65717b;
-
-    font-size:
-        13px;
-
-}
-
-
-.status-bar {
-
-    display:
-        flex;
-
-    flex-wrap:
-        wrap;
-
-    gap:
-        15px;
-
-    padding:
-        10px 22px;
-
-    background:
-        #e3e8ec;
-
-    border-bottom:
-        1px solid #ccd3d9;
-
-    font-size:
-        12px;
-
-}
-
-
-.layout {
-
-    display:
-        grid;
-
-    grid-template-columns:
-        minmax(0, 1fr)
-        390px;
-
-    gap:
-        16px;
-
-    max-width:
-        1700px;
-
-    margin:
-        0 auto;
-
-    padding:
-        16px;
-
-}
-
-
-.panel {
-
-    background:
-        white;
-
-    border:
-        1px solid #d5dbe0;
-
-    border-radius:
-        7px;
-
-}
-
-
-.map-panel {
-
-    overflow:
-        hidden;
-
-    min-width:
-        0;
-
-}
-
-
-.toolbar {
-
-    display:
-        flex;
-
-    flex-wrap:
-        wrap;
-
-    gap:
-        8px;
-
-    align-items:
-        center;
-
-    padding:
-        10px;
-
-    border-bottom:
-        1px solid #dce1e5;
-
-}
-
-
-.toolbar-group {
-
-    display:
-        flex;
-
-    flex-wrap:
-        wrap;
-
-    gap:
-        5px;
-
-    align-items:
-        center;
-
-}
-
-
-.toolbar-label {
-
-    font-size:
-        11px;
-
-    color:
-        #6b7680;
-
-    margin-right:
-        2px;
-
-}
-
-
-button {
-
-    min-height:
-        36px;
-
-    padding:
-        7px 10px;
-
-    border:
-        1px solid #b9c2c9;
-
-    border-radius:
-        5px;
-
-    background:
-        white;
-
-    color:
-        #202830;
-
-    cursor:
-        pointer;
-
-}
-
-
-button:hover {
-
-    background:
-        #edf0f2;
-
-}
-
-
-button.active,
-button.primary {
-
-    background:
-        #202830;
-
-    border-color:
-        #202830;
-
-    color:
-        white;
-
-}
-
-
-button:disabled {
-
-    opacity:
-        0.45;
-
-    cursor:
-        default;
-
-}
-
-
-select,
-input {
-
-    width:
-        100%;
-
-    min-height:
-        38px;
-
-    padding:
-        7px 8px;
-
-    border:
-        1px solid #bdc6cd;
-
-    border-radius:
-        5px;
-
-    background:
-        white;
-
-    font-size:
-        14px;
-
-}
-
-
-.map-scroll {
-
-    overflow:
-        auto;
-
-    max-height:
-        730px;
-
-    background:
-        #d9dfe3;
-
-}
-
-
-#mapStage {
-
-    position:
-        relative;
-
-    width:
-        780px;
-
-    height:
-        440px;
-
-}
-
-
-#climateCanvas {
-
-    display:
-        block;
-
-    width:
-        780px;
-
-    height:
-        440px;
-
-    image-rendering:
-        pixelated;
-
-    cursor:
-        crosshair;
-
-}
-
-
-#selectionBox {
-
-    position:
-        absolute;
-
-    display:
-        none;
-
-    width:
-        1px;
-
-    height:
-        1px;
-
-    pointer-events:
-        none;
-
-    border:
-        1px solid white;
-
-    box-shadow:
-        0 0 0 1px black;
-
-}
-
-
-.map-footer {
-
-    padding:
-        9px 11px;
-
-    border-top:
-        1px solid #dce1e5;
-
-    font-size:
-        12px;
-
-    color:
-        #647079;
-
-    line-height:
-        1.45;
-
-}
-
-
-.sidebar {
-
-    padding:
-        14px;
-
-    align-self:
-        start;
-
-}
-
-
-.section {
-
-    padding-bottom:
-        14px;
-
-    margin-bottom:
-        14px;
-
-    border-bottom:
-        1px solid #e0e4e7;
-
-}
-
-
-.section:last-child {
-
-    border-bottom:
-        0;
-
-    margin-bottom:
-        0;
-
-}
-
-
-.section h2 {
-
-    font-size:
-        17px;
-
-    margin:
-        0 0 8px 0;
-
-}
-
-
-.section h3 {
-
-    font-size:
-        14px;
-
-    margin:
-        0 0 8px 0;
-
-}
-
-
-.hint {
-
-    font-size:
-        12px;
-
-    color:
-        #68737c;
-
-    line-height:
-        1.45;
-
-    margin-bottom:
-        9px;
-
-}
-
-
-.field {
-
-    margin-bottom:
-        10px;
-
-}
-
-
-.field label {
-
-    display:
-        block;
-
-    margin-bottom:
-        4px;
-
-    font-size:
-        12px;
-
-    font-weight:
-        bold;
-
-}
-
-
-.coordinate-box {
-
-    background:
-        #eef1f3;
-
-    padding:
-        9px;
-
-    border-radius:
-        5px;
-
-    margin-bottom:
-        8px;
-
-}
-
-
-.coordinate-main {
-
-    font-size:
-        18px;
-
-    font-weight:
-        bold;
-
-}
-
-
-.coordinate-sub {
-
-    margin-top:
-        3px;
-
-    color:
-        #69747d;
-
-    font-size:
-        11px;
-
-}
-
-
-.details {
-
-    font-size:
-        12px;
-
-}
-
-
-.detail-row {
-
-    display:
-        flex;
-
-    justify-content:
-        space-between;
-
-    gap:
-        12px;
-
-    padding:
-        3px 0;
-
-}
-
-
-.detail-row span:first-child {
-
-    color:
-        #68737c;
-
-}
-
-
-.detail-row span:last-child {
-
-    text-align:
-        right;
-
-    font-weight:
-        bold;
-
-}
-
-
-.climate-list {
-
-    margin-top:
-        9px;
-
-}
-
-
-.climate-row {
-
-    margin-bottom:
-        6px;
-
-}
-
-
-.climate-row-top {
-
-    display:
-        flex;
-
-    justify-content:
-        space-between;
-
-    gap:
-        10px;
-
-    font-size:
-        11px;
-
-    margin-bottom:
-        2px;
-
-}
-
-
-.climate-track {
-
-    height:
-        6px;
-
-    background:
-        #e5e8ea;
-
-    overflow:
-        hidden;
-
-    border-radius:
-        3px;
-
-}
-
-
-.climate-fill {
-
-    height:
-        100%;
-
-}
-
-
-.weather-box {
-
-    padding:
-        9px;
-
-    margin-top:
-        9px;
-
-    border-radius:
-        5px;
-
-    background:
-        #eef1f3;
-
-}
-
-
-.weather-main {
-
-    font-size:
-        17px;
-
-    font-weight:
-        bold;
-
-    margin-bottom:
-        5px;
-
-}
-
-
-.progress {
-
-    margin-top:
-        8px;
-
-    padding:
-        8px;
-
-    background:
-        #eef1f3;
-
-    border-radius:
-        5px;
-
-    font-size:
-        12px;
-
-    line-height:
-        1.4;
-
-}
-
-
-.legend {
-
-    display:
-        grid;
-
-    grid-template-columns:
-        1fr 1fr;
-
-    gap:
-        4px;
-
-    margin-top:
-        8px;
-
-}
-
-
-.legend-item {
-
-    display:
-        flex;
-
-    align-items:
-        center;
-
-    gap:
-        5px;
-
-    font-size:
-        10px;
-
-}
-
-
-.legend-colour {
-
-    width:
-        13px;
-
-    height:
-        13px;
-
-    flex:
-        0 0 auto;
-
-    border:
-        1px solid rgba(0,0,0,0.12);
-
-}
-
-
-.warning {
-
-    color:
-        #9a3d27;
-
-    font-size:
-        11px;
-
-    line-height:
-        1.4;
-
-    margin-top:
-        7px;
-
-}
-
-
-@media (
-    max-width:
-    900px
-) {
-
-    .layout {
+    #main {
+        display: grid;
 
         grid-template-columns:
-            1fr;
+            780px
+            minmax(
+                300px,
+                1fr
+            );
 
+        gap: 0;
     }
 
+    #mapColumn {
+        background:
+            white;
 
-    .sidebar {
-
-        order:
-            -1;
-
+        border-right:
+            1px solid #b8c2ca;
     }
 
-}
+    #mapWrap {
+        position: relative;
+
+        width:
+            780px;
+
+        height:
+            440px;
+
+        overflow: hidden;
+
+        background:
+            #cfd8de;
+    }
+
+    #mapCanvas,
+    #particleCanvas {
+        position: absolute;
+
+        top: 0;
+        left: 0;
+
+        width:
+            780px;
+
+        height:
+            440px;
+
+        image-rendering:
+            pixelated;
+    }
+
+    #mapCanvas {
+        z-index: 1;
+    }
+
+    #particleCanvas {
+        z-index: 2;
+
+        pointer-events:
+            none;
+    }
+
+    #selectionMarker {
+        position: absolute;
+
+        z-index: 3;
+
+        width:
+            7px;
+
+        height:
+            7px;
+
+        border:
+            1px solid black;
+
+        background:
+            white;
+
+        transform:
+            translate(
+                -50%,
+                -50%
+            );
+
+        display:
+            none;
+
+        pointer-events:
+            none;
+    }
+
+    #mapHelp {
+        padding:
+            8px
+            12px;
+
+        min-height:
+            36px;
+
+        font-size:
+            12px;
+
+        border-top:
+            1px solid #d6dde2;
+    }
+
+    #side {
+        padding:
+            12px;
+
+        min-width:
+            0;
+    }
+
+    .panel {
+        margin-bottom:
+            12px;
+
+        padding:
+            12px;
+
+        border:
+            1px solid #c7d0d7;
+
+        border-radius:
+            5px;
+
+        background:
+            white;
+    }
+
+    .panel h2 {
+        margin:
+            0
+            0
+            9px
+            0;
+
+        font-size:
+            15px;
+    }
+
+    .panel h3 {
+        margin:
+            12px
+            0
+            6px
+            0;
+
+        font-size:
+            13px;
+    }
+
+    #status {
+        font-size:
+            13px;
+
+        line-height:
+            1.55;
+    }
+
+    #inspector {
+        display:
+            grid;
+
+        grid-template-columns:
+            155px
+            minmax(
+                0,
+                1fr
+            );
+
+        gap:
+            4px
+            8px;
+
+        font-size:
+            13px;
+    }
+
+    .label {
+        color:
+            #586773;
+    }
+
+    .value {
+        font-variant-numeric:
+            tabular-nums;
+    }
+
+    #legend {
+        display:
+            flex;
+        flex-wrap:
+            wrap;
+        gap:
+            7px;
+
+        font-size:
+            12px;
+
+        margin-top:
+            8px;
+    }
+
+    .legendItem {
+        display:
+            flex;
+        align-items:
+            center;
+        gap:
+            4px;
+    }
+
+    .swatch {
+        display:
+            inline-block;
+
+        width:
+            15px;
+
+        height:
+            10px;
+
+        border:
+            1px solid rgba(
+                0,
+                0,
+                0,
+                0.25
+            );
+    }
+
+    #log {
+        max-height:
+            180px;
+
+        overflow:
+            auto;
+
+        white-space:
+            pre-wrap;
+
+        font-family:
+            Consolas,
+            monospace;
+
+        font-size:
+            11px;
+
+        line-height:
+            1.45;
+
+        background:
+            #f7f9fa;
+
+        padding:
+            8px;
+
+        border:
+            1px solid #d7dde2;
+    }
+
+    .small {
+        font-size:
+            11px;
+
+        color:
+            #64727d;
+    }
 
 </style>
-
 </head>
-
 
 <body>
 
+<div id="app">
 
-<header>
+    <div id="toolbar">
 
-<h1>
-EuropaCraft Climate and Weather System
-</h1>
+        <div class="group">
+            <button
+                id="buildClimateBtn"
+                class="primary"
+            >
+                Rebuild Climate
+            </button>
+        </div>
 
-<p>
-0.1° physical climate field, regional differentiation and dynamic weather prototype
-</p>
+        <div class="group">
 
-</header>
+            <label for="dateInput">
+                UTC
+            </label>
+
+            <input
+                id="dateInput"
+                type="datetime-local"
+                value="2026-01-15T12:00"
+            >
+
+            <button
+                id="resetWeatherBtn"
+            >
+                Initialise
+            </button>
+
+            <button
+                id="newRunBtn"
+            >
+                New Random Run
+            </button>
+
+        </div>
+
+        <div class="group">
+
+            <label for="seedInput">
+                Seed
+            </label>
+
+            <input
+                id="seedInput"
+                type="number"
+                min="1"
+                step="1"
+            >
+
+            <button
+                id="applySeedBtn"
+            >
+                Apply
+            </button>
+
+        </div>
+
+        <div class="group">
+
+            <button
+                id="playBtn"
+            >
+                ▶ Play
+            </button>
+
+            <button
+                id="step1Btn"
+            >
+                +1 h
+            </button>
+
+            <button
+                id="step6Btn"
+            >
+                +6 h
+            </button>
+
+            <button
+                id="step24Btn"
+            >
+                +24 h
+            </button>
+
+        </div>
+
+        <div class="group">
+
+            <button
+                id="averageBtn"
+            >
+                Climatological Balance: OFF
+            </button>
+
+        </div>
+
+        <div class="group">
+
+            <button
+                class="viewBtn active"
+                data-view="temperature"
+            >
+                Temperature
+            </button>
+
+            <button
+                class="viewBtn"
+                data-view="anomaly"
+            >
+                Anomaly
+            </button>
+
+            <button
+                class="viewBtn"
+                data-view="pressure"
+            >
+                Pressure
+            </button>
+
+            <button
+                class="viewBtn"
+                data-view="wind"
+            >
+                Wind
+            </button>
+
+            <button
+                class="viewBtn"
+                data-view="cloud"
+            >
+                Cloud
+            </button>
+
+            <button
+                class="viewBtn"
+                data-view="precipitation"
+            >
+                Precipitation
+            </button>
+
+            <button
+                class="viewBtn"
+                data-view="airmass"
+            >
+                Air Mass
+            </button>
+
+        </div>
+
+        <div class="group">
+
+            <button
+                id="particlesBtn"
+                class="active"
+            >
+                Particles: ON
+            </button>
+
+        </div>
+
+    </div>
 
 
-<div class="status-bar">
+    <div id="main">
 
-<span>
-<strong>Bounds:</strong>
-26°W–52°E / 30°N–74°N
-</span>
+        <div id="mapColumn">
 
-<span>
-<strong>Grid:</strong>
-780 × 440
-</span>
+            <div id="mapWrap">
 
-<span>
-<strong>Cells:</strong>
-343,200
-</span>
+                <canvas
+                    id="mapCanvas"
+                    width="780"
+                    height="440"
+                ></canvas>
 
-<span>
-<strong>Resolution:</strong>
-0.1°
-</span>
+                <canvas
+                    id="particleCanvas"
+                    width="780"
+                    height="440"
+                ></canvas>
 
-<span>
-<strong>Climate:</strong>
-<span id="climateStatus">
-Waiting
-</span>
-</span>
+                <div
+                    id="selectionMarker"
+                ></div>
 
-<span>
-<strong>Weather:</strong>
-<span id="weatherStatus">
-Not generated
-</span>
-</span>
+            </div>
+
+            <div id="mapHelp">
+                Click a point to inspect the interpolated atmospheric state.
+            </div>
+
+        </div>
+
+
+        <div id="side">
+
+            <div class="panel">
+
+                <h2>
+                    Simulation
+                </h2>
+
+                <div id="status">
+                    Waiting for JavaScript engines.
+                </div>
+
+            </div>
+
+
+            <div class="panel">
+
+                <h2>
+                    Selected Location
+                </h2>
+
+                <div id="inspector">
+
+                    <div class="label">
+                        Latitude
+                    </div>
+                    <div
+                        class="value"
+                        id="inspectLat"
+                    >
+                        —
+                    </div>
+
+                    <div class="label">
+                        Longitude
+                    </div>
+                    <div
+                        class="value"
+                        id="inspectLon"
+                    >
+                        —
+                    </div>
+
+                    <div class="label">
+                        Temperature
+                    </div>
+                    <div
+                        class="value"
+                        id="inspectTemperature"
+                    >
+                        —
+                    </div>
+
+                    <div class="label">
+                        Anomaly
+                    </div>
+                    <div
+                        class="value"
+                        id="inspectAnomaly"
+                    >
+                        —
+                    </div>
+
+                    <div class="label">
+                        SST
+                    </div>
+                    <div
+                        class="value"
+                        id="inspectSST"
+                    >
+                        —
+                    </div>
+
+                    <div class="label">
+                        Pressure
+                    </div>
+                    <div
+                        class="value"
+                        id="inspectPressure"
+                    >
+                        —
+                    </div>
+
+                    <div class="label">
+                        Wind
+                    </div>
+                    <div
+                        class="value"
+                        id="inspectWind"
+                    >
+                        —
+                    </div>
+
+                    <div class="label">
+                        Moisture
+                    </div>
+                    <div
+                        class="value"
+                        id="inspectMoisture"
+                    >
+                        —
+                    </div>
+
+                    <div class="label">
+                        Cloud
+                    </div>
+                    <div
+                        class="value"
+                        id="inspectCloud"
+                    >
+                        —
+                    </div>
+
+                    <div class="label">
+                        Precipitation
+                    </div>
+                    <div
+                        class="value"
+                        id="inspectPrecip"
+                    >
+                        —
+                    </div>
+
+                    <div class="label">
+                        Air mass
+                    </div>
+                    <div
+                        class="value"
+                        id="inspectAirMass"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="panel">
+
+                <h2>
+                    Development Notes
+                </h2>
+
+                <div class="small">
+                    Atmospheric transport runs at 0.4° resolution.
+                    The display is interpolated to the 780×440 map.
+                    Temperature anomaly and moisture persist between
+                    hourly steps and are transported by the wind.
+                </div>
+
+                <h3>
+                    Current run
+                </h3>
+
+                <div id="log">
+                    No simulation initialised.
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
 
 </div>
-
-
-<div class="layout">
-
-
-<section class="panel map-panel">
-
-
-<div class="toolbar">
-
-
-<div class="toolbar-group">
-
-<span class="toolbar-label">
-Climate
-</span>
-
-<button
-    type="button"
-    id="buildButton"
-    class="primary"
->
-Build Map and Climate
-</button>
-
-</div>
-
-
-<div class="toolbar-group">
-
-<span class="toolbar-label">
-View
-</span>
-
-<button
-    type="button"
-    data-view="surface"
->
-Surface
-</button>
-
-<button
-    type="button"
-    data-view="dominant"
-    class="active"
->
-Climate
-</button>
-
-<button
-    type="button"
-    data-view="influence"
->
-Influence
-</button>
-
-<button
-    type="button"
-    data-view="temperature"
->
-Temperature
-</button>
-
-<button
-    type="button"
-    data-view="pressure"
->
-Pressure
-</button>
-
-<button
-    type="button"
-    data-view="wind"
->
-Wind
-</button>
-
-<button
-    type="button"
-    data-view="cloud"
->
-Cloud
-</button>
-
-<button
-    type="button"
-    data-view="precipitation"
->
-Precipitation
-</button>
-
-</div>
-
-
-<div class="toolbar-group">
-
-<span class="toolbar-label">
-Zoom
-</span>
-
-<button
-    type="button"
-    data-zoom="1"
->
-1×
-</button>
-
-<button
-    type="button"
-    data-zoom="2"
->
-2×
-</button>
-
-<button
-    type="button"
-    data-zoom="4"
->
-4×
-</button>
-
-</div>
-
-
-</div>
-
-
-<div class="map-scroll">
-
-<div id="mapStage">
-
-<canvas
-    id="climateCanvas"
-    width="780"
-    height="440"
->
-</canvas>
-
-<div id="selectionBox">
-</div>
-
-</div>
-
-</div>
-
-
-<div
-    class="map-footer"
-    id="mapFooter"
->
-
-Click anywhere on the map to inspect the exact 0.1° cell.
-
-</div>
-
-
-</section>
-
-
-<aside class="panel sidebar">
-
-
-<div class="section">
-
-<h2>
-Selected Cell
-</h2>
-
-<div
-    class="hint"
-    id="selectionHint"
->
-Click a cell on the map.
-</div>
-
-
-<div
-    id="selectionDetails"
-    style="display:none;"
->
-
-
-<div class="coordinate-box">
-
-<div
-    class="coordinate-main"
-    id="coordinateMain"
->
-—
-</div>
-
-<div
-    class="coordinate-sub"
-    id="coordinateSub"
->
-—
-</div>
-
-</div>
-
-
-<div class="details">
-
-<div class="detail-row">
-
-<span>
-Surface
-</span>
-
-<span id="surfaceOutput">
-—
-</span>
-
-</div>
-
-
-<div class="detail-row">
-
-<span>
-Dominant climate
-</span>
-
-<span id="dominantOutput">
-—
-</span>
-
-</div>
-
-
-<div class="detail-row">
-
-<span>
-Maritime index
-</span>
-
-<span id="maritimeOutput">
-—
-</span>
-
-</div>
-
-
-<div class="detail-row">
-
-<span>
-Continental index
-</span>
-
-<span id="continentalOutput">
-—
-</span>
-
-</div>
-
-</div>
-
-
-<h3 style="margin-top:12px;">
-Climate Mixture
-</h3>
-
-<div
-    class="climate-list"
-    id="climateList"
->
-</div>
-
-
-</div>
-
-</div>
-
-
-
-<div class="section">
-
-<h2>
-Climate Display
-</h2>
-
-
-<div class="field">
-
-<label for="influenceSelect">
-Selected influence
-</label>
-
-<select id="influenceSelect">
-</select>
-
-</div>
-
-
-<div class="hint">
-
-The climate field is continuous. Regional names are influences rather than hard borders.
-
-</div>
-
-
-<div
-    class="legend"
-    id="legend"
->
-</div>
-
-</div>
-
-
-
-<div class="section">
-
-<h2>
-Weather
-</h2>
-
-
-<div class="field">
-
-<label for="weatherDate">
-Simulation date and time
-</label>
-
-<input
-    type="datetime-local"
-    id="weatherDate"
-    value="2026-10-15T12:00"
->
-
-</div>
-
-
-<button
-    type="button"
-    id="selectedWeatherButton"
-    class="primary"
-    style="width:100%; margin-bottom:6px;"
->
-Simulate Selected Cell
-</button>
-
-
-<button
-    type="button"
-    id="weatherFieldButton"
-    style="width:100%;"
->
-Generate Europe Weather Field
-</button>
-
-
-<div
-    class="weather-box"
-    id="weatherBox"
-    style="display:none;"
->
-
-<div
-    class="weather-main"
-    id="weatherMain"
->
-—
-</div>
-
-
-<div class="details">
-
-<div class="detail-row">
-
-<span>
-Temperature
-</span>
-
-<span id="temperatureOutput">
-—
-</span>
-
-</div>
-
-
-<div class="detail-row">
-
-<span>
-Pressure
-</span>
-
-<span id="pressureOutput">
-—
-</span>
-
-</div>
-
-
-<div class="detail-row">
-
-<span>
-Wind
-</span>
-
-<span id="windOutput">
-—
-</span>
-
-</div>
-
-
-<div class="detail-row">
-
-<span>
-Humidity
-</span>
-
-<span id="humidityOutput">
-—
-</span>
-
-</div>
-
-
-<div class="detail-row">
-
-<span>
-Cloud
-</span>
-
-<span id="cloudOutput">
-—
-</span>
-
-</div>
-
-
-<div class="detail-row">
-
-<span>
-Precipitation
-</span>
-
-<span id="precipitationOutput">
-—
-</span>
-
-</div>
-
-</div>
-
-</div>
-
-
-<div
-    class="progress"
-    id="progressOutput"
->
-Load the page, then press <strong>Build Map and Climate</strong>.
-</div>
-
-
-<div class="warning">
-
-The current weather engine is the first synoptic scaffold. It produces pressure, wind, temperature, humidity, cloud and precipitation, but persistent cell-to-cell air-mass transport comes next.
-
-</div>
-
-</div>
-
-
-</aside>
-
-
-</div>
-
-
-
-<!-- ========================================================
-     ENGINES
-
-     THESE TWO FILES MUST BE BESIDE index.html
-======================================================== -->
 
 
 <script src="europacraft-climate-v3.js"></script>
-
 <script src="europacraft-weather-v1.js"></script>
-
-
 
 <script>
 
-(() => {
-
-"use strict";
-
-
-/* ==========================================================
-   GRID
-========================================================== */
-
-
-const MIN_LONGITUDE =
-    -26;
-
-
-const MAX_LONGITUDE =
-    52;
-
-
-const MIN_LATITUDE =
-    30;
-
-
-const MAX_LATITUDE =
-    74;
-
-
-const CELL_DEGREES =
-    0.1;
-
-
-const GRID_WIDTH =
-    780;
-
-
-const GRID_HEIGHT =
-    440;
-
-
-const TOTAL_CELLS =
-    GRID_WIDTH *
-    GRID_HEIGHT;
-
-
-
-/* ==========================================================
-   SURFACE
-========================================================== */
-
-
-const SURFACE_UNKNOWN =
-    0;
-
-
-const SURFACE_OCEAN =
-    1;
-
-
-const SURFACE_COAST =
-    2;
-
-
-const SURFACE_LAKE =
-    3;
-
-
-const SURFACE_LAND =
-    4;
-
-
-const surface =
-    new Uint8Array(
-        TOTAL_CELLS
-    );
-
-
-
-/* ==========================================================
-   CLIMATE REGIONS
-========================================================== */
-
-
-const REGION_TYPES = [
-
-    {
-        name:
-            "Atlantic",
-
-        colour:
-            [46, 96, 177]
-    },
-
-    {
-        name:
-            "Polar Maritime",
-
-        colour:
-            [80, 137, 199]
-    },
-
-    {
-        name:
-            "Arctic Maritime",
-
-        colour:
-            [104, 202, 226]
-    },
-
-    {
-        name:
-            "Greenland Ice-Sheet",
-
-        colour:
-            [190, 224, 235]
-    },
-
-    {
-        name:
-            "North Sea",
-
-        colour:
-            [51, 167, 187]
-    },
-
-    {
-        name:
-            "Baltic Maritime",
-
-        colour:
-            [45, 187, 145]
-    },
-
-    {
-        name:
-            "Mediterranean",
-
-        colour:
-            [228, 131, 52]
-    },
-
-    {
-        name:
-            "Black Sea",
-
-        colour:
-            [73, 104, 157]
-    },
-
-    {
-        name:
-            "Caspian Maritime",
-
-        colour:
-            [47, 147, 131]
-    },
-
-    {
-        name:
-            "North African",
-
-        colour:
-            [225, 177, 45]
-    },
-
-    {
-        name:
-            "Eurasian Continental",
-
-        colour:
-            [177, 77, 65]
-    },
-
-    {
-        name:
-            "British Landmass",
-
-        colour:
-            [97, 153, 68]
-    },
-
-    {
-        name:
-            "Iberian Interior",
-
-        colour:
-            [190, 105, 52]
-    },
-
-    {
-        name:
-            "West-Central European",
-
-        colour:
-            [125, 143, 64]
-    },
-
-    {
-        name:
-            "Central / Eastern European",
-
-        colour:
-            [149, 117, 56]
-    },
-
-    {
-        name:
-            "Scandinavian Interior",
-
-        colour:
-            [91, 151, 108]
-    },
-
-    {
-        name:
-            "Balkan Modified",
-
-        colour:
-            [173, 85, 120]
-    },
-
-    {
-        name:
-            "Anatolian Interior",
-
-        colour:
-            [181, 124, 74]
-    }
-
-];
-
-
-const REGION_COUNT =
-    REGION_TYPES.length;
-
-
-/*
- * 1000 units means 0.1% precision.
- */
-
-const REGIONAL_TOTAL =
-    1000;
-
-
-const regional =
-    new Uint16Array(
-
-        TOTAL_CELLS *
-        REGION_COUNT
-
-    );
-
-
-
-/* ==========================================================
-   WEATHER FIELD ARRAYS
-========================================================== */
-
-
-const temperature =
-    new Float32Array(
-        TOTAL_CELLS
-    );
-
-
-const pressure =
-    new Float32Array(
-        TOTAL_CELLS
-    );
-
-
-const windSpeed =
-    new Float32Array(
-        TOTAL_CELLS
-    );
-
-
-const windDirection =
-    new Float32Array(
-        TOTAL_CELLS
-    );
-
-
-const humidity =
-    new Uint8Array(
-        TOTAL_CELLS
-    );
-
-
-const cloud =
-    new Uint8Array(
-        TOTAL_CELLS
-    );
-
-
-const precipitation =
-    new Uint8Array(
-        TOTAL_CELLS
-    );
-
-
-temperature.fill(
-    NaN
-);
-
-
-pressure.fill(
-    NaN
-);
-
-
-windSpeed.fill(
-    NaN
-);
-
-
-windDirection.fill(
-    NaN
-);
-
-
-
-/* ==========================================================
-   STATE
-========================================================== */
-
-
-let climateReady =
-    false;
-
-
-let weatherReady =
-    false;
-
-
-let selectedColumn =
-    null;
-
-
-let selectedRow =
-    null;
-
-
-let currentView =
-    "dominant";
-
-
-let currentInfluence =
-    0;
-
-
-let zoom =
-    1;
-
-
-
-/* ==========================================================
-   DOM
-========================================================== */
-
-
-const canvas =
-    document.getElementById(
-        "climateCanvas"
-    );
-
-
-const context =
-    canvas.getContext(
-        "2d"
-    );
-
-
-context.imageSmoothingEnabled =
-    false;
-
-
-const mapStage =
-    document.getElementById(
-        "mapStage"
-    );
-
-
-const selectionBox =
-    document.getElementById(
-        "selectionBox"
-    );
-
-
-const buildButton =
-    document.getElementById(
-        "buildButton"
-    );
-
-
-const weatherFieldButton =
-    document.getElementById(
-        "weatherFieldButton"
-    );
-
-
-const selectedWeatherButton =
-    document.getElementById(
-        "selectedWeatherButton"
-    );
-
-
-const climateStatus =
-    document.getElementById(
-        "climateStatus"
-    );
-
-
-const weatherStatus =
-    document.getElementById(
-        "weatherStatus"
-    );
-
-
-const progressOutput =
-    document.getElementById(
-        "progressOutput"
-    );
-
-
-const influenceSelect =
-    document.getElementById(
-        "influenceSelect"
-    );
-
-
-const legend =
-    document.getElementById(
-        "legend"
-    );
-
-
-const weatherDate =
-    document.getElementById(
-        "weatherDate"
-    );
-
-
-const selectionHint =
-    document.getElementById(
-        "selectionHint"
-    );
-
-
-const selectionDetails =
-    document.getElementById(
-        "selectionDetails"
-    );
-
-
-const coordinateMain =
-    document.getElementById(
-        "coordinateMain"
-    );
-
-
-const coordinateSub =
-    document.getElementById(
-        "coordinateSub"
-    );
-
-
-const surfaceOutput =
-    document.getElementById(
-        "surfaceOutput"
-    );
-
-
-const dominantOutput =
-    document.getElementById(
-        "dominantOutput"
-    );
-
-
-const maritimeOutput =
-    document.getElementById(
-        "maritimeOutput"
-    );
-
-
-const continentalOutput =
-    document.getElementById(
-        "continentalOutput"
-    );
-
-
-const climateList =
-    document.getElementById(
-        "climateList"
-    );
-
-
-const weatherBox =
-    document.getElementById(
-        "weatherBox"
-    );
-
-
-const weatherMain =
-    document.getElementById(
-        "weatherMain"
-    );
-
-
-const temperatureOutput =
-    document.getElementById(
-        "temperatureOutput"
-    );
-
-
-const pressureOutput =
-    document.getElementById(
-        "pressureOutput"
-    );
-
-
-const windOutput =
-    document.getElementById(
-        "windOutput"
-    );
-
-
-const humidityOutput =
-    document.getElementById(
-        "humidityOutput"
-    );
-
-
-const cloudOutput =
-    document.getElementById(
-        "cloudOutput"
-    );
-
-
-const precipitationOutput =
-    document.getElementById(
-        "precipitationOutput"
-    );
-
-
-
-/* ==========================================================
-   BASIC GRID HELPERS
-========================================================== */
-
-
-function cellIndex(
-    column,
-    row
-) {
-
-    return (
-        row *
-        GRID_WIDTH +
-        column
-    );
-
-}
-
-
-function regionalOffset(
-    index
-) {
-
-    return (
-        index *
-        REGION_COUNT
-    );
-
-}
-
-
-function cellCoordinates(
-    column,
-    row
-) {
-
-    const longitudeWest =
-
-        MIN_LONGITUDE +
-
-        column *
-        CELL_DEGREES;
-
-
-    const latitudeNorth =
-
-        MAX_LATITUDE -
-
-        row *
-        CELL_DEGREES;
-
-
-    return {
-
-        longitudeWest:
-            longitudeWest,
-
-        longitudeEast:
-            longitudeWest +
-            CELL_DEGREES,
-
-        latitudeNorth:
-            latitudeNorth,
-
-        latitudeSouth:
-            latitudeNorth -
-            CELL_DEGREES,
-
-        longitudeCentre:
-            longitudeWest +
-            CELL_DEGREES /
-            2,
-
-        latitudeCentre:
-            latitudeNorth -
-            CELL_DEGREES /
-            2
-
-    };
-
-}
-
-
-function formatLatitude(
-    latitude
-) {
-
-    return (
-
-        Math.abs(
-            latitude
-        ).toFixed(2) +
-
-        "°" +
-
-        (
-            latitude >= 0
-                ? "N"
-                : "S"
-        )
-
-    );
-
-}
-
-
-function formatLongitude(
-    longitude
-) {
-
-    return (
-
-        Math.abs(
-            longitude
-        ).toFixed(2) +
-
-        "°" +
-
-        (
-            longitude >= 0
-                ? "E"
-                : "W"
-        )
-
-    );
-
-}
-
-
-
-function clamp(
-    value,
-    minimum,
-    maximum
-) {
-
-    return Math.max(
-
-        minimum,
-
-        Math.min(
-            maximum,
-            value
-        )
-
-    );
-
-}
-
-
-
-/* ==========================================================
-   LAND FRACTION
-========================================================== */
-
-
-function landFractionForCell(
-    index
-) {
-
-    const type =
-        surface[
-            index
-        ];
-
-
-    if (
-        type ===
-        SURFACE_LAND
-    ) {
-
-        return 1;
-
-    }
-
-
-    if (
-        type ===
-        SURFACE_LAKE
-    ) {
-
-        return 0.10;
-
-    }
-
-
-    if (
-        type ===
-        SURFACE_COAST
-    ) {
-
-        return 0.08;
-
-    }
-
-
-    return 0;
-
-}
-
-
-
-/* ==========================================================
-   CLIMATE STORAGE
-========================================================== */
-
-
-function writeRegionalClimate(
-    index,
-    normalized
-) {
-
-    const offset =
-        regionalOffset(
-            index
+(function () {
+    "use strict";
+
+
+    /* ============================================================
+       DOM
+    ============================================================ */
+
+    var canvas =
+        document.getElementById(
+            "mapCanvas"
+        );
+
+    var context =
+        canvas.getContext(
+            "2d"
+        );
+
+    var particleCanvas =
+        document.getElementById(
+            "particleCanvas"
+        );
+
+    var particleContext =
+        particleCanvas.getContext(
+            "2d"
+        );
+
+    var status =
+        document.getElementById(
+            "status"
+        );
+
+    var dateInput =
+        document.getElementById(
+            "dateInput"
+        );
+
+    var seedInput =
+        document.getElementById(
+            "seedInput"
+        );
+
+    var logElement =
+        document.getElementById(
+            "log"
+        );
+
+    var selectionMarker =
+        document.getElementById(
+            "selectionMarker"
         );
 
 
-    let used =
-        0;
+    /* ============================================================
+       STATE
+    ============================================================ */
 
+    var world =
+        null;
 
-    const remainderList =
+    var particles =
         [];
 
-
-    for (
-        let region = 0;
-        region < REGION_COUNT;
-        region++
-    ) {
-
-        const name =
-            REGION_TYPES[
-                region
-            ].name;
-
-
-        const percentage =
-
-            normalized[
-                name
-            ] ||
-
-            0;
-
-
-        const exact =
-
-            percentage *
-            10;
-
-
-        const base =
-            Math.floor(
-                exact
-            );
-
-
-        regional[
-            offset +
-            region
-        ] =
-            base;
-
-
-        used +=
-            base;
-
-
-        remainderList.push({
-
-            region:
-                region,
-
-            remainder:
-                exact -
-                base
-
-        });
-
-    }
-
-
-    remainderList.sort(
-
-        (
-            a,
-            b
-        ) =>
-
-        b.remainder -
-        a.remainder
-
-    );
-
-
-    let missing =
-
-        REGIONAL_TOTAL -
-
-        used;
-
-
-    let pointer =
-        0;
-
-
-    while (
-        missing >
-        0
-    ) {
-
-        regional[
-            offset +
-            remainderList[
-                pointer
-            ].region
-        ]++;
-
-
-        missing--;
-
-
-        pointer++;
-
-
-        if (
-            pointer >=
-            remainderList.length
-        ) {
-
-            pointer =
-                0;
-
-        }
-
-    }
-
-}
-
-
-
-/* ==========================================================
-   READ CLIMATE
-========================================================== */
-
-
-function climateForIndex(
-    index
-) {
-
-    const output =
-        {};
-
-
-    const offset =
-        regionalOffset(
-            index
-        );
-
-
-    for (
-        let region = 0;
-        region < REGION_COUNT;
-        region++
-    ) {
-
-        output[
-            REGION_TYPES[
-                region
-            ].name
-        ] =
-
-            regional[
-                offset +
-                region
-            ] /
-
-            10;
-
-    }
-
-
-    return output;
-
-}
-
-
-
-/* ==========================================================
-   DOMINANT CLIMATE
-========================================================== */
-
-
-function dominantRegion(
-    index
-) {
-
-    const offset =
-        regionalOffset(
-            index
-        );
-
-
-    let bestRegion =
-        0;
-
-
-    let best =
-        -1;
-
-
-    for (
-        let region = 0;
-        region < REGION_COUNT;
-        region++
-    ) {
-
-        const value =
-
-            regional[
-                offset +
-                region
-            ];
-
-
-        if (
-            value >
-            best
-        ) {
-
-            best =
-                value;
-
-            bestRegion =
-                region;
-
-        }
-
-    }
-
-
-    return bestRegion;
-
-}
-
-
-
-/* ==========================================================
-   NATURAL EARTH BASE MAP
-========================================================== */
-
-
-const NATURAL_EARTH_BASE =
-
-    "https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@ca96624a56bd078437bca8184e78163e5039ad19/geojson/";
-
-
-async function getGeoJSON(
-    filename
-) {
-
-    const response =
-        await fetch(
-
-            NATURAL_EARTH_BASE +
-            filename
-
-        );
-
-
-    if (
-        !response.ok
-    ) {
-
-        throw new Error(
-            "Could not download " +
-            filename
-        );
-
-    }
-
-
-    return await response.json();
-
-}
-
-
-
-/* ==========================================================
-   GEOGRAPHY RASTER
-========================================================== */
-
-
-const MASK_SCALE =
-    3;
-
-
-const MASK_WIDTH =
-
-    GRID_WIDTH *
-    MASK_SCALE;
-
-
-const MASK_HEIGHT =
-
-    GRID_HEIGHT *
-    MASK_SCALE;
-
-
-function geoX(
-    longitude
-) {
-
-    return (
-
-        (
-            longitude -
-            MIN_LONGITUDE
-        ) /
-
-        (
-            MAX_LONGITUDE -
-            MIN_LONGITUDE
-        ) *
-
-        MASK_WIDTH
-
-    );
-
-}
-
-
-function geoY(
-    latitude
-) {
-
-    return (
-
-        (
-            MAX_LATITUDE -
-            latitude
-        ) /
-
-        (
-            MAX_LATITUDE -
-            MIN_LATITUDE
-        ) *
-
-        MASK_HEIGHT
-
-    );
-
-}
-
-
-
-function traceRing(
-    ctx,
-    ring
-) {
-
-    if (
-        !ring ||
-        ring.length === 0
-    ) {
-
-        return;
-
-    }
-
-
-    ctx.moveTo(
-
-        geoX(
-            ring[0][0]
-        ),
-
-        geoY(
-            ring[0][1]
-        )
-
-    );
-
-
-    for (
-        let i = 1;
-        i < ring.length;
-        i++
-    ) {
-
-        ctx.lineTo(
-
-            geoX(
-                ring[i][0]
-            ),
-
-            geoY(
-                ring[i][1]
-            )
-
-        );
-
-    }
-
-
-    ctx.closePath();
-
-}
-
-
-
-function drawGeometry(
-    ctx,
-    geometry
-) {
-
-    if (
-        !geometry
-    ) {
-
-        return;
-
-    }
-
-
-    if (
-        geometry.type ===
-        "Polygon"
-    ) {
-
-        ctx.beginPath();
-
-
-        for (
-            const ring
-            of geometry.coordinates
-        ) {
-
-            traceRing(
-                ctx,
-                ring
-            );
-
-        }
-
-
-        ctx.fill(
-            "evenodd"
-        );
-
-    }
-
-
-    else if (
-        geometry.type ===
-        "MultiPolygon"
-    ) {
-
-        for (
-            const polygon
-            of geometry.coordinates
-        ) {
-
-            ctx.beginPath();
-
-
-            for (
-                const ring
-                of polygon
-            ) {
-
-                traceRing(
-                    ctx,
-                    ring
-                );
-
-            }
-
-
-            ctx.fill(
-                "evenodd"
-            );
-
-        }
-
-    }
-
-}
-
-
-
-function drawGeoJSON(
-    ctx,
-    geojson
-) {
-
-    ctx.fillStyle =
-        "white";
-
-
-    if (
-        geojson.type ===
-        "FeatureCollection"
-    ) {
-
-        for (
-            const feature
-            of geojson.features
-        ) {
-
-            drawGeometry(
-                ctx,
-                feature.geometry
-            );
-
-        }
-
-    }
-
-}
-
-
-
-/* ==========================================================
-   BUILD PHYSICAL SURFACE
-========================================================== */
-
-
-async function buildSurface() {
-
-    progressOutput.textContent =
-        "Downloading Natural Earth coastline and lakes...";
-
-
-    const [
-        land,
-        lakes
-    ] =
-        await Promise.all([
-
-            getGeoJSON(
-                "ne_10m_land.geojson"
-            ),
-
-            getGeoJSON(
-                "ne_10m_lakes.geojson"
-            )
-
-        ]);
-
-
-    const landCanvas =
-        document.createElement(
-            "canvas"
-        );
-
-
-    landCanvas.width =
-        MASK_WIDTH;
-
-
-    landCanvas.height =
-        MASK_HEIGHT;
-
-
-    const landContext =
-        landCanvas.getContext(
-            "2d",
-            {
-                willReadFrequently:
-                    true
-            }
-        );
-
-
-    landContext.fillStyle =
-        "black";
-
-
-    landContext.fillRect(
-        0,
-        0,
-        MASK_WIDTH,
-        MASK_HEIGHT
-    );
-
-
-    drawGeoJSON(
-        landContext,
-        land
-    );
-
-
-    const lakeCanvas =
-        document.createElement(
-            "canvas"
-        );
-
-
-    lakeCanvas.width =
-        MASK_WIDTH;
-
-
-    lakeCanvas.height =
-        MASK_HEIGHT;
-
-
-    const lakeContext =
-        lakeCanvas.getContext(
-            "2d",
-            {
-                willReadFrequently:
-                    true
-            }
-        );
-
-
-    lakeContext.fillStyle =
-        "black";
-
-
-    lakeContext.fillRect(
-        0,
-        0,
-        MASK_WIDTH,
-        MASK_HEIGHT
-    );
-
-
-    drawGeoJSON(
-        lakeContext,
-        lakes
-    );
-
-
-    const landPixels =
-        landContext.getImageData(
-
-            0,
-            0,
-            MASK_WIDTH,
-            MASK_HEIGHT
-
-        ).data;
-
-
-    const lakePixels =
-        lakeContext.getImageData(
-
-            0,
-            0,
-            MASK_WIDTH,
-            MASK_HEIGHT
-
-        ).data;
-
-
-    for (
-        let row = 0;
-        row < GRID_HEIGHT;
-        row++
-    ) {
-
-        for (
-            let column = 0;
-            column < GRID_WIDTH;
-            column++
-        ) {
-
-            const sampleX =
-
-                column *
-                MASK_SCALE +
-                1;
-
-
-            const sampleY =
-
-                row *
-                MASK_SCALE +
-                1;
-
-
-            const pixelIndex =
-
-                (
-                    sampleY *
-                    MASK_WIDTH +
-                    sampleX
-                ) *
-                4;
-
-
-            const index =
-                cellIndex(
-                    column,
-                    row
-                );
-
-
-            if (
-                lakePixels[
-                    pixelIndex
-                ] >
-                127
-            ) {
-
-                surface[
-                    index
-                ] =
-                    SURFACE_LAKE;
-
-            }
-
-
-            else if (
-                landPixels[
-                    pixelIndex
-                ] >
-                127
-            ) {
-
-                surface[
-                    index
-                ] =
-                    SURFACE_LAND;
-
-            }
-
-
-            else {
-
-                surface[
-                    index
-                ] =
-                    SURFACE_OCEAN;
-
-            }
-
-        }
-
-    }
-
-
-    /*
-     * Mark immediate sea cells next to land as coastal /
-     * shallow sea.
-
-     * This gives the weather system a useful coastline band.
-     */
-
-    const original =
-        surface.slice();
-
-
-    for (
-        let row = 1;
-        row < GRID_HEIGHT - 1;
-        row++
-    ) {
-
-        for (
-            let column = 1;
-            column < GRID_WIDTH - 1;
-            column++
-        ) {
-
-            const index =
-                cellIndex(
-                    column,
-                    row
-                );
-
-
-            if (
-                original[
-                    index
-                ] !==
-                SURFACE_OCEAN
-            ) {
-
-                continue;
-
-            }
-
-
-            let besideLand =
-                false;
-
-
-            for (
-                let y = -1;
-                y <= 1;
-                y++
-            ) {
-
-                for (
-                    let x = -1;
-                    x <= 1;
-                    x++
-                ) {
-
-                    const neighbour =
-                        cellIndex(
-
-                            column +
-                            x,
-
-                            row +
-                            y
-
-                        );
-
-
-                    if (
-                        original[
-                            neighbour
-                        ] ===
-                        SURFACE_LAND
-                    ) {
-
-                        besideLand =
-                            true;
-
-                    }
-
-                }
-
-            }
-
-
-            if (
-                besideLand
-            ) {
-
-                surface[
-                    index
-                ] =
-                    SURFACE_COAST;
-
-            }
-
-        }
-
-    }
-
-}
-
-
-
-/* ==========================================================
-   GENERATE CLIMATE
-========================================================== */
-
-
-async function buildClimate() {
-
-    if (
-        !window.EuropaClimate
-    ) {
-
-        throw new Error(
-            "europacraft-climate-v3.js is not loaded."
-        );
-
-    }
-
-
-    climateStatus.textContent =
-        "Generating";
-
-
-    for (
-        let row = 0;
-        row < GRID_HEIGHT;
-        row++
-    ) {
-
-        for (
-            let column = 0;
-            column < GRID_WIDTH;
-            column++
-        ) {
-
-            const index =
-                cellIndex(
-                    column,
-                    row
-                );
-
-
-            const coordinates =
-                cellCoordinates(
-                    column,
-                    row
-                );
-
-
-            const result =
-                window.EuropaClimate.getClimate(
-
-                    coordinates.latitudeCentre,
-
-                    coordinates.longitudeCentre,
-
-                    {
-
-                        landFraction:
-                            landFractionForCell(
-                                index
-                            )
-
-                    }
-
-                );
-
-
-            writeRegionalClimate(
-
-                index,
-
-                result.normalized
-
-            );
-
-        }
-
-
-        if (
-            row %
-            5 ===
-            0
-        ) {
-
-            const percentage =
-
-                Math.round(
-
-                    row /
-                    GRID_HEIGHT *
-                    100
-
-                );
-
-
-            progressOutput.textContent =
-
-                "Generating climate field: " +
-
-                percentage +
-
-                "%";
-
-
-            await new Promise(
-
-                resolve =>
-                    setTimeout(
-                        resolve,
-                        0
-                    )
-
-            );
-
-        }
-
-    }
-
-
-    climateReady =
+    var particlesEnabled =
         true;
 
+    var currentView =
+        "temperature";
 
-    climateStatus.textContent =
-        "Ready";
+    var playing =
+        false;
 
+    var playTimer =
+        null;
 
-    progressOutput.textContent =
-        "Physical map and regional climate field are ready.";
+    var selectedLatitude =
+        51.5;
 
-
-    render();
-
-}
-
-
-
-/* ==========================================================
-   BUILD EVERYTHING
-========================================================== */
+    var selectedLongitude =
+        -0.1;
 
 
-async function buildEverything() {
+    /* ============================================================
+       BASIC MAP TRANSFORMS
+    ============================================================ */
 
-    buildButton.disabled =
-        true;
+    function lonToPixel(
+        longitude
+    ) {
+
+        return (
+            (
+                longitude +
+                26
+            ) /
+            78 *
+            canvas.width
+        );
+    }
 
 
-    buildButton.textContent =
-        "Building...";
+    function latToPixel(
+        latitude
+    ) {
+
+        return (
+            (
+                74 -
+                latitude
+            ) /
+            44 *
+            canvas.height
+        );
+    }
 
 
-    climateStatus.textContent =
-        "Building surface";
+    function pixelToLon(
+        x
+    ) {
+
+        return (
+            -26 +
+            x /
+            canvas.width *
+            78
+        );
+    }
 
 
-    try {
+    function pixelToLat(
+        y
+    ) {
 
-        await buildSurface();
+        return (
+            74 -
+            y /
+            canvas.height *
+            44
+        );
+    }
 
+
+    /* ============================================================
+       PLACEHOLDER SURFACE
+
+       This is intentionally simple so the atmosphere runs even
+       without Natural Earth fetches.
+
+       EuropaClimate still provides geography-informed climate.
+
+       The rough surface function merely determines whether direct
+       SST exchange is allowed.
+
+       Replace later with your precise surface grid.
+    ============================================================ */
+
+    function roughLandFraction(
+        latitude,
+        longitude
+    ) {
+
+        /*
+         * Atlantic west of Europe.
+         */
+        if (
+            longitude <
+            -11
+        ) {
+
+            return 0;
+        }
+
+        /*
+         * Far northwestern ocean.
+         */
+        if (
+            latitude >
+            66 &&
+            longitude <
+            -5
+        ) {
+
+            return 0;
+        }
+
+        /*
+         * Mediterranean broad approximation.
+         */
+        if (
+            latitude <
+            42 &&
+            longitude >
+            -5 &&
+            longitude <
+            36
+        ) {
+
+            /*
+             * Prevent whole southern Europe becoming sea by
+             * allowing coarse continental blocks.
+             */
+
+            if (
+                longitude >
+                -1 &&
+                longitude <
+                4 &&
+                latitude >
+                36
+            ) {
+
+                return 1;
+            }
+
+            if (
+                longitude >
+                7 &&
+                longitude <
+                18 &&
+                latitude >
+                37
+            ) {
+
+                return 1;
+            }
+
+            if (
+                longitude >
+                19 &&
+                longitude <
+                29 &&
+                latitude >
+                38
+            ) {
+
+                return 1;
+            }
+
+            return 0;
+        }
+
+        /*
+         * North Sea.
+         */
+        if (
+            latitude >
+            51 &&
+            latitude <
+            61 &&
+            longitude >
+            2 &&
+            longitude <
+            8
+        ) {
+
+            return 0;
+        }
+
+        /*
+         * Baltic.
+         */
+        if (
+            latitude >
+            54 &&
+            latitude <
+            66 &&
+            longitude >
+            11 &&
+            longitude <
+            30
+        ) {
+
+            if (
+                latitude >
+                57 &&
+                longitude >
+                20
+            ) {
+
+                return 0;
+            }
+        }
+
+        /*
+         * Black Sea.
+         */
+        if (
+            latitude >
+            40 &&
+            latitude <
+            47 &&
+            longitude >
+            27 &&
+            longitude <
+            42
+        ) {
+
+            return 0;
+        }
+
+        return 1;
+    }
+
+
+    /* ============================================================
+       ENGINE CHECK
+    ============================================================ */
+
+    function enginesReady() {
+
+        if (
+            !window.EuropaClimate
+        ) {
+
+            status.textContent =
+                "Climate engine missing.";
+
+            return false;
+        }
+
+        if (
+            !window.EuropaWeather
+        ) {
+
+            status.textContent =
+                "Weather engine missing.";
+
+            return false;
+        }
+
+        return true;
+    }
+
+
+    /* ============================================================
+       INITIALISE
+    ============================================================ */
+
+    function parseInputDate() {
+
+        var value =
+            dateInput.value;
+
+        if (
+            !value
+        ) {
+
+            return new Date();
+        }
+
+        /*
+         * Treat UI time as UTC.
+         */
+        return new Date(
+            value +
+            ":00Z"
+        );
+    }
+
+
+    function initialiseWorld() {
+
+        if (
+            !enginesReady()
+        ) {
+
+            return;
+        }
+
+        stopPlayback();
+
+        window.EuropaWeather
+            .setSurfaceProvider(
+                roughLandFraction
+            );
+
+        var date =
+            parseInputDate();
+
+        world =
+            new window.EuropaWeather
+                .WeatherWorld(
+                    date
+                );
+
+        particles =
+            window.EuropaWeather
+                .createParticles(
+                    450
+                );
+
+        seedInput.value =
+            window.EuropaWeather
+                .getSimulationSeed();
+
+        appendLog(
+            "Initialised " +
+            world.date.toISOString() +
+            "\nSeed " +
+            seedInput.value
+        );
 
         render();
 
-
-        await buildClimate();
-
-
-        buildButton.textContent =
-            "Rebuild Map and Climate";
-
+        inspectSelected();
     }
 
 
-    catch (
-        error
+    /* ============================================================
+       LOG
+    ============================================================ */
+
+    function appendLog(
+        text
     ) {
 
-        console.error(
-            error
-        );
-
-
-        progressOutput.textContent =
-            "Build failed: " +
-            error.message;
-
-
-        climateStatus.textContent =
-            "Error";
-
-    }
-
-
-    finally {
-
-        buildButton.disabled =
-            false;
-
-    }
-
-}
-
-
-
-/* ==========================================================
-   WEATHER FIELD
-========================================================== */
-
-
-function precipitationCode(
-    type
-) {
-
-    if (
-        type ===
-        "rain"
-    ) {
-
-        return 1;
-
-    }
-
-
-    if (
-        type ===
-        "sleet"
-    ) {
-
-        return 2;
-
-    }
-
-
-    if (
-        type ===
-        "snow"
-    ) {
-
-        return 3;
-
-    }
-
-
-    return 0;
-
-}
-
-
-
-async function generateWeatherField() {
-
-    if (
-        !climateReady
-    ) {
-
-        alert(
-            "Build the climate field first."
-        );
-
-        return;
-
-    }
-
-
-    if (
-        !window.EuropaWeather
-    ) {
-
-        alert(
-            "europacraft-weather-v1.js is not loaded."
-        );
-
-        return;
-
-    }
-
-
-    weatherFieldButton.disabled =
-        true;
-
-
-    weatherStatus.textContent =
-        "Generating";
-
-
-    const date =
-        new Date(
-            weatherDate.value
-        );
-
-
-    /*
-     * Weather is calculated every second cell in this
-     * first version.
-
-     * Each result fills a 2 × 2 cell block.
-
-     * Therefore the climate remains at 0.1° resolution,
-     * but the first weather field is approximately 0.2°.
-
-     * This makes generation much faster while we are still
-     * developing the atmospheric engine.
-     */
-
-    const step =
-        2;
-
-
-    for (
-        let row = 0;
-        row < GRID_HEIGHT;
-        row += step
-    ) {
-
-        for (
-            let column = 0;
-            column < GRID_WIDTH;
-            column += step
-        ) {
-
-            const index =
-                cellIndex(
-                    column,
-                    row
-                );
-
-
-            const coordinates =
-                cellCoordinates(
-                    column,
-                    row
-                );
-
-
-            const result =
-                window.EuropaWeather.simulate(
-
-                    coordinates.latitudeCentre,
-
-                    coordinates.longitudeCentre,
-
-                    date,
-
-                    {
-
-                        landFraction:
-                            landFractionForCell(
-                                index
-                            )
-
-                    }
-
-                );
-
-
-            for (
-                let y = 0;
-                y < step;
-                y++
-            ) {
-
-                for (
-                    let x = 0;
-                    x < step;
-                    x++
-                ) {
-
-                    const targetColumn =
-                        column +
-                        x;
-
-
-                    const targetRow =
-                        row +
-                        y;
-
-
-                    if (
-                        targetColumn >=
-                        GRID_WIDTH ||
-
-                        targetRow >=
-                        GRID_HEIGHT
-                    ) {
-
-                        continue;
-
-                    }
-
-
-                    const target =
-                        cellIndex(
-
-                            targetColumn,
-
-                            targetRow
-
-                        );
-
-
-                    temperature[
-                        target
-                    ] =
-                        result.temperatureC;
-
-
-                    pressure[
-                        target
-                    ] =
-                        result.pressureHpa;
-
-
-                    windSpeed[
-                        target
-                    ] =
-                        result.wind.speedMs;
-
-
-                    windDirection[
-                        target
-                    ] =
-                        result.wind.directionDeg;
-
-
-                    humidity[
-                        target
-                    ] =
-                        Math.round(
-                            result.humidityPct
-                        );
-
-
-                    cloud[
-                        target
-                    ] =
-                        Math.round(
-
-                            result.cloudFraction *
-                            100
-
-                        );
-
-
-                    precipitation[
-                        target
-                    ] =
-                        precipitationCode(
-                            result.precipitationType
-                        );
-
-                }
-
-            }
-
-        }
-
+        var current =
+            logElement.textContent;
 
         if (
-            row %
-            10 ===
-            0
+            current ===
+            "No simulation initialised."
         ) {
 
-            progressOutput.textContent =
+            current =
+                "";
+        }
 
-                "Generating weather field: " +
-
-                Math.round(
-
-                    row /
-                    GRID_HEIGHT *
-                    100
-
-                ) +
-
-                "%";
-
-
-            await new Promise(
-
-                resolve =>
-                    setTimeout(
-                        resolve,
-                        0
-                    )
-
+        var lines =
+            (
+                current +
+                "\n" +
+                text
+            )
+            .trim()
+            .split(
+                "\n"
             );
 
-        }
-
-    }
-
-
-    weatherReady =
-        true;
-
-
-    weatherStatus.textContent =
-        "Ready";
-
-
-    weatherFieldButton.disabled =
-        false;
-
-
-    progressOutput.textContent =
-        "Europe weather field generated for " +
-        date.toLocaleString() +
-        ".";
-
-
-    render();
-
-
-    updateSelectedCell();
-
-}
-
-
-
-/* ==========================================================
-   COLOUR FUNCTIONS
-========================================================== */
-
-
-function surfaceColour(
-    type
-) {
-
-    switch (
-        type
-    ) {
-
-        case SURFACE_OCEAN:
-
-            return [
-                77,
-                135,
-                176
-            ];
-
-
-        case SURFACE_COAST:
-
-            return [
-                111,
-                174,
-                202
-            ];
-
-
-        case SURFACE_LAKE:
-
-            return [
-                148,
-                199,
-                218
-            ];
-
-
-        case SURFACE_LAND:
-
-            return [
-                193,
-                188,
-                154
-            ];
-
-
-        default:
-
-            return [
-                210,
-                214,
-                217
-            ];
-
-    }
-
-}
-
-
-
-function interpolateColour(
-    a,
-    b,
-    amount
-) {
-
-    amount =
-        clamp(
-            amount,
-            0,
-            1
-        );
-
-
-    return [
-
-        Math.round(
-            a[0] +
-            (
-                b[0] -
-                a[0]
-            ) *
-            amount
-        ),
-
-        Math.round(
-            a[1] +
-            (
-                b[1] -
-                a[1]
-            ) *
-            amount
-        ),
-
-        Math.round(
-            a[2] +
-            (
-                b[2] -
-                a[2]
-            ) *
-            amount
-        )
-
-    ];
-
-}
-
-
-
-function temperatureColour(
-    value
-) {
-
-    if (
-        !Number.isFinite(
-            value
-        )
-    ) {
-
-        return [
-            210,
-            210,
-            210
-        ];
-
-    }
-
-
-    if (
-        value <=
-        -20
-    ) {
-
-        return [
-            95,
-            75,
-            170
-        ];
-
-    }
-
-
-    if (
-        value <=
-        0
-    ) {
-
-        return interpolateColour(
-
-            [
-                95,
-                75,
-                170
-            ],
-
-            [
-                105,
-                190,
-                225
-            ],
-
-            (
-                value +
-                20
-            ) /
-            20
-
-        );
-
-    }
-
-
-    if (
-        value <=
-        15
-    ) {
-
-        return interpolateColour(
-
-            [
-                105,
-                190,
-                225
-            ],
-
-            [
-                225,
-                220,
-                115
-            ],
-
-            value /
-            15
-
-        );
-
-    }
-
-
-    if (
-        value <=
-        30
-    ) {
-
-        return interpolateColour(
-
-            [
-                225,
-                220,
-                115
-            ],
-
-            [
-                225,
-                110,
-                55
-            ],
-
-            (
-                value -
-                15
-            ) /
-            15
-
-        );
-
-    }
-
-
-    return [
-        185,
-        55,
-        45
-    ];
-
-}
-
-
-
-function pressureColour(
-    value
-) {
-
-    const amount =
-        clamp(
-
-            (
-                value -
-                985
-            ) /
-            55,
-
-            0,
-            1
-
-        );
-
-
-    return interpolateColour(
-
-        [
-            105,
-            130,
-            205
-        ],
-
-        [
-            225,
-            195,
-            115
-        ],
-
-        amount
-
-    );
-
-}
-
-
-
-function windColour(
-    value
-) {
-
-    const amount =
-        clamp(
-
-            value /
-            30,
-
-            0,
-            1
-
-        );
-
-
-    return interpolateColour(
-
-        [
-            230,
-            235,
-            237
-        ],
-
-        [
-            90,
-            85,
-            155
-        ],
-
-        amount
-
-    );
-
-}
-
-
-
-function cloudColour(
-    value
-) {
-
-    const amount =
-        clamp(
-
-            value /
-            100,
-
-            0,
-            1
-
-        );
-
-
-    const shade =
-        Math.round(
-
-            245 -
-            amount *
-            150
-
-        );
-
-
-    return [
-
-        shade,
-        shade,
-        shade
-
-    ];
-
-}
-
-
-
-function precipitationColour(
-    code
-) {
-
-    switch (
-        code
-    ) {
-
-        case 1:
-
-            return [
-                65,
-                125,
-                205
-            ];
-
-
-        case 2:
-
-            return [
-                145,
-                115,
-                190
-            ];
-
-
-        case 3:
-
-            return [
-                225,
-                240,
-                250
-            ];
-
-
-        default:
-
-            return [
-                225,
-                226,
-                218
-            ];
-
-    }
-
-}
-
-
-
-/* ==========================================================
-   RENDER
-========================================================== */
-
-
-function render() {
-
-    const image =
-        context.createImageData(
-
-            GRID_WIDTH,
-
-            GRID_HEIGHT
-
-        );
-
-
-    const pixels =
-        image.data;
-
-
-    for (
-        let index = 0;
-        index < TOTAL_CELLS;
-        index++
-    ) {
-
-        let colour;
-
-
         if (
-            currentView ===
-            "surface"
+            lines.length >
+            16
         ) {
 
-            colour =
-                surfaceColour(
-                    surface[
-                        index
-                    ]
+            lines =
+                lines.slice(
+                    lines.length -
+                    16
                 );
-
         }
 
-
-        else if (
-            currentView ===
-            "dominant"
-        ) {
-
-            if (
-                !climateReady
-            ) {
-
-                colour =
-                    surfaceColour(
-                        surface[
-                            index
-                        ]
-                    );
-
-            }
-
-            else {
-
-                const region =
-                    dominantRegion(
-                        index
-                    );
-
-
-                colour =
-                    REGION_TYPES[
-                        region
-                    ].colour;
-
-            }
-
-        }
-
-
-        else if (
-            currentView ===
-            "influence"
-        ) {
-
-            const offset =
-                regionalOffset(
-                    index
-                );
-
-
-            const value =
-
-                regional[
-                    offset +
-                    currentInfluence
-                ] /
-
-                REGIONAL_TOTAL;
-
-
-            /*
-             * Square root brightens low percentages so
-             * 5–10% influence is still visible.
-             */
-
-            const visible =
-                Math.sqrt(
-                    value
-                );
-
-
-            colour =
-                interpolateColour(
-
-                    [
-                        238,
-                        239,
-                        237
-                    ],
-
-                    REGION_TYPES[
-                        currentInfluence
-                    ].colour,
-
-                    visible
-
-                );
-
-        }
-
-
-        else if (
-            currentView ===
-            "temperature"
-        ) {
-
-            colour =
-                weatherReady
-
-                ? temperatureColour(
-                    temperature[
-                        index
-                    ]
-                )
-
-                : [
-                    215,
-                    215,
-                    215
-                ];
-
-        }
-
-
-        else if (
-            currentView ===
-            "pressure"
-        ) {
-
-            colour =
-                weatherReady
-
-                ? pressureColour(
-                    pressure[
-                        index
-                    ]
-                )
-
-                : [
-                    215,
-                    215,
-                    215
-                ];
-
-        }
-
-
-        else if (
-            currentView ===
-            "wind"
-        ) {
-
-            colour =
-                weatherReady
-
-                ? windColour(
-                    windSpeed[
-                        index
-                    ]
-                )
-
-                : [
-                    215,
-                    215,
-                    215
-                ];
-
-        }
-
-
-        else if (
-            currentView ===
-            "cloud"
-        ) {
-
-            colour =
-                weatherReady
-
-                ? cloudColour(
-                    cloud[
-                        index
-                    ]
-                )
-
-                : [
-                    215,
-                    215,
-                    215
-                ];
-
-        }
-
-
-        else if (
-            currentView ===
-            "precipitation"
-        ) {
-
-            colour =
-                weatherReady
-
-                ? precipitationColour(
-                    precipitation[
-                        index
-                    ]
-                )
-
-                : [
-                    215,
-                    215,
-                    215
-                ];
-
-        }
-
-
-        else {
-
-            colour =
-                [
-                    220,
-                    220,
-                    220
-                ];
-
-        }
-
-
-        const pixel =
-            index *
-            4;
-
-
-        pixels[
-            pixel
-        ] =
-            colour[
-                0
-            ];
-
-
-        pixels[
-            pixel +
-            1
-        ] =
-            colour[
+        logElement.textContent =
+            lines.join(
+                "\n"
+            );
+    }
+
+
+    /* ============================================================
+       COLOUR FUNCTIONS
+    ============================================================ */
+
+    function temperatureColour(
+        value
+    ) {
+
+        var stops = [
+
+            [-30, 32, 48, 120],
+            [-15, 70, 105, 180],
+            [-5, 125, 170, 210],
+            [0, 195, 225, 235],
+            [5, 218, 235, 210],
+            [10, 225, 230, 170],
+            [15, 238, 218, 130],
+            [20, 240, 184, 100],
+            [25, 225, 130, 75],
+            [30, 205, 78, 60],
+            [40, 155, 45, 50]
+
+        ];
+
+        return interpolateStops(
+            value,
+            stops
+        );
+    }
+
+
+    function anomalyColour(
+        value
+    ) {
+
+        var stops = [
+
+            [-10, 45, 75, 170],
+            [-5, 95, 145, 210],
+            [0, 230, 230, 225],
+            [5, 220, 130, 85],
+            [10, 165, 55, 55]
+
+        ];
+
+        return interpolateStops(
+            value,
+            stops
+        );
+    }
+
+
+    function pressureColour(
+        value
+    ) {
+
+        var t =
+            clamp(
+                (
+                    value -
+                    985
+                ) /
+                60,
+                0,
                 1
-            ];
+            );
 
+        var shade =
+            Math.round(
+                45 +
+                t *
+                190
+            );
 
-        pixels[
-            pixel +
-            2
-        ] =
-            colour[
-                2
-            ];
-
-
-        pixels[
-            pixel +
-            3
-        ] =
-            255;
-
+        return [
+            shade,
+            shade,
+            shade
+        ];
     }
 
 
-    context.putImageData(
-
-        image,
-
-        0,
-        0
-
-    );
-
-}
-
-
-
-/* ==========================================================
-   COMPASS
-========================================================== */
-
-
-function compassName(
-    degrees
-) {
-
-    const names = [
-
-        "N",
-        "NNE",
-        "NE",
-        "ENE",
-        "E",
-        "ESE",
-        "SE",
-        "SSE",
-
-        "S",
-        "SSW",
-        "SW",
-        "WSW",
-        "W",
-        "WNW",
-        "NW",
-        "NNW"
-
-    ];
-
-
-    const index =
-
-        Math.round(
-
-            degrees /
-            22.5
-
-        ) %
-
-        16;
-
-
-    return names[
-        index
-    ];
-
-}
-
-
-
-/* ==========================================================
-   SELECTED CELL WEATHER
-========================================================== */
-
-
-function weatherForSelectedCell() {
-
-    if (
-        selectedColumn ===
-        null ||
-
-        selectedRow ===
-        null
+    function cloudColour(
+        value
     ) {
 
-        return;
+        var shade =
+            Math.round(
+                30 +
+                (
+                    1 -
+                    value
+                ) *
+                215
+            );
 
+        return [
+            shade,
+            shade,
+            shade
+        ];
     }
 
 
-    if (
-        !window.EuropaWeather
-    ) {
-
-        alert(
-            "Weather engine is not loaded."
-        );
-
-        return;
-
-    }
-
-
-    const index =
-        cellIndex(
-
-            selectedColumn,
-
-            selectedRow
-
-        );
-
-
-    const coordinates =
-        cellCoordinates(
-
-            selectedColumn,
-
-            selectedRow
-
-        );
-
-
-    const date =
-        new Date(
-            weatherDate.value
-        );
-
-
-    const result =
-        window.EuropaWeather.simulate(
-
-            coordinates.latitudeCentre,
-
-            coordinates.longitudeCentre,
-
-            date,
-
-            {
-
-                landFraction:
-                    landFractionForCell(
-                        index
-                    )
-
-            }
-
-        );
-
-
-    temperature[
-        index
-    ] =
-        result.temperatureC;
-
-
-    pressure[
-        index
-    ] =
-        result.pressureHpa;
-
-
-    windSpeed[
-        index
-    ] =
-        result.wind.speedMs;
-
-
-    windDirection[
-        index
-    ] =
-        result.wind.directionDeg;
-
-
-    humidity[
-        index
-    ] =
-        Math.round(
-            result.humidityPct
-        );
-
-
-    cloud[
-        index
-    ] =
-        Math.round(
-
-            result.cloudFraction *
-            100
-
-        );
-
-
-    precipitation[
-        index
-    ] =
-        precipitationCode(
-            result.precipitationType
-        );
-
-
-    showWeatherResult(
-        result
-    );
-
-}
-
-
-
-/* ==========================================================
-   WEATHER RESULT
-========================================================== */
-
-
-function showWeatherResult(
-    result
-) {
-
-    weatherBox.style.display =
-        "block";
-
-
-    weatherMain.textContent =
-
-        result.precipitationType
-            .toUpperCase() +
-
-        " · " +
-
-        result.temperatureC
-            .toFixed(1) +
-
-        "°C";
-
-
-    temperatureOutput.textContent =
-
-        result.temperatureC
-            .toFixed(1) +
-
-        "°C";
-
-
-    pressureOutput.textContent =
-
-        result.pressureHpa
-            .toFixed(1) +
-
-        " hPa";
-
-
-    windOutput.textContent =
-
-        compassName(
-            result.wind.directionDeg
-        ) +
-
-        " " +
-
-        result.wind.speedMs
-            .toFixed(1) +
-
-        " m/s · " +
-
-        result.wind.directionDeg
-            .toFixed(0) +
-
-        "°";
-
-
-    humidityOutput.textContent =
-
-        result.humidityPct
-            .toFixed(0) +
-
-        "%";
-
-
-    cloudOutput.textContent =
-
-        Math.round(
-
-            result.cloudFraction *
-            100
-
-        ) +
-
-        "%";
-
-
-    precipitationOutput.textContent =
-
-        result.precipitationType +
-
-        " · " +
-
-        Math.round(
-
-            result.precipitationChance *
-            100
-
-        ) +
-
-        "%";
-
-}
-
-
-
-/* ==========================================================
-   UPDATE SELECTED CELL
-========================================================== */
-
-
-function updateSelectedCell() {
-
-    if (
-        selectedColumn ===
-        null ||
-
-        selectedRow ===
-        null
-    ) {
-
-        return;
-
-    }
-
-
-    const index =
-        cellIndex(
-
-            selectedColumn,
-
-            selectedRow
-
-        );
-
-
-    const coordinates =
-        cellCoordinates(
-
-            selectedColumn,
-
-            selectedRow
-
-        );
-
-
-    selectionHint.style.display =
-        "none";
-
-
-    selectionDetails.style.display =
-        "block";
-
-
-    coordinateMain.textContent =
-
-        formatLatitude(
-            coordinates.latitudeCentre
-        ) +
-
-        ", " +
-
-        formatLongitude(
-            coordinates.longitudeCentre
-        );
-
-
-    coordinateSub.textContent =
-
-        formatLatitude(
-            coordinates.latitudeNorth
-        ) +
-
-        " to " +
-
-        formatLatitude(
-            coordinates.latitudeSouth
-        ) +
-
-        " · " +
-
-        formatLongitude(
-            coordinates.longitudeWest
-        ) +
-
-        " to " +
-
-        formatLongitude(
-            coordinates.longitudeEast
-        );
-
-
-    const surfaceNames = {
-
-        0:
-            "Unknown",
-
-        1:
-            "Ocean",
-
-        2:
-            "Coastal / shallow sea",
-
-        3:
-            "Lake",
-
-        4:
-            "Land"
-
-    };
-
-
-    surfaceOutput.textContent =
-
-        surfaceNames[
-            surface[
-                index
-            ]
-        ] ||
-
-        "Unknown";
-
-
-    if (
-        !climateReady
-    ) {
-
-        dominantOutput.textContent =
-            "Not generated";
-
-
-        climateList.innerHTML =
-            "";
-
-
-        return;
-
-    }
-
-
-    const regionalData =
-        climateForIndex(
-            index
-        );
-
-
-    const dominant =
-        dominantRegion(
-            index
-        );
-
-
-    dominantOutput.textContent =
-
-        REGION_TYPES[
-            dominant
-        ].name;
-
-
-    const coordinatesResult =
-        window.EuropaClimate.getIndices(
-
-            coordinates.latitudeCentre,
-
-            coordinates.longitudeCentre,
-
-            {
-
-                landFraction:
-                    landFractionForCell(
-                        index
-                    )
-
-            }
-
-        );
-
-
-    maritimeOutput.textContent =
-
-        (
-            coordinatesResult
-                .indices
-                .maritime *
-            100
-        ).toFixed(1) +
-
-        "%";
-
-
-    continentalOutput.textContent =
-
-        (
-            coordinatesResult
-                .indices
-                .continental *
-            100
-        ).toFixed(1) +
-
-        "%";
-
-
-    const ordered =
-        Object.entries(
-            regionalData
-        )
-        .sort(
-
-            (
-                a,
-                b
-            ) =>
-
-            b[1] -
-            a[1]
-
-        );
-
-
-    climateList.innerHTML =
-        "";
-
-
-    for (
-        const [
-            name,
-            value
-        ]
-        of ordered
+    function precipitationColour(
+        value,
+        temperature
     ) {
 
         if (
             value <
-            0.1
+            0.02
         ) {
 
-            continue;
-
+            return [
+                245,
+                245,
+                245
+            ];
         }
 
+        if (
+            temperature <=
+            1.5
+        ) {
 
-        const regionIndex =
-            REGION_TYPES.findIndex(
+            var snow =
+                Math.round(
+                    245 -
+                    value *
+                    70
+                );
 
-                region =>
-                    region.name ===
-                    name
+            return [
+                snow,
+                snow,
+                255
+            ];
+        }
 
-            );
+        if (
+            temperature <=
+            3
+        ) {
 
+            return [
+                170,
+                Math.round(
+                    220 -
+                    value *
+                    60
+                ),
+                225
+            ];
+        }
 
-        const colour =
-            REGION_TYPES[
-                regionIndex
-            ].colour;
-
-
-        const row =
-            document.createElement(
-                "div"
-            );
-
-
-        row.className =
-            "climate-row";
-
-
-        row.innerHTML =
-
-            '<div class="climate-row-top">' +
-
-            '<span>' +
-            name +
-            '</span>' +
-
-            '<strong>' +
-            value.toFixed(1) +
-            '%</strong>' +
-
-            '</div>' +
-
-            '<div class="climate-track">' +
-
-            '<div class="climate-fill" style="' +
-
-            'width:' +
-            value +
-            '%;' +
-
-            'background:rgb(' +
-            colour.join(",") +
-            ');' +
-
-            '"></div>' +
-
-            '</div>';
-
-
-        climateList.appendChild(
-            row
-        );
-
+        return [
+            Math.round(
+                220 -
+                value *
+                150
+            ),
+            Math.round(
+                235 -
+                value *
+                110
+            ),
+            235
+        ];
     }
 
 
-    if (
-        weatherReady &&
-        Number.isFinite(
-            temperature[
-                index
+    function airMassColour(
+        value
+    ) {
+
+        return interpolateStops(
+            value,
+            [
+                [-1, 70, 115, 210],
+                [0, 225, 225, 220],
+                [1, 215, 95, 65]
             ]
-        )
+        );
+    }
+
+
+    function interpolateStops(
+        value,
+        stops
     ) {
 
-        const code =
-            precipitation[
-                index
+        if (
+            value <=
+            stops[0][0]
+        ) {
+
+            return [
+                stops[0][1],
+                stops[0][2],
+                stops[0][3]
             ];
-
-
-        const precipitationNames = {
-
-            0:
-                "dry",
-
-            1:
-                "rain",
-
-            2:
-                "sleet",
-
-            3:
-                "snow"
-
-        };
-
-
-        weatherBox.style.display =
-            "block";
-
-
-        weatherMain.textContent =
-
-            precipitationNames[
-                code
-            ].toUpperCase() +
-
-            " · " +
-
-            temperature[
-                index
-            ].toFixed(1) +
-
-            "°C";
-
-
-        temperatureOutput.textContent =
-
-            temperature[
-                index
-            ].toFixed(1) +
-
-            "°C";
-
-
-        pressureOutput.textContent =
-
-            pressure[
-                index
-            ].toFixed(1) +
-
-            " hPa";
-
-
-        windOutput.textContent =
-
-            compassName(
-                windDirection[
-                    index
-                ]
-            ) +
-
-            " " +
-
-            windSpeed[
-                index
-            ].toFixed(1) +
-
-            " m/s";
-
-
-        humidityOutput.textContent =
-
-            humidity[
-                index
-            ] +
-
-            "%";
-
-
-        cloudOutput.textContent =
-
-            cloud[
-                index
-            ] +
-
-            "%";
-
-
-        precipitationOutput.textContent =
-
-            precipitationNames[
-                code
-            ];
-
-    }
-
-}
-
-
-
-/* ==========================================================
-   CANVAS CLICK
-========================================================== */
-
-
-canvas.addEventListener(
-
-    "click",
-
-    event => {
-
-        const rectangle =
-            canvas.getBoundingClientRect();
-
-
-        const x =
-
-            (
-                event.clientX -
-                rectangle.left
-            ) /
-
-            rectangle.width;
-
-
-        const y =
-
-            (
-                event.clientY -
-                rectangle.top
-            ) /
-
-            rectangle.height;
-
-
-        selectedColumn =
-            clamp(
-
-                Math.floor(
-                    x *
-                    GRID_WIDTH
-                ),
-
-                0,
-
-                GRID_WIDTH -
-                1
-
-            );
-
-
-        selectedRow =
-            clamp(
-
-                Math.floor(
-                    y *
-                    GRID_HEIGHT
-                ),
-
-                0,
-
-                GRID_HEIGHT -
-                1
-
-            );
-
-
-        selectionBox.style.display =
-            "block";
-
-
-        selectionBox.style.left =
-
-            (
-                selectedColumn *
-                zoom
-            ) +
-
-            "px";
-
-
-        selectionBox.style.top =
-
-            (
-                selectedRow *
-                zoom
-            ) +
-
-            "px";
-
-
-        selectionBox.style.width =
-
-            zoom +
-
-            "px";
-
-
-        selectionBox.style.height =
-
-            zoom +
-
-            "px";
-
-
-        updateSelectedCell();
-
-    }
-
-);
-
-
-
-/* ==========================================================
-   VIEW BUTTONS
-========================================================== */
-
-
-for (
-    const button
-    of document.querySelectorAll(
-        "[data-view]"
-    )
-) {
-
-    button.addEventListener(
-
-        "click",
-
-        () => {
-
-            currentView =
-                button.dataset.view;
-
-
-            for (
-                const other
-                of document.querySelectorAll(
-                    "[data-view]"
-                )
+        }
+
+        var i;
+
+        for (
+            i = 0;
+            i <
+            stops.length -
+            1;
+            i++
+        ) {
+
+            var a =
+                stops[i];
+
+            var b =
+                stops[
+                    i + 1
+                ];
+
+            if (
+                value <=
+                b[0]
             ) {
 
-                other.classList.remove(
-                    "active"
-                );
-
-            }
-
-
-            button.classList.add(
-                "active"
-            );
-
-
-            render();
-
-        }
-
-    );
-
-}
-
-
-
-/* ==========================================================
-   ZOOM
-========================================================== */
-
-
-function setZoom(
-    value
-) {
-
-    zoom =
-        value;
-
-
-    canvas.style.width =
-
-        (
-            GRID_WIDTH *
-            zoom
-        ) +
-
-        "px";
-
-
-    canvas.style.height =
-
-        (
-            GRID_HEIGHT *
-            zoom
-        ) +
-
-        "px";
-
-
-    mapStage.style.width =
-
-        (
-            GRID_WIDTH *
-            zoom
-        ) +
-
-        "px";
-
-
-    mapStage.style.height =
-
-        (
-            GRID_HEIGHT *
-            zoom
-        ) +
-
-        "px";
-
-
-    if (
-        selectedColumn !==
-        null
-    ) {
-
-        selectionBox.style.left =
-
-            (
-                selectedColumn *
-                zoom
-            ) +
-
-            "px";
-
-
-        selectionBox.style.top =
-
-            (
-                selectedRow *
-                zoom
-            ) +
-
-            "px";
-
-
-        selectionBox.style.width =
-
-            zoom +
-
-            "px";
-
-
-        selectionBox.style.height =
-
-            zoom +
-
-            "px";
-
-    }
-
-}
-
-
-
-for (
-    const button
-    of document.querySelectorAll(
-        "[data-zoom]"
-    )
-) {
-
-    button.addEventListener(
-
-        "click",
-
-        () => {
-
-            setZoom(
-
-                Number(
-                    button.dataset.zoom
-                )
-
-            );
-
-        }
-
-    );
-
-}
-
-
-
-/* ==========================================================
-   CLIMATE SELECTOR
-========================================================== */
-
-
-function buildClimateSelector() {
-
-    influenceSelect.innerHTML =
-        "";
-
-
-    legend.innerHTML =
-        "";
-
-
-    REGION_TYPES.forEach(
-
-        (
-            region,
-            index
-        ) => {
-
-            const option =
-                document.createElement(
-                    "option"
-                );
-
-
-            option.value =
-                index;
-
-
-            option.textContent =
-                region.name;
-
-
-            influenceSelect.appendChild(
-                option
-            );
-
-
-            const legendItem =
-                document.createElement(
-                    "div"
-                );
-
-
-            legendItem.className =
-                "legend-item";
-
-
-            legendItem.innerHTML =
-
-                '<div class="legend-colour" style="' +
-
-                'background:rgb(' +
-                region.colour.join(",") +
-                ');' +
-
-                '"></div>' +
-
-                '<span>' +
-                region.name +
-                '</span>';
-
-
-            legend.appendChild(
-                legendItem
-            );
-
-        }
-
-    );
-
-
-    influenceSelect.addEventListener(
-
-        "change",
-
-        () => {
-
-            currentInfluence =
-                Number(
-                    influenceSelect.value
-                );
-
-
-            currentView =
-                "influence";
-
-
-            for (
-                const button
-                of document.querySelectorAll(
-                    "[data-view]"
-                )
-            ) {
-
-                button.classList.toggle(
-
-                    "active",
-
-                    button.dataset.view ===
-                    "influence"
-
-                );
-
-            }
-
-
-            render();
-
-        }
-
-    );
-
-}
-
-
-
-/* ==========================================================
-   BUTTON EVENTS
-========================================================== */
-
-
-buildButton.addEventListener(
-
-    "click",
-
-    buildEverything
-
-);
-
-
-weatherFieldButton.addEventListener(
-
-    "click",
-
-    () => {
-
-        generateWeatherField()
-
-            .catch(
-
-                error => {
-
-                    console.error(
-                        error
+                var amount =
+                    (
+                        value -
+                        a[0]
+                    ) /
+                    (
+                        b[0] -
+                        a[0]
                     );
 
+                return [
+                    Math.round(
+                        a[1] +
+                        (
+                            b[1] -
+                            a[1]
+                        ) *
+                        amount
+                    ),
 
-                    weatherStatus.textContent =
-                        "Error";
+                    Math.round(
+                        a[2] +
+                        (
+                            b[2] -
+                            a[2]
+                        ) *
+                        amount
+                    ),
 
+                    Math.round(
+                        a[3] +
+                        (
+                            b[3] -
+                            a[3]
+                        ) *
+                        amount
+                    )
+                ];
+            }
+        }
 
-                    weatherFieldButton.disabled =
-                        false;
+        var last =
+            stops[
+                stops.length -
+                1
+            ];
 
-
-                    progressOutput.textContent =
-                        "Weather generation failed: " +
-                        error.message;
-
-                }
-
-            );
-
+        return [
+            last[1],
+            last[2],
+            last[3]
+        ];
     }
 
-);
+
+    /* ============================================================
+       RENDER WEATHER FIELD
+    ============================================================ */
+
+    function render() {
+
+        if (
+            !world
+        ) {
+
+            context.fillStyle =
+                "#cdd7dd";
+
+            context.fillRect(
+                0,
+                0,
+                canvas.width,
+                canvas.height
+            );
+
+            clearParticles();
+
+            updateStatus();
+
+            return;
+        }
+
+        var image =
+            context.createImageData(
+                canvas.width,
+                canvas.height
+            );
+
+        var data =
+            image.data;
+
+        /*
+         * Atmospheric field is sampled for each visual pixel.
+
+         * Canvas pixels correspond directly to 0.1-degree map
+         * cells:
+         * 780 × 440.
+         */
+        var px;
+        var py;
+
+        for (
+            py = 0;
+            py <
+            canvas.height;
+            py++
+        ) {
+
+            var latitude =
+                74 -
+                (
+                    py +
+                    0.5
+                ) /
+                canvas.height *
+                44;
+
+            for (
+                px = 0;
+                px <
+                canvas.width;
+                px++
+            ) {
+
+                var longitude =
+                    -26 +
+                    (
+                        px +
+                        0.5
+                    ) /
+                    canvas.width *
+                    78;
+
+                var weather =
+                    world.sample(
+                        latitude,
+                        longitude
+                    );
+
+                var colour;
+
+                if (
+                    currentView ===
+                    "temperature"
+                ) {
+
+                    colour =
+                        temperatureColour(
+                            weather.temperatureC
+                        );
+
+                } else if (
+                    currentView ===
+                    "anomaly"
+                ) {
+
+                    colour =
+                        anomalyColour(
+                            weather.temperatureAnomalyC
+                        );
+
+                } else if (
+                    currentView ===
+                    "pressure"
+                ) {
+
+                    colour =
+                        pressureColour(
+                            weather.pressureHpa
+                        );
+
+                } else if (
+                    currentView ===
+                    "cloud"
+                ) {
+
+                    colour =
+                        cloudColour(
+                            weather.cloudFraction
+                        );
+
+                } else if (
+                    currentView ===
+                    "precipitation"
+                ) {
+
+                    colour =
+                        precipitationColour(
+                            weather.precipitationIntensity,
+                            weather.temperatureC
+                        );
+
+                } else if (
+                    currentView ===
+                    "airmass"
+                ) {
+
+                    colour =
+                        airMassColour(
+                            weather.airMass
+                        );
+
+                } else {
+
+                    /*
+                     * Wind = grayscale by speed.
+                     */
+                    var speedShade =
+                        Math.round(
+                            245 -
+                            clamp(
+                                weather.wind.speedMs /
+                                20,
+                                0,
+                                1
+                            ) *
+                            195
+                        );
+
+                    colour = [
+                        speedShade,
+                        speedShade,
+                        speedShade
+                    ];
+                }
+
+                var offset =
+                    (
+                        py *
+                        canvas.width +
+                        px
+                    ) *
+                    4;
+
+                data[
+                    offset
+                ] =
+                    colour[0];
+
+                data[
+                    offset + 1
+                ] =
+                    colour[1];
+
+                data[
+                    offset + 2
+                ] =
+                    colour[2];
+
+                data[
+                    offset + 3
+                ] =
+                    255;
+            }
+        }
+
+        context.putImageData(
+            image,
+            0,
+            0
+        );
+
+        renderParticles();
+
+        updateStatus();
+    }
 
 
-selectedWeatherButton.addEventListener(
+    /* ============================================================
+       PARTICLES
+    ============================================================ */
 
-    "click",
+    function clearParticles() {
 
-    weatherForSelectedCell
-
-);
-
-
-
-/* ==========================================================
-   INITIALISE
-========================================================== */
-
-
-function initialise() {
-
-    buildClimateSelector();
+        particleContext.clearRect(
+            0,
+            0,
+            particleCanvas.width,
+            particleCanvas.height
+        );
+    }
 
 
-    setZoom(
-        1
+    function renderParticles() {
+
+        clearParticles();
+
+        if (
+            !world ||
+            !particlesEnabled
+        ) {
+
+            return;
+        }
+
+        particleContext.fillStyle =
+            "rgba(255,255,255,0.70)";
+
+        var i;
+
+        for (
+            i = 0;
+            i <
+            particles.length;
+            i++
+        ) {
+
+            var p =
+                particles[i];
+
+            var x =
+                lonToPixel(
+                    p.lon
+                );
+
+            var y =
+                latToPixel(
+                    p.lat
+                );
+
+            particleContext.fillRect(
+                x,
+                y,
+                2,
+                2
+            );
+        }
+    }
+
+
+    /* ============================================================
+       STATUS
+    ============================================================ */
+
+    function updateStatus() {
+
+        if (
+            !enginesReady()
+        ) {
+
+            return;
+        }
+
+        var text =
+            "Climate: Loaded";
+
+        text +=
+            "<br>Weather: " +
+            window.EuropaWeather.version;
+
+        text +=
+            "<br>Atmosphere: " +
+            window.EuropaWeather.grid.width +
+            " × " +
+            window.EuropaWeather.grid.height +
+            " (" +
+            window.EuropaWeather.grid.cells.toLocaleString() +
+            " persistent cells)";
+
+        text +=
+            "<br>Seed: " +
+            window.EuropaWeather.getSimulationSeed();
+
+        if (
+            world
+        ) {
+
+            text +=
+                "<br>Simulation UTC: " +
+                world.date
+                    .toISOString()
+                    .replace(
+                        "T",
+                        " "
+                    )
+                    .substring(
+                        0,
+                        16
+                    );
+
+            text +=
+                "<br>Elapsed: " +
+                world.hoursElapsed +
+                " h";
+        }
+
+        text +=
+            "<br>Mode: " +
+            (
+                window.EuropaWeather
+                    .getClimatologicalMode()
+                    ? "CLIMATOLOGICAL BALANCE"
+                    : "EVOLVING WEATHER"
+            );
+
+        status.innerHTML =
+            text;
+    }
+
+
+    /* ============================================================
+       INSPECTOR
+    ============================================================ */
+
+    function inspectSelected() {
+
+        if (
+            !world
+        ) {
+
+            return;
+        }
+
+        var weather =
+            world.sample(
+                selectedLatitude,
+                selectedLongitude
+            );
+
+        document.getElementById(
+            "inspectLat"
+        ).textContent =
+            selectedLatitude.toFixed(
+                2
+            ) +
+            "°";
+
+        document.getElementById(
+            "inspectLon"
+        ).textContent =
+            selectedLongitude.toFixed(
+                2
+            ) +
+            "°";
+
+        document.getElementById(
+            "inspectTemperature"
+        ).textContent =
+            weather.temperatureC.toFixed(
+                1
+            ) +
+            " °C";
+
+        document.getElementById(
+            "inspectAnomaly"
+        ).textContent =
+            (
+                weather.temperatureAnomalyC >=
+                0
+                    ? "+"
+                    : ""
+            ) +
+            weather.temperatureAnomalyC.toFixed(
+                1
+            ) +
+            " °C";
+
+        document.getElementById(
+            "inspectSST"
+        ).textContent =
+            weather.seaSurfaceTemperatureC.toFixed(
+                1
+            ) +
+            " °C";
+
+        document.getElementById(
+            "inspectPressure"
+        ).textContent =
+            weather.pressureHpa.toFixed(
+                1
+            ) +
+            " hPa";
+
+        document.getElementById(
+            "inspectWind"
+        ).textContent =
+            weather.wind.speedMs.toFixed(
+                1
+            ) +
+            " m/s from " +
+            Math.round(
+                weather.wind.directionDeg
+            ) +
+            "°";
+
+        document.getElementById(
+            "inspectMoisture"
+        ).textContent =
+            (
+                weather.moisture *
+                100
+            ).toFixed(
+                0
+            ) +
+            "%";
+
+        document.getElementById(
+            "inspectCloud"
+        ).textContent =
+            (
+                weather.cloudFraction *
+                100
+            ).toFixed(
+                0
+            ) +
+            "%";
+
+        document.getElementById(
+            "inspectPrecip"
+        ).textContent =
+            weather.precipitationType +
+            " / " +
+            (
+                weather.precipitationIntensity *
+                100
+            ).toFixed(
+                0
+            ) +
+            "%";
+
+        var airMassDescription =
+            "neutral";
+
+        if (
+            weather.airMass <
+            -0.35
+        ) {
+
+            airMassDescription =
+                "cold-origin";
+
+        } else if (
+            weather.airMass >
+            0.35
+        ) {
+
+            airMassDescription =
+                "warm-origin";
+        }
+
+        document.getElementById(
+            "inspectAirMass"
+        ).textContent =
+            airMassDescription +
+            " (" +
+            weather.airMass.toFixed(
+                2
+            ) +
+            ")";
+    }
+
+
+    /* ============================================================
+       STEP
+    ============================================================ */
+
+    function stepWeather(
+        hours
+    ) {
+
+        if (
+            !world
+        ) {
+
+            initialiseWorld();
+
+            if (
+                !world
+            ) {
+
+                return;
+            }
+        }
+
+        var count =
+            Math.max(
+                1,
+                Math.floor(
+                    hours
+                )
+            );
+
+        world.step(
+            count
+        );
+
+        window.EuropaWeather
+            .moveParticles(
+                particles,
+                world,
+                count
+            );
+
+        dateInput.value =
+            world.date
+                .toISOString()
+                .substring(
+                    0,
+                    16
+                );
+
+        appendLog(
+            "+" +
+            count +
+            " h → " +
+            world.date
+                .toISOString()
+                .substring(
+                    0,
+                    16
+                )
+        );
+
+        render();
+
+        inspectSelected();
+    }
+
+
+    /* ============================================================
+       PLAYBACK
+    ============================================================ */
+
+    function startPlayback() {
+
+        if (
+            playing
+        ) {
+
+            return;
+        }
+
+        if (
+            !world
+        ) {
+
+            initialiseWorld();
+        }
+
+        if (
+            !world
+        ) {
+
+            return;
+        }
+
+        playing =
+            true;
+
+        document.getElementById(
+            "playBtn"
+        ).textContent =
+            "⏸ Pause";
+
+        /*
+         * One simulation hour every 400 ms.
+         */
+        playTimer =
+            setInterval(
+                function () {
+
+                    stepWeather(
+                        1
+                    );
+
+                },
+                400
+            );
+    }
+
+
+    function stopPlayback() {
+
+        playing =
+            false;
+
+        if (
+            playTimer
+        ) {
+
+            clearInterval(
+                playTimer
+            );
+
+            playTimer =
+                null;
+        }
+
+        document.getElementById(
+            "playBtn"
+        ).textContent =
+            "▶ Play";
+    }
+
+
+    function togglePlayback() {
+
+        if (
+            playing
+        ) {
+
+            stopPlayback();
+
+        } else {
+
+            startPlayback();
+        }
+    }
+
+
+    /* ============================================================
+       REROLL
+    ============================================================ */
+
+    function newRandomRun() {
+
+        stopPlayback();
+
+        var seed =
+            window.EuropaWeather
+                .rerollWeather();
+
+        seedInput.value =
+            seed;
+
+        appendLog(
+            "New random seed: " +
+            seed
+        );
+
+        initialiseWorld();
+    }
+
+
+    function applySeed() {
+
+        stopPlayback();
+
+        var seed =
+            Number(
+                seedInput.value
+            );
+
+        var applied =
+            window.EuropaWeather
+                .setSimulationSeed(
+                    seed
+                );
+
+        seedInput.value =
+            applied;
+
+        appendLog(
+            "Applied seed: " +
+            applied
+        );
+
+        initialiseWorld();
+    }
+
+
+    /* ============================================================
+       CLIMATOLOGICAL BALANCE MODE
+    ============================================================ */
+
+    function toggleAverageMode() {
+
+        stopPlayback();
+
+        var button =
+            document.getElementById(
+                "averageBtn"
+            );
+
+        var current =
+            window.EuropaWeather
+                .getClimatologicalMode();
+
+        var next =
+            !current;
+
+        window.EuropaWeather
+            .setClimatologicalMode(
+                next
+            );
+
+        button.textContent =
+            next
+                ? "Climatological Balance: ON"
+                : "Climatological Balance: OFF";
+
+        button.classList.toggle(
+            "active",
+            next
+        );
+
+        appendLog(
+            next
+                ? "Climatological balancing mode enabled."
+                : "Returned to evolving weather mode."
+        );
+
+        initialiseWorld();
+    }
+
+
+    /* ============================================================
+       VIEW
+    ============================================================ */
+
+    function setView(
+        view
+    ) {
+
+        currentView =
+            view;
+
+        var buttons =
+            document.querySelectorAll(
+                ".viewBtn"
+            );
+
+        var i;
+
+        for (
+            i = 0;
+            i <
+            buttons.length;
+            i++
+        ) {
+
+            buttons[i]
+                .classList
+                .toggle(
+                    "active",
+                    buttons[i]
+                        .getAttribute(
+                            "data-view"
+                        ) ===
+                        view
+                );
+        }
+
+        render();
+    }
+
+
+    /* ============================================================
+       EVENT LISTENERS
+    ============================================================ */
+
+    document.getElementById(
+        "buildClimateBtn"
+    ).addEventListener(
+        "click",
+        function () {
+
+            initialiseWorld();
+
+        }
     );
 
 
-    render();
+    document.getElementById(
+        "resetWeatherBtn"
+    ).addEventListener(
+        "click",
+        initialiseWorld
+    );
 
+
+    document.getElementById(
+        "newRunBtn"
+    ).addEventListener(
+        "click",
+        newRandomRun
+    );
+
+
+    document.getElementById(
+        "applySeedBtn"
+    ).addEventListener(
+        "click",
+        applySeed
+    );
+
+
+    document.getElementById(
+        "playBtn"
+    ).addEventListener(
+        "click",
+        togglePlayback
+    );
+
+
+    document.getElementById(
+        "step1Btn"
+    ).addEventListener(
+        "click",
+        function () {
+
+            stepWeather(
+                1
+            );
+
+        }
+    );
+
+
+    document.getElementById(
+        "step6Btn"
+    ).addEventListener(
+        "click",
+        function () {
+
+            stepWeather(
+                6
+            );
+
+        }
+    );
+
+
+    document.getElementById(
+        "step24Btn"
+    ).addEventListener(
+        "click",
+        function () {
+
+            stepWeather(
+                24
+            );
+
+        }
+    );
+
+
+    document.getElementById(
+        "averageBtn"
+    ).addEventListener(
+        "click",
+        toggleAverageMode
+    );
+
+
+    document.getElementById(
+        "particlesBtn"
+    ).addEventListener(
+        "click",
+        function () {
+
+            particlesEnabled =
+                !particlesEnabled;
+
+            this.textContent =
+                particlesEnabled
+                    ? "Particles: ON"
+                    : "Particles: OFF";
+
+            this.classList.toggle(
+                "active",
+                particlesEnabled
+            );
+
+            renderParticles();
+
+        }
+    );
+
+
+    var viewButtons =
+        document.querySelectorAll(
+            ".viewBtn"
+        );
+
+    var viewIndex;
+
+    for (
+        viewIndex = 0;
+        viewIndex <
+        viewButtons.length;
+        viewIndex++
+    ) {
+
+        viewButtons[
+            viewIndex
+        ].addEventListener(
+            "click",
+            function () {
+
+                setView(
+                    this.getAttribute(
+                        "data-view"
+                    )
+                );
+
+            }
+        );
+    }
+
+
+    canvas.addEventListener(
+        "click",
+        function (
+            event
+        ) {
+
+            var rect =
+                canvas.getBoundingClientRect();
+
+            var x =
+                (
+                    event.clientX -
+                    rect.left
+                ) /
+                rect.width *
+                canvas.width;
+
+            var y =
+                (
+                    event.clientY -
+                    rect.top
+                ) /
+                rect.height *
+                canvas.height;
+
+            selectedLongitude =
+                pixelToLon(
+                    x
+                );
+
+            selectedLatitude =
+                pixelToLat(
+                    y
+                );
+
+            selectionMarker.style.left =
+                x +
+                "px";
+
+            selectionMarker.style.top =
+                y +
+                "px";
+
+            selectionMarker.style.display =
+                "block";
+
+            inspectSelected();
+
+        }
+    );
+
+
+    /* ============================================================
+       INITIAL PAGE
+    ============================================================ */
 
     if (
-        !window.EuropaClimate
+        enginesReady()
     ) {
 
-        climateStatus.textContent =
-            "Climate JS missing";
+        seedInput.value =
+            window.EuropaWeather
+                .getSimulationSeed();
 
+        status.innerHTML =
+            "Climate: Loaded" +
+            "<br>Weather: " +
+            window.EuropaWeather.version +
+            "<br>Press Initialise to create the atmospheric state.";
 
-        progressOutput.textContent =
-            "europacraft-climate-v3.js could not be loaded.";
+        context.fillStyle =
+            "#cdd7dd";
 
+        context.fillRect(
+            0,
+            0,
+            canvas.width,
+            canvas.height
+        );
+
+    } else {
+
+        context.fillStyle =
+            "#d8dde0";
+
+        context.fillRect(
+            0,
+            0,
+            canvas.width,
+            canvas.height
+        );
     }
-
-
-    else if (
-        !window.EuropaWeather
-    ) {
-
-        weatherStatus.textContent =
-            "Weather JS missing";
-
-
-        progressOutput.textContent =
-            "Climate loaded, but europacraft-weather-v1.js could not be loaded.";
-
-    }
-
-
-    else {
-
-        climateStatus.textContent =
-            "Engine loaded";
-
-
-        weatherStatus.textContent =
-            "Engine loaded";
-
-
-        progressOutput.innerHTML =
-
-            "Both engines loaded. Press " +
-
-            "<strong>Build Map and Climate</strong>.";
-
-    }
-
-}
-
-
-initialise();
-
 
 })();
-
 </script>
 
-
 </body>
-
 </html>
