@@ -1,926 +1,798 @@
 /*
  * EuropaCraft Atmospheric Simulation
- * V10 Weather Orchestrator
+ * V10.0.1 Weather Orchestrator
  *
- * Responsibilities:
+ * Boot-safe V10 orchestrator.
  *
- * - Construct the complete V10 atmospheric model.
- * - Own simulation date/time.
- * - Enforce the 4-minute primary physics timestep.
- * - Run repeated physical steps for accelerated playback.
- * - Connect:
- *
- *     terrain
- *     ocean
- *     atmosphere
- *     air masses
- *     synoptic systems
- *     microphysics
- *     physics
- *     history
- *     weather stations
- *
- * - Provide the public API used later by renderer/index.html.
- *
- *
- * CRITICAL RULE
- * ================================================================
- *
- * Fast playback NEVER increases the physical timestep.
- *
- * Example:
- *
- *   +60 simulated minutes
- *
- * becomes:
- *
- *   15 genuine 4-minute physics steps
- *
- * rather than one 60-minute physics calculation.
- *
- * This is essential for:
- *
- *   advection
- *   fronts
- *   convergence
- *   saturation
- *   cloud development
- *   precipitation
- *   precipitation phase transitions
+ * IMPORTANT:
+ * Dependencies are validated when Weather is CONSTRUCTED, not while this
+ * JavaScript file is merely loading. Therefore window.EuropaWeather is
+ * always registered if this file parses successfully.
  */
 
 (function (global) {
-    "use strict";
+"use strict";
 
 
-    const C =
-        global.EuropaConfig;
+/* =====================================================================
+   HELPERS
+===================================================================== */
 
-    const U =
-        global.EuropaUtils;
+function finite(value, fallback = 0) {
 
-    const TerrainModule =
-        global.EuropaTerrain;
+    const n = Number(value);
 
-    const OceanModule =
-        global.EuropaOcean;
-
-    const AtmosphereModule =
-        global.EuropaAtmosphere;
-
-    const AirMassModule =
-        global.EuropaAirMasses;
-
-    const SynopticModule =
-        global.EuropaSynoptic;
-
-    const MicrophysicsModule =
-        global.EuropaMicrophysics;
-
-    const PhysicsModule =
-        global.EuropaPhysics;
-
-    const HistoryModule =
-        global.EuropaHistory;
+    return Number.isFinite(n)
+        ? n
+        : fallback;
+}
 
 
-    /* ================================================================
-       DEPENDENCY CHECK
-    ================================================================ */
+function validDate(value) {
 
-    function requireDependency(
-        dependency,
-        filename
+    if (
+        value instanceof Date &&
+        Number.isFinite(value.getTime())
     ) {
-
-        if (!dependency) {
-
-            throw new Error(
-                "EuropaCraft V10: " +
-                filename +
-                " must load before europacraft-weather.js"
-            );
-        }
+        return new Date(value.getTime());
     }
 
 
-    requireDependency(
-        C,
-        "config.js"
-    );
-
-    requireDependency(
-        U,
-        "europacraft-utils.js"
-    );
-
-    requireDependency(
-        TerrainModule,
-        "europacraft-terrain.js"
-    );
-
-    requireDependency(
-        OceanModule,
-        "europacraft-ocean.js"
-    );
-
-    requireDependency(
-        AtmosphereModule,
-        "europacraft-atmosphere.js"
-    );
-
-    requireDependency(
-        AirMassModule,
-        "europacraft-airmasses.js"
-    );
-
-    requireDependency(
-        SynopticModule,
-        "europacraft-synoptic.js"
-    );
-
-    requireDependency(
-        MicrophysicsModule,
-        "europacraft-microphysics.js"
-    );
-
-    requireDependency(
-        PhysicsModule,
-        "europacraft-physics.js"
-    );
-
-    requireDependency(
-        HistoryModule,
-        "europacraft-history.js"
-    );
+    const date = new Date(value);
 
 
     if (
-        !global.EuropaClimate ||
-        typeof global.EuropaClimate.getClimate !==
-            "function"
+        Number.isFinite(date.getTime())
     ) {
+        return date;
+    }
+
+
+    return new Date();
+}
+
+
+function requireModule(name) {
+
+    const value = global[name];
+
+
+    if (!value) {
 
         throw new Error(
-            "EuropaCraft V10: europacraft-climate-v3.js must load before europacraft-weather.js"
+            "EuropaCraft V10: required module " +
+            name +
+            " is not available."
         );
     }
 
 
-    /* ================================================================
-       HELPERS
-    ================================================================ */
-
-    function finite(
-        value,
-        fallback = 0
-    ) {
-
-        const number =
-            Number(value);
-
-        return (
-            Number.isFinite(number)
-                ? number
-                : fallback
-        );
-    }
+    return value;
+}
 
 
-    function validDate(
-        value
-    ) {
+/* =====================================================================
+   WEATHER
+===================================================================== */
+
+class Weather {
+
+    constructor(options = {}) {
+
+        /*
+         * Resolve dependencies HERE rather than at file-load time.
+         *
+         * This is deliberate. A failure in another module must not stop
+         * EuropaWeather itself from being exported.
+         */
+
+        this.C =
+            requireModule(
+                "EuropaConfig"
+            );
+
+
+        this.U =
+            requireModule(
+                "EuropaUtils"
+            );
+
+
+        this.TerrainModule =
+            requireModule(
+                "EuropaTerrain"
+            );
+
+
+        this.OceanModule =
+            requireModule(
+                "EuropaOcean"
+            );
+
+
+        this.AtmosphereModule =
+            requireModule(
+                "EuropaAtmosphere"
+            );
+
+
+        this.AirMassModule =
+            requireModule(
+                "EuropaAirMasses"
+            );
+
+
+        this.SynopticModule =
+            requireModule(
+                "EuropaSynoptic"
+            );
+
+
+        this.MicrophysicsModule =
+            requireModule(
+                "EuropaMicrophysics"
+            );
+
+
+        this.PhysicsModule =
+            requireModule(
+                "EuropaPhysics"
+            );
+
+
+        this.HistoryModule =
+            requireModule(
+                "EuropaHistory"
+            );
+
+
+        this.climate =
+            requireModule(
+                "EuropaClimate"
+            );
+
 
         if (
-            value instanceof Date &&
-            Number.isFinite(
-                value.getTime()
-            )
+            typeof this.climate.getClimate !==
+            "function"
         ) {
 
-            return new Date(
-                value.getTime()
+            throw new Error(
+                "EuropaCraft V10: EuropaClimate.getClimate() is missing."
             );
         }
 
 
-        const date =
-            new Date(value);
-
-
         if (
-            Number.isFinite(
-                date.getTime()
-            )
+            typeof this.climate.getBaselineTemperature !==
+            "function"
         ) {
 
-            return date;
+            throw new Error(
+                "EuropaCraft V10: EuropaClimate.getBaselineTemperature() is missing. " +
+                "The V10 climate module is required."
+            );
         }
 
 
-        return new Date();
-    }
+        /* =============================================================
+           CLOCK
+        ============================================================= */
+
+        this.currentDate =
+            validDate(
+                options.date ||
+                new Date()
+            );
 
 
-    function makeEvent(
-        type,
-        weather,
-        extra = {}
-    ) {
-
-        return {
-
-            type,
-
-            date:
-                new Date(
-                    weather.currentDate.getTime()
-                ),
-
-            timeMs:
-                weather.currentDate.getTime(),
-
-            step:
-                weather.physicsSteps,
-
-            revision:
-                weather.revision,
-
-            ...extra
-        };
-    }
+        this.initialDate =
+            new Date(
+                this.currentDate.getTime()
+            );
 
 
-    /* ================================================================
-       WEATHER ENGINE
-    ================================================================ */
+        this.physicsStepMinutes =
+            finite(
+                this.C.time.physicsStepMinutes,
+                4
+            );
 
-    class Weather {
 
-        constructor(
-            options = {}
+        if (
+            this.physicsStepMinutes <=
+            0
         ) {
 
-            /* ========================================================
-               CLOCK
-            ======================================================== */
-
-            this.currentDate =
-                validDate(
-                    options.date ||
-                    new Date()
-                );
+            throw new Error(
+                "EuropaCraft V10: physicsStepMinutes must be positive."
+            );
+        }
 
 
-            this.initialDate =
-                new Date(
-                    this.currentDate.getTime()
-                );
+        this.physicsSteps =
+            0;
 
 
-            this.physicsStepMinutes =
-                C.time.physicsStepMinutes;
+        this.simulatedMinutes =
+            0;
 
 
-            this.physicsSteps =
-                0;
+        this.revision =
+            0;
 
 
-            this.simulatedMinutes =
-                0;
+        this.paused =
+            options.paused ===
+            true;
 
 
-            this.revision =
-                0;
+        this.playbackMinutesPerTick =
+            Math.max(
+                this.physicsStepMinutes,
+                finite(
+                    options.playbackMinutesPerTick,
+                    60
+                )
+            );
 
 
-            this.paused =
-                options.paused ===
-                true;
+        this.queuedMinutes =
+            0;
 
 
-            /*
-             * Playback multiplier is only metadata for the UI.
-             *
-             * It does NOT modify the physics timestep.
-             */
+        /* =============================================================
+           EVENTS
+        ============================================================= */
 
-            this.playbackMinutesPerTick =
-                Math.max(
-                    this.physicsStepMinutes,
-                    finite(
-                        options.playbackMinutesPerTick,
-                        60
-                    )
-                );
+        this.listeners =
+            new Map();
 
 
-            /* ========================================================
-               EVENT LISTENERS
-            ======================================================== */
+        /* =============================================================
+           TERRAIN
+        ============================================================= */
 
-            this.listeners =
-                new Map();
-
-
-            /* ========================================================
-               TERRAIN
-            ======================================================== */
-
-            this.terrain =
-                options.terrain ||
-                new TerrainModule.Terrain(
-                    options.terrainOptions ||
-                    {}
-                );
+        this.terrain =
+            options.terrain ||
+            new this.TerrainModule.Terrain(
+                options.terrainOptions ||
+                {}
+            );
 
 
-            /* ========================================================
-               OCEAN
-            ======================================================== */
+        /* =============================================================
+           OCEAN
+        ============================================================= */
 
-            this.ocean =
-                options.ocean ||
-                new OceanModule.Ocean(
-                    this.terrain,
-                    this.currentDate
-                );
-
-
-            /* ========================================================
-               ATMOSPHERE
-            ======================================================== */
-
-            this.atmosphere =
-                options.atmosphere ||
-                new AtmosphereModule.Atmosphere(
-                    this.terrain,
-                    this.ocean,
-                    this.currentDate
-                );
+        this.ocean =
+            options.ocean ||
+            new this.OceanModule.Ocean(
+                this.terrain,
+                this.currentDate
+            );
 
 
-            /* ========================================================
-               SYNOPTIC ENGINE
-            ======================================================== */
+        /* =============================================================
+           ATMOSPHERE
+        ============================================================= */
 
-            this.synoptic =
-                options.synoptic ||
-                new SynopticModule.Synoptic(
-                    this.terrain,
-                    {
-
-                        date:
-                            this.currentDate,
-
-                        seed:
-                            finite(
-                                options.synopticSeed,
-                                20261001
-                            ),
-
-                        seedDefaultSystems:
-                            options.seedDefaultSystems !==
-                            false
-                    }
-                );
+        this.atmosphere =
+            options.atmosphere ||
+            new this.AtmosphereModule.Atmosphere(
+                this.terrain,
+                this.ocean,
+                this.currentDate
+            );
 
 
-            /* ========================================================
-               AIR-MASS ENGINE
-            ======================================================== */
+        /* =============================================================
+           SYNOPTIC
+        ============================================================= */
 
-            this.airMasses =
-                options.airMasses ||
-                new AirMassModule.AirMassManager(
-                    this.terrain,
-                    this.atmosphere,
-                    {
+        this.synoptic =
+            options.synoptic ||
+            new this.SynopticModule.Synoptic(
+                this.terrain,
+                {
 
-                        date:
-                            this.currentDate,
+                    date:
+                        this.currentDate,
 
-                        seed:
-                            finite(
-                                options.airMassSeed,
-                                20261002
-                            )
-                    }
-                );
+                    seed:
+                        finite(
+                            options.synopticSeed,
+                            20261001
+                        ),
 
-
-            /* ========================================================
-               MICROPHYSICS
-            ======================================================== */
-
-            this.microphysics =
-                options.microphysics ||
-                new MicrophysicsModule.Microphysics(
-                    this.terrain,
-                    this.ocean,
-                    this.atmosphere
-                );
+                    seedDefaultSystems:
+                        options.seedDefaultSystems !==
+                        false
+                }
+            );
 
 
-            /* ========================================================
-               CORE PHYSICS
-            ======================================================== */
+        /* =============================================================
+           AIR MASSES
+        ============================================================= */
 
-            this.physics =
-                options.physics ||
-                new PhysicsModule.Physics(
-                    this.terrain,
-                    this.ocean,
-                    this.atmosphere,
-                    this.synoptic,
-                    this.airMasses,
-                    this.microphysics
-                );
+        this.airMasses =
+            options.airMasses ||
+            new this.AirMassModule.AirMassManager(
+                this.terrain,
+                this.atmosphere,
+                {
 
+                    date:
+                        this.currentDate,
 
-            /* ========================================================
-               HISTORY
-            ======================================================== */
-
-            this.history =
-                options.history ||
-                new HistoryModule.History(
-                    this.terrain,
-                    this.ocean,
-                    this.atmosphere,
-                    this.synoptic,
-                    this.airMasses,
-                    options.historyOptions ||
-                    {}
-                );
+                    seed:
+                        finite(
+                            options.airMassSeed,
+                            20261002
+                        )
+                }
+            );
 
 
-            /* ========================================================
-               FRAME ADVANCE QUEUE
-            ======================================================== */
+        /* =============================================================
+           MICROPHYSICS
+        ============================================================= */
 
-            /*
-             * The UI may request more simulation work than should be
-             * executed in one browser frame.
-             *
-             * queuedMinutes can be drained across multiple frames while
-             * every physical step remains <= 4 minutes.
-             */
-
-            this.queuedMinutes =
-                0;
+        this.microphysics =
+            options.microphysics ||
+            new this.MicrophysicsModule.Microphysics(
+                this.terrain,
+                this.ocean,
+                this.atmosphere
+            );
 
 
-            /* ========================================================
-               AUTO-SYNOPTIC MAINTENANCE
-            ======================================================== */
+        /* =============================================================
+           PHYSICS
+        ============================================================= */
 
-            /*
-             * Off by default during the initial development/testing phase.
-             *
-             * Later calibration can enable automatic generation of new
-             * Atlantic lows/ridges after existing systems decay.
-             */
-
-            this.autoSynoptic =
-                options.autoSynoptic ===
-                true;
-
-
-            this.lastSynopticMaintenanceMs =
-                this.currentDate.getTime();
+        this.physics =
+            options.physics ||
+            new this.PhysicsModule.Physics(
+                this.terrain,
+                this.ocean,
+                this.atmosphere,
+                this.synoptic,
+                this.airMasses,
+                this.microphysics
+            );
 
 
-            /* ========================================================
-               INITIAL HISTORY STATE
-            ======================================================== */
+        /* =============================================================
+           HISTORY
+        ============================================================= */
+
+        this.history =
+            options.history ||
+            new this.HistoryModule.History(
+                this.terrain,
+                this.ocean,
+                this.atmosphere,
+                this.synoptic,
+                this.airMasses,
+                options.historyOptions ||
+                {}
+            );
+
+
+        /* =============================================================
+           OPTIONAL LONG-RUN SYNOPTIC MAINTENANCE
+        ============================================================= */
+
+        this.autoSynoptic =
+            options.autoSynoptic ===
+            true;
+
+
+        this.lastSynopticMaintenanceMs =
+            this.currentDate.getTime();
+
+
+        /* =============================================================
+           INITIAL SNAPSHOT
+        ============================================================= */
+
+        if (
+            typeof this.history.captureSnapshot ===
+            "function"
+        ) {
 
             this.history.captureSnapshot(
                 this.currentDate,
                 true
             );
-
-
-            /* ========================================================
-               VALIDATION
-            ======================================================== */
-
-            this.validate();
-
-
-            this.emit(
-                "initialized",
-                makeEvent(
-                    "initialized",
-                    this
-                )
-            );
         }
 
 
-        /* ============================================================
-           EVENT SYSTEM
-        ============================================================ */
+        this.validate();
+    }
 
-        on(
-            eventName,
-            callback
+
+    /* =================================================================
+       EVENTS
+    ================================================================= */
+
+    on(eventName, callback) {
+
+        if (
+            typeof callback !==
+            "function"
         ) {
 
-            if (
-                typeof callback !==
-                "function"
-            ) {
-                return () => {};
-            }
-
-
-            if (
-                !this.listeners.has(
-                    eventName
-                )
-            ) {
-
-                this.listeners.set(
-                    eventName,
-                    new Set()
-                );
-            }
-
-
-            const listeners =
-                this.listeners.get(
-                    eventName
-                );
-
-
-            listeners.add(
-                callback
-            );
-
-
-            return () => {
-
-                listeners.delete(
-                    callback
-                );
-            };
+            return function () {};
         }
 
 
-        off(
-            eventName,
-            callback
+        if (
+            !this.listeners.has(eventName)
         ) {
 
-            const listeners =
-                this.listeners.get(
-                    eventName
-                );
-
-
-            if (!listeners) {
-                return false;
-            }
-
-
-            return listeners.delete(
-                callback
+            this.listeners.set(
+                eventName,
+                new Set()
             );
         }
 
 
-        emit(
-            eventName,
-            payload
+        const set =
+            this.listeners.get(
+                eventName
+            );
+
+
+        set.add(callback);
+
+
+        return () => {
+
+            set.delete(callback);
+        };
+    }
+
+
+    off(eventName, callback) {
+
+        const set =
+            this.listeners.get(
+                eventName
+            );
+
+
+        if (!set) {
+            return false;
+        }
+
+
+        return set.delete(callback);
+    }
+
+
+    emit(eventName, payload = {}) {
+
+        const set =
+            this.listeners.get(
+                eventName
+            );
+
+
+        if (!set) {
+            return;
+        }
+
+
+        for (
+            const callback of set
         ) {
 
-            const listeners =
-                this.listeners.get(
-                    eventName
+            try {
+
+                callback(payload);
+            }
+            catch (error) {
+
+                console.error(
+                    "EuropaCraft V10 listener error:",
+                    error
                 );
-
-
-            if (!listeners) {
-                return;
-            }
-
-
-            for (
-                const callback of listeners
-            ) {
-
-                try {
-
-                    callback(
-                        payload
-                    );
-                }
-                catch (error) {
-
-                    console.error(
-                        "EuropaCraft V10 event listener failed:",
-                        eventName,
-                        error
-                    );
-                }
             }
         }
+    }
 
 
-        /* ============================================================
-           CLOCK
-        ============================================================ */
+    /* =================================================================
+       CLOCK
+    ================================================================= */
 
-        get date() {
+    get date() {
 
-            return new Date(
-                this.currentDate.getTime()
-            );
-        }
-
-
-        get timeMs() {
-
-            return this.currentDate.getTime();
-        }
+        return new Date(
+            this.currentDate.getTime()
+        );
+    }
 
 
-        get isPaused() {
+    get timeMs() {
 
-            return this.paused;
-        }
-
-
-        play() {
-
-            this.paused =
-                false;
+        return this.currentDate.getTime();
+    }
 
 
-            this.emit(
-                "playback",
-                makeEvent(
-                    "playback",
-                    this,
-                    {
-                        paused:
-                            false
-                    }
+    get isPaused() {
+
+        return this.paused;
+    }
+
+
+    play() {
+
+        this.paused =
+            false;
+
+
+        return this.paused;
+    }
+
+
+    pause() {
+
+        this.paused =
+            true;
+
+
+        return this.paused;
+    }
+
+
+    togglePause() {
+
+        this.paused =
+            !this.paused;
+
+
+        return this.paused;
+    }
+
+
+    setPlaybackMinutesPerTick(minutes) {
+
+        this.playbackMinutesPerTick =
+            Math.max(
+                this.physicsStepMinutes,
+                finite(
+                    minutes,
+                    this.playbackMinutesPerTick
                 )
             );
-        }
 
 
-        pause() {
-
-            this.paused =
-                true;
+        return this.playbackMinutesPerTick;
+    }
 
 
-            this.emit(
-                "playback",
-                makeEvent(
-                    "playback",
-                    this,
-                    {
-                        paused:
-                            true
-                    }
-                )
-            );
-        }
+    /* =================================================================
+       ONE PHYSICAL STEP
+    ================================================================= */
 
+    _physicsStep(
+        minutes = this.physicsStepMinutes,
+        recordHistory = true
+    ) {
 
-        togglePause() {
-
-            if (
-                this.paused
-            ) {
-                this.play();
-            }
-            else {
-                this.pause();
-            }
-
-
-            return this.paused;
-        }
-
-
-        setPlaybackMinutesPerTick(
-            minutes
-        ) {
-
-            this.playbackMinutesPerTick =
+        const stepMinutes =
+            Math.min(
+                this.physicsStepMinutes,
                 Math.max(
-                    this.physicsStepMinutes,
-                    finite(
-                        minutes,
-                        this.playbackMinutesPerTick
-                    )
-                );
-
-
-            return this.playbackMinutesPerTick;
-        }
-
-
-        /* ============================================================
-           EXACT PHYSICS STEP
-        ============================================================ */
-
-        _physicsStep(
-            minutes = this.physicsStepMinutes,
-            recordHistory = true
-        ) {
-
-            const stepMinutes =
-                U.clamp(
+                    0.0001,
                     finite(
                         minutes,
                         this.physicsStepMinutes
-                    ),
-                    0.0001,
-                    this.physicsStepMinutes
-                );
-
-
-            const nextDate =
-                new Date(
-                    this.currentDate.getTime() +
-                    stepMinutes *
-                    60000
-                );
-
-
-            /*
-             * Physics receives the END time of this timestep.
-             *
-             * This means radiation, seasonal ocean state and other
-             * date-dependent calculations correspond to the atmosphere
-             * being produced at nextDate.
-             */
-
-            this.physics.step(
-                nextDate,
-                stepMinutes
-            );
-
-
-            this.currentDate =
-                nextDate;
-
-
-            this.physicsSteps++;
-
-
-            this.simulatedMinutes +=
-                stepMinutes;
-
-
-            this.revision++;
-
-
-            if (
-                recordHistory
-            ) {
-
-                this.history.step(
-                    this.currentDate
-                );
-            }
-
-
-            if (
-                this.autoSynoptic
-            ) {
-
-                this.maintainSynopticEnvironment();
-            }
-
-
-            return this.currentDate;
-        }
-
-
-        /* ============================================================
-           ADVANCE SIMULATION
-        ============================================================ */
-
-        advanceMinutes(
-            minutes,
-            options = {}
-        ) {
-
-            let remaining =
-                Math.max(
-                    0,
-                    finite(
-                        minutes,
-                        0
                     )
-                );
-
-
-            if (
-                remaining <=
-                0
-            ) {
-
-                return {
-
-                    requestedMinutes:
-                        0,
-
-                    advancedMinutes:
-                        0,
-
-                    physicsSteps:
-                        0,
-
-                    date:
-                        this.date
-                };
-            }
-
-
-            const recordHistory =
-                options.recordHistory !==
-                false;
-
-
-            const startingSteps =
-                this.physicsSteps;
-
-
-            const startingTime =
-                this.currentDate.getTime();
-
-
-            while (
-                remaining >
-                1e-9
-            ) {
-
-                const step =
-                    Math.min(
-                        this.physicsStepMinutes,
-                        remaining
-                    );
-
-
-                this._physicsStep(
-                    step,
-                    recordHistory
-                );
-
-
-                remaining -=
-                    step;
-            }
-
-
-            const advanced =
-                (
-                    this.currentDate.getTime() -
-                    startingTime
-                ) /
-                60000;
-
-
-            const steps =
-                this.physicsSteps -
-                startingSteps;
-
-
-            this.emit(
-                "advanced",
-                makeEvent(
-                    "advanced",
-                    this,
-                    {
-
-                        advancedMinutes:
-                            advanced,
-
-                        physicsSteps:
-                            steps
-                    }
                 )
             );
 
 
+        const nextDate =
+            new Date(
+                this.currentDate.getTime() +
+                stepMinutes *
+                60000
+            );
+
+
+        /*
+         * The Physics module owns atmospheric evolution.
+         *
+         * A fast simulation therefore calls this repeatedly rather than
+         * passing a giant timestep.
+         */
+
+        this.physics.step(
+            nextDate,
+            stepMinutes
+        );
+
+
+        this.currentDate =
+            nextDate;
+
+
+        this.physicsSteps++;
+
+
+        this.simulatedMinutes +=
+            stepMinutes;
+
+
+        this.revision++;
+
+
+        if (
+            recordHistory &&
+            this.history &&
+            typeof this.history.step ===
+                "function"
+        ) {
+
+            this.history.step(
+                this.currentDate
+            );
+        }
+
+
+        if (
+            this.autoSynoptic
+        ) {
+
+            this.maintainSynopticEnvironment();
+        }
+
+
+        return this.currentDate;
+    }
+
+
+    /* =================================================================
+       DIRECT ADVANCE
+    ================================================================= */
+
+    advanceMinutes(
+        minutes,
+        options = {}
+    ) {
+
+        let remaining =
+            Math.max(
+                0,
+                finite(
+                    minutes,
+                    0
+                )
+            );
+
+
+        const recordHistory =
+            options.recordHistory !==
+            false;
+
+
+        const startingSteps =
+            this.physicsSteps;
+
+
+        const startingMs =
+            this.currentDate.getTime();
+
+
+        while (
+            remaining >
+            1e-9
+        ) {
+
+            const step =
+                Math.min(
+                    this.physicsStepMinutes,
+                    remaining
+                );
+
+
+            this._physicsStep(
+                step,
+                recordHistory
+            );
+
+
+            remaining -=
+                step;
+        }
+
+
+        return {
+
+            advancedMinutes:
+                (
+                    this.currentDate.getTime() -
+                    startingMs
+                ) /
+                60000,
+
+            physicsSteps:
+                this.physicsSteps -
+                startingSteps,
+
+            date:
+                this.date
+        };
+    }
+
+
+    advanceHours(
+        hours,
+        options = {}
+    ) {
+
+        return this.advanceMinutes(
+            Math.max(
+                0,
+                finite(
+                    hours,
+                    0
+                )
+            ) *
+            60,
+            options
+        );
+    }
+
+
+    advanceDays(
+        days,
+        options = {}
+    ) {
+
+        return this.advanceMinutes(
+            Math.max(
+                0,
+                finite(
+                    days,
+                    0
+                )
+            ) *
+            1440,
+            options
+        );
+    }
+
+
+    step() {
+
+        return this.advanceMinutes(
+            this.physicsStepMinutes
+        );
+    }
+
+
+    tick() {
+
+        if (
+            this.paused
+        ) {
+
             return {
 
-                requestedMinutes:
-                    minutes,
+                paused:
+                    true,
 
                 advancedMinutes:
-                    advanced,
+                    0,
 
                 physicsSteps:
-                    steps,
+                    0,
 
                 date:
                     this.date
@@ -928,781 +800,480 @@
         }
 
 
-        advanceHours(
-            hours,
-            options = {}
-        ) {
-
-            return this.advanceMinutes(
-                Math.max(
-                    0,
-                    finite(
-                        hours,
-                        0
-                    )
-                ) *
-                60,
-                options
-            );
-        }
+        return this.advanceMinutes(
+            this.playbackMinutesPerTick
+        );
+    }
 
 
-        advanceDays(
-            days,
-            options = {}
-        ) {
+    /* =================================================================
+       FRAME QUEUE
+    ================================================================= */
 
-            return this.advanceMinutes(
-                Math.max(
-                    0,
-                    finite(
-                        days,
-                        0
-                    )
-                ) *
-                1440,
-                options
-            );
-        }
+    queueAdvance(minutes) {
 
-
-        /* ============================================================
-           SINGLE NORMAL TIMESTEP
-        ============================================================ */
-
-        step() {
-
-            return this.advanceMinutes(
-                this.physicsStepMinutes
-            );
-        }
-
-
-        /* ============================================================
-           PLAYBACK TICK
-        ============================================================ */
-
-        tick() {
-
-            if (
-                this.paused
-            ) {
-
-                return {
-
-                    paused:
-                        true,
-
-                    advancedMinutes:
-                        0,
-
-                    physicsSteps:
-                        0,
-
-                    date:
-                        this.date
-                };
-            }
-
-
-            return this.advanceMinutes(
-                this.playbackMinutesPerTick
-            );
-        }
-
-
-        /* ============================================================
-           FRAME-BUDGETED PLAYBACK
-        ============================================================ */
-
-        queueAdvance(
-            minutes
-        ) {
-
-            this.queuedMinutes +=
-                Math.max(
-                    0,
-                    finite(
-                        minutes,
-                        0
-                    )
-                );
-
-
-            return this.queuedMinutes;
-        }
-
-
-        queuePlaybackTick() {
-
-            if (
-                !this.paused
-            ) {
-
-                this.queueAdvance(
-                    this.playbackMinutesPerTick
-                );
-            }
-
-
-            return this.queuedMinutes;
-        }
-
-
-        processQueuedFrame(
-            maxSteps =
-                C.time.maxStepsPerFrame
-        ) {
-
-            const stepLimit =
-                Math.max(
-                    1,
-                    Math.floor(
-                        finite(
-                            maxSteps,
-                            C.time.maxStepsPerFrame
-                        )
-                    )
-                );
-
-
-            let steps =
-                0;
-
-
-            let advancedMinutes =
-                0;
-
-
-            while (
-                this.queuedMinutes >
-                    1e-9 &&
-                steps <
-                    stepLimit
-            ) {
-
-                const minutes =
-                    Math.min(
-                        this.physicsStepMinutes,
-                        this.queuedMinutes
-                    );
-
-
-                this._physicsStep(
+        this.queuedMinutes +=
+            Math.max(
+                0,
+                finite(
                     minutes,
-                    true
-                );
+                    0
+                )
+            );
 
 
-                this.queuedMinutes -=
-                    minutes;
+        return this.queuedMinutes;
+    }
 
 
-                advancedMinutes +=
-                    minutes;
+    clearAdvanceQueue() {
+
+        this.queuedMinutes =
+            0;
+    }
 
 
-                steps++;
-            }
+    processQueuedFrame(
+        maxSteps = null
+    ) {
+
+        const configuredMaximum =
+            finite(
+                this.C.time.maxStepsPerFrame,
+                150
+            );
 
 
-            if (
-                this.queuedMinutes <
-                1e-9
-            ) {
-
-                this.queuedMinutes =
-                    0;
-            }
-
-
-            if (
-                steps >
-                0
-            ) {
-
-                this.emit(
-                    "frameAdvanced",
-                    makeEvent(
-                        "frameAdvanced",
-                        this,
-                        {
-
-                            advancedMinutes,
-
-                            physicsSteps:
-                                steps,
-
-                            queuedMinutesRemaining:
-                                this.queuedMinutes
-                        }
+        const stepLimit =
+            Math.max(
+                1,
+                Math.floor(
+                    finite(
+                        maxSteps,
+                        configuredMaximum
                     )
+                )
+            );
+
+
+        let steps =
+            0;
+
+
+        let advancedMinutes =
+            0;
+
+
+        while (
+            this.queuedMinutes >
+                1e-9 &&
+            steps <
+                stepLimit
+        ) {
+
+            const stepMinutes =
+                Math.min(
+                    this.physicsStepMinutes,
+                    this.queuedMinutes
                 );
-            }
 
 
-            return {
+            this._physicsStep(
+                stepMinutes,
+                true
+            );
 
-                advancedMinutes,
 
-                physicsSteps:
-                    steps,
+            this.queuedMinutes -=
+                stepMinutes;
 
-                queuedMinutesRemaining:
-                    this.queuedMinutes,
 
-                complete:
-                    this.queuedMinutes <=
-                    0,
+            advancedMinutes +=
+                stepMinutes;
 
-                date:
-                    this.date
-            };
+
+            steps++;
         }
 
 
-        clearAdvanceQueue() {
+        if (
+            this.queuedMinutes <
+            1e-9
+        ) {
 
             this.queuedMinutes =
                 0;
         }
 
 
-        /* ============================================================
-           AIR MASSES
-        ============================================================ */
+        return {
 
-        createAirMass(
-            options = {}
-        ) {
+            advancedMinutes,
 
-            const mass =
-                this.airMasses.create({
+            physicsSteps:
+                steps,
 
-                    ...options,
+            queuedMinutesRemaining:
+                this.queuedMinutes,
 
-                    date:
-                        this.currentDate
-                });
+            complete:
+                this.queuedMinutes <=
+                0,
 
-
-            this.revision++;
-
-
-            this.emit(
-                "airMassCreated",
-                makeEvent(
-                    "airMassCreated",
-                    this,
-                    {
-
-                        airMass:
-                            this.airMasses.describe(
-                                mass
-                            )
-                    }
-                )
-            );
+            date:
+                this.date
+        };
+    }
 
 
-            return mass;
-        }
+    /* =================================================================
+       AIR MASSES
+    ================================================================= */
 
+    createAirMass(options = {}) {
 
-        createPresetAirMass(
-            sourceType,
-            latitude,
-            longitude,
-            options = {}
-        ) {
-
-            return this.createAirMass({
+        const mass =
+            this.airMasses.create({
 
                 ...options,
 
-                sourceType,
-
-                lat:
-                    latitude,
-
-                lon:
-                    longitude
+                date:
+                    this.currentDate
             });
-        }
 
 
-        createCollisionTest(
-            options = {}
+        this.revision++;
+
+
+        return mass;
+    }
+
+
+    createPresetAirMass(
+        sourceType,
+        latitude,
+        longitude,
+        options = {}
+    ) {
+
+        return this.createAirMass({
+
+            ...options,
+
+            sourceType,
+
+            lat:
+                latitude,
+
+            lon:
+                longitude
+        });
+    }
+
+
+    createCollisionTest(options = {}) {
+
+        const pair =
+            this.airMasses.createCollisionPair({
+
+                ...options,
+
+                date:
+                    this.currentDate
+            });
+
+
+        this.revision++;
+
+
+        return pair;
+    }
+
+
+    listAirMasses() {
+
+        if (
+            typeof this.airMasses.list ===
+            "function"
         ) {
-
-            /*
-             * Deliberately contrasting test case.
-             *
-             * The air-mass module injects the physical air.
-             *
-             * No cloud or precipitation is injected here.
-             */
-
-            const pair =
-                this.airMasses.createCollisionPair({
-
-                    ...options,
-
-                    date:
-                        this.currentDate
-                });
-
-
-            this.revision++;
-
-
-            this.emit(
-                "collisionTestCreated",
-                makeEvent(
-                    "collisionTestCreated",
-                    this,
-                    {
-
-                        western:
-                            this.airMasses.describe(
-                                pair.western
-                            ),
-
-                        eastern:
-                            this.airMasses.describe(
-                                pair.eastern
-                            )
-                    }
-                )
-            );
-
-
-            return pair;
-        }
-
-
-        listAirMasses() {
 
             return this.airMasses.list();
         }
 
 
-        clearAirMassRecords() {
-
-            /*
-             * This removes only source/injection records.
-             *
-             * Air already inserted into the prognostic atmosphere remains.
-             */
-
-            this.airMasses.clear();
+        return [];
+    }
 
 
-            this.emit(
-                "airMassRecordsCleared",
-                makeEvent(
-                    "airMassRecordsCleared",
-                    this
-                )
+    clearAirMassRecords() {
+
+        this.airMasses.clear();
+    }
+
+
+    /* =================================================================
+       PRESSURE SYSTEMS
+    ================================================================= */
+
+    addLow(
+        latitude,
+        longitude,
+        centralPressureHpa = 990,
+        options = {}
+    ) {
+
+        const system =
+            this.synoptic.addLow(
+                latitude,
+                longitude,
+                centralPressureHpa,
+                options
             );
-        }
 
 
-        /* ============================================================
-           SYNOPTIC SYSTEMS
-        ============================================================ */
+        this.revision++;
 
-        addLow(
-            latitude,
-            longitude,
-            centralPressureHpa = 990,
-            options = {}
+
+        return system;
+    }
+
+
+    addHigh(
+        latitude,
+        longitude,
+        centralPressureHpa = 1028,
+        options = {}
+    ) {
+
+        const system =
+            this.synoptic.addHigh(
+                latitude,
+                longitude,
+                centralPressureHpa,
+                options
+            );
+
+
+        this.revision++;
+
+
+        return system;
+    }
+
+
+    removePressureSystem(id) {
+
+        const result =
+            this.synoptic.removeSystem(
+                id
+            );
+
+
+        this.revision++;
+
+
+        return result;
+    }
+
+
+    clearPressureSystems() {
+
+        this.synoptic.clearSystems();
+
+
+        this.revision++;
+    }
+
+
+    listPressureSystems() {
+
+        if (
+            typeof this.synoptic.listSystems ===
+            "function"
         ) {
-
-            const system =
-                this.synoptic.addLow(
-                    latitude,
-                    longitude,
-                    centralPressureHpa,
-                    options
-                );
-
-
-            this.emit(
-                "synopticChanged",
-                makeEvent(
-                    "synopticChanged",
-                    this,
-                    {
-
-                        action:
-                            "add-low",
-
-                        system:
-                            this.synoptic.describeSystem(
-                                system
-                            )
-                    }
-                )
-            );
-
-
-            return system;
-        }
-
-
-        addHigh(
-            latitude,
-            longitude,
-            centralPressureHpa = 1028,
-            options = {}
-        ) {
-
-            const system =
-                this.synoptic.addHigh(
-                    latitude,
-                    longitude,
-                    centralPressureHpa,
-                    options
-                );
-
-
-            this.emit(
-                "synopticChanged",
-                makeEvent(
-                    "synopticChanged",
-                    this,
-                    {
-
-                        action:
-                            "add-high",
-
-                        system:
-                            this.synoptic.describeSystem(
-                                system
-                            )
-                    }
-                )
-            );
-
-
-            return system;
-        }
-
-
-        removePressureSystem(
-            id
-        ) {
-
-            const removed =
-                this.synoptic.removeSystem(
-                    id
-                );
-
-
-            if (
-                removed
-            ) {
-
-                this.emit(
-                    "synopticChanged",
-                    makeEvent(
-                        "synopticChanged",
-                        this,
-                        {
-
-                            action:
-                                "remove-system",
-
-                            id
-                        }
-                    )
-                );
-            }
-
-
-            return removed;
-        }
-
-
-        clearPressureSystems() {
-
-            this.synoptic.clearSystems();
-
-
-            this.emit(
-                "synopticChanged",
-                makeEvent(
-                    "synopticChanged",
-                    this,
-                    {
-
-                        action:
-                            "clear-systems"
-                    }
-                )
-            );
-        }
-
-
-        listPressureSystems() {
 
             return this.synoptic.listSystems();
         }
 
 
-        /* ============================================================
-           STEERING FLOW
-        ============================================================ */
-
-        addSteeringArrow(
-            startLat,
-            startLon,
-            endLat,
-            endLon,
-            options = {}
-        ) {
-
-            const arrow =
-                this.synoptic.addArrow(
-                    startLat,
-                    startLon,
-                    endLat,
-                    endLon,
-                    options
-                );
+        return [];
+    }
 
 
-            this.emit(
-                "steeringChanged",
-                makeEvent(
-                    "steeringChanged",
-                    this,
-                    {
+    /* =================================================================
+       STEERING
+    ================================================================= */
 
-                        action:
-                            "add",
+    addSteeringArrow(
+        startLat,
+        startLon,
+        endLat,
+        endLon,
+        options = {}
+    ) {
 
-                        arrow:
-                            this.synoptic.describeArrow(
-                                arrow
-                            )
-                    }
-                )
+        const arrow =
+            this.synoptic.addArrow(
+                startLat,
+                startLon,
+                endLat,
+                endLon,
+                options
             );
 
 
-            return arrow;
-        }
+        this.revision++;
 
 
-        removeSteeringArrow(
-            id
-        ) {
-
-            const removed =
-                this.synoptic.removeArrow(
-                    id
-                );
+        return arrow;
+    }
 
 
-            if (
-                removed
-            ) {
+    removeSteeringArrow(id) {
 
-                this.emit(
-                    "steeringChanged",
-                    makeEvent(
-                        "steeringChanged",
-                        this,
-                        {
-
-                            action:
-                                "remove",
-
-                            id
-                        }
-                    )
-                );
-            }
-
-
-            return removed;
-        }
-
-
-        clearSteeringArrows() {
-
-            this.synoptic.clearArrows();
-
-
-            this.emit(
-                "steeringChanged",
-                makeEvent(
-                    "steeringChanged",
-                    this,
-                    {
-
-                        action:
-                            "clear"
-                    }
-                )
+        const result =
+            this.synoptic.removeArrow(
+                id
             );
-        }
 
 
-        listSteeringArrows() {
+        this.revision++;
+
+
+        return result;
+    }
+
+
+    clearSteeringArrows() {
+
+        this.synoptic.clearArrows();
+
+
+        this.revision++;
+    }
+
+
+    listSteeringArrows() {
+
+        if (
+            typeof this.synoptic.listArrows ===
+            "function"
+        ) {
 
             return this.synoptic.listArrows();
         }
 
 
-        /* ============================================================
-           WEATHER STATIONS
-        ============================================================ */
+        return [];
+    }
 
-        addStation(
-            latitude,
-            longitude,
-            options = {}
+
+    /* =================================================================
+       WEATHER STATIONS
+    ================================================================= */
+
+    addStation(
+        latitude,
+        longitude,
+        options = {}
+    ) {
+
+        const station =
+            this.history.addStation(
+                latitude,
+                longitude,
+                options
+            );
+
+
+        if (
+            typeof this.history.sampleStation ===
+            "function"
         ) {
-
-            const station =
-                this.history.addStation(
-                    latitude,
-                    longitude,
-                    options
-                );
-
-
-            /*
-             * Give a newly created station an immediate initial reading.
-             */
 
             this.history.sampleStation(
                 station,
                 this.currentDate,
                 true
             );
-
-
-            this.emit(
-                "stationChanged",
-                makeEvent(
-                    "stationChanged",
-                    this,
-                    {
-
-                        action:
-                            "add",
-
-                        stationId:
-                            station.id
-                    }
-                )
-            );
-
-
-            return station;
         }
 
 
-        removeStation(
+        return station;
+    }
+
+
+    getStation(id) {
+
+        return this.history.getStation(
             id
-        ) {
-
-            const removed =
-                this.history.removeStation(
-                    id
-                );
+        );
+    }
 
 
-            if (
-                removed
-            ) {
+    removeStation(id) {
 
-                this.emit(
-                    "stationChanged",
-                    makeEvent(
-                        "stationChanged",
-                        this,
-                        {
-
-                            action:
-                                "remove",
-
-                            stationId:
-                                id
-                        }
-                    )
-                );
-            }
-
-
-            return removed;
-        }
-
-
-        getStation(
+        return this.history.removeStation(
             id
-        ) {
-
-            return this.history.getStation(
-                id
-            );
-        }
+        );
+    }
 
 
-        stationSeries(
+    stationSeries(
+        id,
+        options = {}
+    ) {
+
+        return this.history.stationSeries(
             id,
-            options = {}
-        ) {
-
-            return this.history.stationSeries(
-                id,
-                options
-            );
-        }
+            options
+        );
+    }
 
 
-        listStations() {
+    listStations() {
 
-            return this.history.listStations();
-        }
+        return this.history.listStations();
+    }
 
 
-        /* ============================================================
-           SAMPLING
-        ============================================================ */
+    /* =================================================================
+       SAMPLING
+    ================================================================= */
 
-        sample(
+    sample(
+        latitude,
+        longitude
+    ) {
+
+        return this.atmosphere.sample(
+            latitude,
+            longitude,
+            this.currentDate
+        );
+    }
+
+
+    terrainAt(
+        latitude,
+        longitude
+    ) {
+
+        return this.terrain.sample(
             latitude,
             longitude
-        ) {
-
-            return this.atmosphere.sample(
-                latitude,
-                longitude,
-                this.currentDate
-            );
-        }
+        );
+    }
 
 
-        terrainAt(
-            latitude,
-            longitude
-        ) {
+    oceanAt(
+        latitude,
+        longitude
+    ) {
 
-            return this.terrain.sample(
-                latitude,
-                longitude
-            );
-        }
-
-
-        oceanAt(
-            latitude,
-            longitude
+        if (
+            typeof this.ocean.diagnosticsAt ===
+            "function"
         ) {
 
             return this.ocean.diagnosticsAt(
@@ -1712,9 +1283,18 @@
         }
 
 
-        microphysicsAt(
-            latitude,
-            longitude
+        return null;
+    }
+
+
+    microphysicsAt(
+        latitude,
+        longitude
+    ) {
+
+        if (
+            typeof this.microphysics.diagnosticsAt ===
+            "function"
         ) {
 
             return this.microphysics.diagnosticsAt(
@@ -1724,9 +1304,18 @@
         }
 
 
-        precipitationDiagnosisAt(
-            latitude,
-            longitude
+        return null;
+    }
+
+
+    precipitationDiagnosisAt(
+        latitude,
+        longitude
+    ) {
+
+        if (
+            typeof this.physics.precipitationDiagnosisAt ===
+            "function"
         ) {
 
             return this.physics.precipitationDiagnosisAt(
@@ -1736,822 +1325,840 @@
         }
 
 
-        /* ============================================================
-           REWIND
-        ============================================================ */
+        return {
 
-        restoreSnapshot(
-            snapshot
+            diagnosis:
+                "Precipitation diagnostics unavailable."
+        };
+    }
+
+
+    /* =================================================================
+       HISTORY / REWIND
+    ================================================================= */
+
+    restoreSnapshot(snapshot) {
+
+        if (
+            !snapshot
         ) {
 
-            const restoredDate =
-                this.history.restoreSnapshot(
-                    snapshot
-                );
-
-
-            if (
-                !restoredDate
-            ) {
-                return null;
-            }
-
-
-            this.currentDate =
-                restoredDate;
-
-
-            this.queuedMinutes =
-                0;
-
-
-            this.revision++;
-
-
-            this.emit(
-                "rewound",
-                makeEvent(
-                    "rewound",
-                    this,
-                    {
-
-                        restoredDate:
-                            this.date
-                    }
-                )
-            );
-
-
-            return this.date;
+            return null;
         }
 
 
-        rewindHours(
-            hours
-        ) {
-
-            const targetDate =
-                new Date(
-                    this.currentDate.getTime() -
-                    Math.max(
-                        0,
-                        finite(
-                            hours,
-                            0
-                        )
-                    ) *
-                    3600000
-                );
-
-
-            const snapshot =
-                this.history.nearestSnapshot(
-                    targetDate,
-                    true
-                );
-
-
-            if (
-                !snapshot
-            ) {
-                return null;
-            }
-
-
-            this.restoreSnapshot(
+        const restoredDate =
+            this.history.restoreSnapshot(
                 snapshot
             );
 
 
-            /*
-             * If the snapshot predates the exact requested target, replay
-             * forward physically to the requested instant.
-             */
+        if (
+            !restoredDate
+        ) {
 
-            const remainingMinutes =
-                (
-                    targetDate.getTime() -
-                    this.currentDate.getTime()
-                ) /
-                60000;
+            return null;
+        }
 
 
-            if (
-                remainingMinutes >
-                0.0001
-            ) {
-
-                this.advanceMinutes(
-                    remainingMinutes,
-                    {
-                        recordHistory:
-                            false
-                    }
-                );
-            }
+        this.currentDate =
+            validDate(
+                restoredDate
+            );
 
 
-            this.emit(
-                "rewoundExact",
-                makeEvent(
-                    "rewoundExact",
-                    this,
-                    {
+        this.queuedMinutes =
+            0;
 
-                        targetDate:
-                            new Date(
-                                targetDate.getTime()
-                            )
-                    }
+
+        this.revision++;
+
+
+        return this.date;
+    }
+
+
+    rewindHours(hours) {
+
+        const amount =
+            Math.max(
+                0,
+                finite(
+                    hours,
+                    0
                 )
             );
 
 
-            return this.date;
+        const targetDate =
+            new Date(
+                this.currentDate.getTime() -
+                amount *
+                3600000
+            );
+
+
+        const snapshot =
+            this.history.nearestSnapshot(
+                targetDate,
+                true
+            );
+
+
+        if (!snapshot) {
+
+            return null;
         }
 
 
-        /* ============================================================
-           SYNOPTIC MAINTENANCE
-        ============================================================ */
-
-        maintainSynopticEnvironment() {
-
-            /*
-             * This is deliberately conservative and OFF by default.
-             *
-             * Once long-duration calibration begins, enabling it prevents
-             * the initial systems from eventually leaving the domain and
-             * producing an unrealistically quiet atmosphere forever.
-             */
-
-            const elapsedHours =
-                (
-                    this.currentDate.getTime() -
-                    this.lastSynopticMaintenanceMs
-                ) /
-                3600000;
+        this.restoreSnapshot(
+            snapshot
+        );
 
 
-            if (
-                elapsedHours <
-                6
-            ) {
-                return;
-            }
+        /*
+         * The snapshot may be older than the exact desired target.
+         * Physically integrate from that checkpoint to the target.
+         */
+
+        const remainingMinutes =
+            (
+                targetDate.getTime() -
+                this.currentDate.getTime()
+            ) /
+            60000;
 
 
-            this.lastSynopticMaintenanceMs =
-                this.currentDate.getTime();
-
-
-            const activeLows =
-                this.synoptic.systems.filter(
-                    system =>
-                        system.kind ===
-                            "low" &&
-                        system.enabled
-                );
-
-
-            const activeHighs =
-                this.synoptic.systems.filter(
-                    system =>
-                        system.kind ===
-                            "high" &&
-                        system.enabled
-                );
-
-
-            /*
-             * Maintain a broad North Atlantic storm track.
-             */
-
-            if (
-                activeLows.length <
-                1
-            ) {
-
-                this.synoptic.addLow(
-                    54 +
-                        Math.sin(
-                            this.currentDate.getTime() /
-                            86400000
-                        ) *
-                        4,
-
-                    -22,
-
-                    986 +
-                        Math.sin(
-                            this.currentDate.getTime() /
-                            172800000
-                        ) *
-                        6,
-
-                    {
-
-                        name:
-                            "Atlantic Cyclone",
-
-                        radiusKm:
-                            1000,
-
-                        strength:
-                            0.82,
-
-                        bearingDeg:
-                            70,
-
-                        speedKmh:
-                            34,
-
-                        developmentHours:
-                            18,
-
-                        matureHours:
-                            40,
-
-                        fillingHours:
-                            54
-                    }
-                );
-            }
-
-
-            /*
-             * Preserve at least one broad anticyclonic influence.
-             */
-
-            if (
-                activeHighs.length <
-                1
-            ) {
-
-                this.synoptic.addHigh(
-                    39,
-                    -14,
-                    1027,
-                    {
-
-                        name:
-                            "Atlantic Ridge",
-
-                        radiusKm:
-                            1400,
-
-                        strength:
-                            0.65,
-
-                        bearingDeg:
-                            65,
-
-                        speedKmh:
-                            12,
-
-                        developmentHours:
-                            36,
-
-                        matureHours:
-                            84,
-
-                        fillingHours:
-                            84
-                    }
-                );
-            }
-        }
-
-
-        setAutoSynoptic(
-            enabled
+        if (
+            remainingMinutes >
+            0.0001
         ) {
 
-            this.autoSynoptic =
-                !!enabled;
-
-
-            return this.autoSynoptic;
-        }
-
-
-        /* ============================================================
-           COLLISION DEVELOPMENT TEST
-        ============================================================ */
-
-        runCollisionDevelopmentTest(
-            options = {}
-        ) {
-
-            /*
-             * Programmatic development helper.
-             *
-             * Later the UI will expose this as a controlled test.
-             *
-             * This creates the air masses, then runs ACTUAL physics.
-             */
-
-            const hours =
-                Math.max(
-                    0.25,
-                    finite(
-                        options.hours,
-                        12
-                    )
-                );
-
-
-            const pair =
-                this.createCollisionTest(
-                    options
-                );
-
-
-            const startingDate =
-                this.date;
-
-
-            const result =
-                this.advanceHours(
-                    hours
-                );
-
-
-            return {
-
-                pair,
-
-                startingDate,
-
-                endingDate:
-                    this.date,
-
-                simulatedHours:
-                    hours,
-
-                physicsSteps:
-                    result.physicsSteps
-            };
-        }
-
-
-        /* ============================================================
-           DOMAIN STATISTICS
-        ============================================================ */
-
-        statistics() {
-
-            const a =
-                this.atmosphere;
-
-
-            let minimumTemperature =
-                Infinity;
-
-            let maximumTemperature =
-                -Infinity;
-
-            let temperatureSum =
-                0;
-
-
-            let minimumPressure =
-                Infinity;
-
-            let maximumPressure =
-                -Infinity;
-
-            let pressureSum =
-                0;
-
-
-            let maximumWind =
-                0;
-
-            let maximumPrecipitation =
-                0;
-
-            let maximumSnowfall =
-                0;
-
-            let maximumSnowDepth =
-                0;
-
-            let maximumFront =
-                0;
-
-            let maximumLift =
-                0;
-
-
-            let precipitatingCells =
-                0;
-
-            let rainCells =
-                0;
-
-            let sleetCells =
-                0;
-
-            let wetSnowCells =
-                0;
-
-            let snowCells =
-                0;
-
-
-            for (
-                let cell = 0;
-                cell < this.terrain.n;
-                cell++
-            ) {
-
-                const temperature =
-                    a.surface.tempC[
-                        cell
-                    ];
-
-
-                const pressure =
-                    a.pressureHpa[
-                        cell
-                    ];
-
-
-                const wind =
-                    Math.hypot(
-                        a.surface.u[
-                            cell
-                        ],
-                        a.surface.v[
-                            cell
-                        ]
-                    );
-
-
-                const precipitation =
-                    a.precipMmHr[
-                        cell
-                    ];
-
-
-                minimumTemperature =
-                    Math.min(
-                        minimumTemperature,
-                        temperature
-                    );
-
-
-                maximumTemperature =
-                    Math.max(
-                        maximumTemperature,
-                        temperature
-                    );
-
-
-                temperatureSum +=
-                    temperature;
-
-
-                minimumPressure =
-                    Math.min(
-                        minimumPressure,
-                        pressure
-                    );
-
-
-                maximumPressure =
-                    Math.max(
-                        maximumPressure,
-                        pressure
-                    );
-
-
-                pressureSum +=
-                    pressure;
-
-
-                maximumWind =
-                    Math.max(
-                        maximumWind,
-                        wind
-                    );
-
-
-                maximumPrecipitation =
-                    Math.max(
-                        maximumPrecipitation,
-                        precipitation
-                    );
-
-
-                maximumSnowfall =
-                    Math.max(
-                        maximumSnowfall,
-                        a.snowMmHr[
-                            cell
-                        ]
-                    );
-
-
-                maximumSnowDepth =
-                    Math.max(
-                        maximumSnowDepth,
-                        a.snowDepthCm[
-                            cell
-                        ]
-                    );
-
-
-                maximumFront =
-                    Math.max(
-                        maximumFront,
-                        a.frontStrength[
-                            cell
-                        ]
-                    );
-
-
-                maximumLift =
-                    Math.max(
-                        maximumLift,
-                        a.totalLift[
-                            cell
-                        ]
-                    );
-
-
-                if (
-                    precipitation >
-                    0.05
-                ) {
-                    precipitatingCells++;
+            this.advanceMinutes(
+                remainingMinutes,
+                {
+
+                    recordHistory:
+                        false
                 }
-
-
-                switch (
-                    a.precipitationPhase[
-                        cell
-                    ]
-                ) {
-
-                    case AtmosphereModule
-                        .PRECIPITATION_PHASE
-                        .RAIN:
-
-                        rainCells++;
-                        break;
-
-
-                    case AtmosphereModule
-                        .PRECIPITATION_PHASE
-                        .SLEET:
-
-                        sleetCells++;
-                        break;
-
-
-                    case AtmosphereModule
-                        .PRECIPITATION_PHASE
-                        .WET_SNOW:
-
-                        wetSnowCells++;
-                        break;
-
-
-                    case AtmosphereModule
-                        .PRECIPITATION_PHASE
-                        .SNOW:
-
-                        snowCells++;
-                        break;
-                }
-            }
-
-
-            const n =
-                this.terrain.n;
-
-
-            return {
-
-                date:
-                    this.date,
-
-                physicsSteps:
-                    this.physicsSteps,
-
-                simulatedMinutes:
-                    this.simulatedMinutes,
-
-                revision:
-                    this.revision,
-
-
-                temperature: {
-
-                    minimumC:
-                        minimumTemperature,
-
-                    meanC:
-                        temperatureSum /
-                        n,
-
-                    maximumC:
-                        maximumTemperature
-                },
-
-
-                pressure: {
-
-                    minimumHpa:
-                        minimumPressure,
-
-                    meanHpa:
-                        pressureSum /
-                        n,
-
-                    maximumHpa:
-                        maximumPressure
-                },
-
-
-                maximumWindMs:
-                    maximumWind,
-
-
-                precipitation: {
-
-                    maximumMmHr:
-                        maximumPrecipitation,
-
-                    precipitatingFraction:
-                        precipitatingCells /
-                        n,
-
-                    rainCells,
-
-                    sleetCells,
-
-                    wetSnowCells,
-
-                    snowCells
-                },
-
-
-                snow: {
-
-                    maximumSnowfallMmHr:
-                        maximumSnowfall,
-
-                    maximumDepthCm:
-                        maximumSnowDepth
-                },
-
-
-                strongestFront:
-                    maximumFront,
-
-                maximumLift,
-
-                activeAirMassRecords:
-                    this.airMasses.masses.length,
-
-                activePressureSystems:
-                    this.synoptic.systems.length,
-
-                steeringArrows:
-                    this.synoptic.arrows.length,
-
-                stations:
-                    this.history.stations.size
-            };
+            );
         }
 
 
-        /* ============================================================
-           VALIDATION
-        ============================================================ */
-
-        validate() {
-
-            this.terrain.validate();
-
-            this.ocean.validate();
-
-            this.atmosphere.validate();
-
-
-            if (
-                this.physicsStepMinutes !==
-                4
-            ) {
-
-                console.warn(
-                    "EuropaCraft V10 expected a 4-minute primary physics timestep but configuration currently specifies:",
-                    this.physicsStepMinutes
-                );
-            }
-
-
-            return true;
-        }
-
-
-        /* ============================================================
-           DEVELOPMENT DIAGNOSTICS
-        ============================================================ */
-
-        diagnostics() {
-
-            return {
-
-                engine:
-                    C.engineName,
-
-                version:
-                    C.version,
-
-                date:
-                    this.date,
-
-                physicsStepMinutes:
-                    this.physicsStepMinutes,
-
-                physicsSteps:
-                    this.physicsSteps,
-
-                simulatedMinutes:
-                    this.simulatedMinutes,
-
-                queuedMinutes:
-                    this.queuedMinutes,
-
-                paused:
-                    this.paused,
-
-                playbackMinutesPerTick:
-                    this.playbackMinutesPerTick,
-
-                terrainSource:
-                    this.terrain.source,
-
-                grid: {
-
-                    nx:
-                        this.terrain.nx,
-
-                    ny:
-                        this.terrain.ny,
-
-                    cells:
-                        this.terrain.n
-                },
-
-                levels:
-                    AtmosphereModule
-                        .LEVEL_KEYS
-                        .slice(),
-
-                airMassTracerCount:
-                    AtmosphereModule
-                        .TRACER_NAMES
-                        .length,
-
-                history:
-                    this.history.memoryStats(),
-
-                statistics:
-                    this.statistics()
-            };
-        }
+        return this.date;
     }
 
 
-    /* ================================================================
-       FACTORY
-    ================================================================ */
+    /* =================================================================
+       COLLISION TEST HELPER
+    ================================================================= */
 
-    function createWeather(
+    runCollisionDevelopmentTest(
         options = {}
     ) {
 
-        return new Weather(
-            options
-        );
+        const hours =
+            Math.max(
+                0.25,
+                finite(
+                    options.hours,
+                    12
+                )
+            );
+
+
+        const pair =
+            this.createCollisionTest(
+                options
+            );
+
+
+        const startingDate =
+            this.date;
+
+
+        const result =
+            this.advanceHours(
+                hours
+            );
+
+
+        return {
+
+            pair,
+
+            startingDate,
+
+            endingDate:
+                this.date,
+
+            simulatedHours:
+                hours,
+
+            physicsSteps:
+                result.physicsSteps
+        };
     }
 
 
-    /* ================================================================
-       EXPORT
-    ================================================================ */
+    /* =================================================================
+       OPTIONAL SYNOPTIC MAINTENANCE
+    ================================================================= */
 
-    global.EuropaWeather =
-        Object.freeze({
+    setAutoSynoptic(enabled) {
 
-            Weather,
+        this.autoSynoptic =
+            !!enabled;
 
-            createWeather
-        });
+
+        return this.autoSynoptic;
+    }
+
+
+    maintainSynopticEnvironment() {
+
+        const elapsedHours =
+            (
+                this.currentDate.getTime() -
+                this.lastSynopticMaintenanceMs
+            ) /
+            3600000;
+
+
+        if (
+            elapsedHours <
+            6
+        ) {
+
+            return;
+        }
+
+
+        this.lastSynopticMaintenanceMs =
+            this.currentDate.getTime();
+
+
+        const activeLows =
+            this.synoptic.systems.filter(
+                system =>
+                    system.enabled &&
+                    system.kind ===
+                    "low"
+            );
+
+
+        const activeHighs =
+            this.synoptic.systems.filter(
+                system =>
+                    system.enabled &&
+                    system.kind ===
+                    "high"
+            );
+
+
+        if (
+            activeLows.length ===
+            0
+        ) {
+
+            this.synoptic.addLow(
+                55,
+                -21,
+                988,
+                {
+
+                    name:
+                        "Atlantic Cyclone",
+
+                    radiusKm:
+                        1100,
+
+                    strength:
+                        0.82,
+
+                    bearingDeg:
+                        75,
+
+                    speedKmh:
+                        34,
+
+                    developmentHours:
+                        18,
+
+                    matureHours:
+                        42,
+
+                    fillingHours:
+                        54
+                }
+            );
+        }
+
+
+        if (
+            activeHighs.length ===
+            0
+        ) {
+
+            this.synoptic.addHigh(
+                38,
+                -14,
+                1028,
+                {
+
+                    name:
+                        "Atlantic Ridge",
+
+                    radiusKm:
+                        1450,
+
+                    strength:
+                        0.68,
+
+                    bearingDeg:
+                        65,
+
+                    speedKmh:
+                        12,
+
+                    developmentHours:
+                        36,
+
+                    matureHours:
+                        84,
+
+                    fillingHours:
+                        84
+                }
+            );
+        }
+    }
+
+
+    /* =================================================================
+       DOMAIN STATISTICS
+    ================================================================= */
+
+    statistics() {
+
+        const atmosphere =
+            this.atmosphere;
+
+
+        const n =
+            this.terrain.n;
+
+
+        let minimumTemperature =
+            Infinity;
+
+
+        let maximumTemperature =
+            -Infinity;
+
+
+        let temperatureSum =
+            0;
+
+
+        let minimumPressure =
+            Infinity;
+
+
+        let maximumPressure =
+            -Infinity;
+
+
+        let pressureSum =
+            0;
+
+
+        let maximumWind =
+            0;
+
+
+        let maximumPrecipitation =
+            0;
+
+
+        let maximumSnowfall =
+            0;
+
+
+        let maximumSnowDepth =
+            0;
+
+
+        let maximumFront =
+            0;
+
+
+        let maximumLift =
+            0;
+
+
+        let precipitatingCells =
+            0;
+
+
+        let rainCells =
+            0;
+
+
+        let sleetCells =
+            0;
+
+
+        let wetSnowCells =
+            0;
+
+
+        let snowCells =
+            0;
+
+
+        const PHASE =
+            this.AtmosphereModule
+                .PRECIPITATION_PHASE;
+
+
+        for (
+            let cell = 0;
+            cell < n;
+            cell++
+        ) {
+
+            const temperature =
+                atmosphere.surface.tempC[
+                    cell
+                ];
+
+
+            const pressure =
+                atmosphere.pressureHpa[
+                    cell
+                ];
+
+
+            const wind =
+                Math.hypot(
+                    atmosphere.surface.u[
+                        cell
+                    ],
+                    atmosphere.surface.v[
+                        cell
+                    ]
+                );
+
+
+            const precip =
+                atmosphere.precipMmHr[
+                    cell
+                ];
+
+
+            minimumTemperature =
+                Math.min(
+                    minimumTemperature,
+                    temperature
+                );
+
+
+            maximumTemperature =
+                Math.max(
+                    maximumTemperature,
+                    temperature
+                );
+
+
+            temperatureSum +=
+                temperature;
+
+
+            minimumPressure =
+                Math.min(
+                    minimumPressure,
+                    pressure
+                );
+
+
+            maximumPressure =
+                Math.max(
+                    maximumPressure,
+                    pressure
+                );
+
+
+            pressureSum +=
+                pressure;
+
+
+            maximumWind =
+                Math.max(
+                    maximumWind,
+                    wind
+                );
+
+
+            maximumPrecipitation =
+                Math.max(
+                    maximumPrecipitation,
+                    precip
+                );
+
+
+            maximumSnowfall =
+                Math.max(
+                    maximumSnowfall,
+                    atmosphere.snowMmHr[
+                        cell
+                    ]
+                );
+
+
+            maximumSnowDepth =
+                Math.max(
+                    maximumSnowDepth,
+                    atmosphere.snowDepthCm[
+                        cell
+                    ]
+                );
+
+
+            maximumFront =
+                Math.max(
+                    maximumFront,
+                    atmosphere.frontStrength[
+                        cell
+                    ]
+                );
+
+
+            maximumLift =
+                Math.max(
+                    maximumLift,
+                    atmosphere.totalLift[
+                        cell
+                    ]
+                );
+
+
+            if (
+                precip >
+                0.05
+            ) {
+
+                precipitatingCells++;
+            }
+
+
+            const phase =
+                atmosphere.precipitationPhase[
+                    cell
+                ];
+
+
+            if (
+                phase ===
+                PHASE.RAIN
+            ) {
+
+                rainCells++;
+            }
+
+
+            if (
+                phase ===
+                PHASE.SLEET
+            ) {
+
+                sleetCells++;
+            }
+
+
+            if (
+                phase ===
+                PHASE.WET_SNOW
+            ) {
+
+                wetSnowCells++;
+            }
+
+
+            if (
+                phase ===
+                PHASE.SNOW
+            ) {
+
+                snowCells++;
+            }
+        }
+
+
+        return {
+
+            date:
+                this.date,
+
+
+            physicsSteps:
+                this.physicsSteps,
+
+
+            simulatedMinutes:
+                this.simulatedMinutes,
+
+
+            revision:
+                this.revision,
+
+
+            temperature: {
+
+                minimumC:
+                    minimumTemperature,
+
+                meanC:
+                    temperatureSum /
+                    n,
+
+                maximumC:
+                    maximumTemperature
+            },
+
+
+            pressure: {
+
+                minimumHpa:
+                    minimumPressure,
+
+                meanHpa:
+                    pressureSum /
+                    n,
+
+                maximumHpa:
+                    maximumPressure
+            },
+
+
+            maximumWindMs:
+                maximumWind,
+
+
+            precipitation: {
+
+                maximumMmHr:
+                    maximumPrecipitation,
+
+                precipitatingFraction:
+                    precipitatingCells /
+                    n,
+
+                rainCells,
+
+                sleetCells,
+
+                wetSnowCells,
+
+                snowCells
+            },
+
+
+            snow: {
+
+                maximumSnowfallMmHr:
+                    maximumSnowfall,
+
+                maximumDepthCm:
+                    maximumSnowDepth
+            },
+
+
+            strongestFront:
+                maximumFront,
+
+
+            maximumLift,
+
+
+            activeAirMassRecords:
+                this.airMasses.masses.length,
+
+
+            activePressureSystems:
+                this.synoptic.systems.length,
+
+
+            steeringArrows:
+                this.synoptic.arrows.length,
+
+
+            stations:
+                this.history.stations.size
+        };
+    }
+
+
+    /* =================================================================
+       VALIDATION
+    ================================================================= */
+
+    validate() {
+
+        if (
+            typeof this.terrain.validate ===
+            "function"
+        ) {
+
+            this.terrain.validate();
+        }
+
+
+        if (
+            typeof this.ocean.validate ===
+            "function"
+        ) {
+
+            this.ocean.validate();
+        }
+
+
+        if (
+            typeof this.atmosphere.validate ===
+            "function"
+        ) {
+
+            this.atmosphere.validate();
+        }
+
+
+        if (
+            this.physicsStepMinutes !==
+            4
+        ) {
+
+            console.warn(
+                "EuropaCraft V10 expected 4-minute physics; configured:",
+                this.physicsStepMinutes
+            );
+        }
+
+
+        return true;
+    }
+
+
+    /* =================================================================
+       DIAGNOSTICS
+    ================================================================= */
+
+    diagnostics() {
+
+        return {
+
+            engine:
+                this.C.engineName,
+
+
+            version:
+                this.C.version,
+
+
+            date:
+                this.date,
+
+
+            physicsStepMinutes:
+                this.physicsStepMinutes,
+
+
+            physicsSteps:
+                this.physicsSteps,
+
+
+            simulatedMinutes:
+                this.simulatedMinutes,
+
+
+            queuedMinutes:
+                this.queuedMinutes,
+
+
+            paused:
+                this.paused,
+
+
+            terrainSource:
+                this.terrain.source,
+
+
+            grid: {
+
+                nx:
+                    this.terrain.nx,
+
+                ny:
+                    this.terrain.ny,
+
+                cells:
+                    this.terrain.n
+            },
+
+
+            levels:
+                this.AtmosphereModule
+                    .LEVEL_KEYS
+                    .slice(),
+
+
+            airMassTracerCount:
+                this.AtmosphereModule
+                    .TRACER_NAMES
+                    .length,
+
+
+            history:
+                typeof this.history.memoryStats ===
+                    "function"
+                    ? this.history.memoryStats()
+                    : null,
+
+
+            statistics:
+                this.statistics()
+        };
+    }
+}
+
+
+/* =====================================================================
+   FACTORY
+===================================================================== */
+
+function createWeather(options = {}) {
+
+    return new Weather(
+        options
+    );
+}
+
+
+/* =====================================================================
+   EXPORT
+
+   There are deliberately NO executable dependency checks before this.
+===================================================================== */
+
+global.EuropaWeather =
+    Object.freeze({
+
+        version:
+            "10.0.1",
+
+        Weather,
+
+        createWeather
+    });
+
 
 })(window);
