@@ -1,140 +1,742 @@
-(() => {
-  'use strict';
+/*
+ * EuropaCraft Atmospheric Simulation
+ * V10 Configuration
+ *
+ * Clean V10 architecture.
+ * No backwards compatibility with V8 is intended.
+ */
 
-  window.EuropaConfig = Object.freeze({
-    version: '8.0.0',
+(function (global) {
+    "use strict";
 
-    bounds: Object.freeze({
-      west: -26,
-      east: 52,
-      south: 30,
-      north: 74
-    }),
+    const CONFIG = {
 
-    display: Object.freeze({
-      width: 780,
-      height: 440
-    }),
+        version: "10.0.0",
+        engineName: "EuropaCraft Atmosphere V10",
 
-    grid: Object.freeze({
-      nx: 195,
-      ny: 110
-    }),
 
-    physicsStepMinutes: 4,
+        /* ==========================================================
+           DOMAIN
+        ========================================================== */
 
-    layers: Object.freeze([
-      { name: 'surface', pressureHpa: 1000, heightM: 20 },
-      { name: '925', pressureHpa: 925, heightM: 750 },
-      { name: '850', pressureHpa: 850, heightM: 1450 },
-      { name: '700', pressureHpa: 700, heightM: 3000 },
-      { name: '500', pressureHpa: 500, heightM: 5600 },
-      { name: 'upper', pressureHpa: 300, heightM: 9200 }
-    ]),
+        bounds: {
+            west: -26,
+            east: 52,
+            south: 30,
+            north: 74
+        },
 
-    time: Object.freeze({
-      defaultStart: '2026-10-10T00:00:00Z',
-      defaultRangeDays: 7,
-      snapshotMinutes: 60,
-      stationSampleMinutes: 4,
-      maxInMemorySnapshots: 48
-    }),
 
-    geography: Object.freeze({
-      landUrls: Object.freeze([
-        'https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@master/geojson/ne_50m_land.geojson',
-        'https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@master/geojson/ne_110m_land.geojson'
-      ]),
+        /* ==========================================================
+           GRID AND TIME
+        ========================================================== */
 
-      lakesUrls: Object.freeze([
-        'https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@master/geojson/ne_50m_lakes.geojson',
-        'https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@master/geojson/ne_110m_lakes.geojson'
-      ]),
+        grid: {
+            nx: 195,
+            ny: 110
+        },
 
-      maxAltitudeM: 4200
-    }),
+        time: {
+            physicsStepMinutes: 4,
 
-    physics: Object.freeze({
-      minPressureHpa: 930,
-      maxPressureHpa: 1070,
+            /*
+             * Fast simulation executes multiple real physics steps.
+             * Physics must never be skipped or replaced with oversized
+             * timesteps simply to make playback faster.
+             */
+            maxStepsPerFrame: 150
+        },
 
-      pressureDiffusion: 0.012,
-      scalarDiffusion: 0.0025,
 
-      windRelaxation: 0.22,
-      windDragLand: 0.018,
-      windDragSea: 0.008,
+        /* ==========================================================
+           NUMERICAL SAFETY LIMITS
+        ========================================================== */
 
-      maxWindMs: 111,
+        limits: {
+            temperatureMinC: -65,
+            temperatureMaxC: 55,
 
-      maxTemperatureC: 65,
-      minTemperatureC: -70,
+            pressureMinHpa: 925,
+            pressureMaxHpa: 1070,
 
-      maxSpecificHumidity: 0.04,
+            windMaxMs: 70,
 
-      verticalMixing: 0.025,
+            specificHumidityMaxKgKg: 0.055,
 
-      cloudAutoconversion: 0.16,
-      cloudEvaporation: 0.06,
-      precipEfficiency: 0.78,
+            cloudWaterMaxKgKg: 0.008,
+            cloudIceMaxKgKg: 0.006,
 
-      groundThermalInertia: 0.018,
-      groundMoistureRecovery: 0.0005,
+            precipitationMaxMmHr: 100,
 
-      snowMeltFactor: 0.045,
-      snowSolarMeltFactor: 0.00011,
+            verticalVelocityMaxMs: 4.0
+        },
 
-      snowAlbedo: 0.76,
-      landAlbedo: 0.20,
-      seaAlbedo: 0.07
-    }),
 
-    ocean: Object.freeze({
-      heatExchange: 0.015,
-      evaporation: 0.010,
-      windBoost: 0.055,
+        /* ==========================================================
+           VERTICAL ATMOSPHERE
+        ========================================================== */
 
-      seasonalRelaxation: 0.0012,
-      mixedLayerInertia: 0.020,
+        vertical: {
 
-      minSstC: -2.0,
-      maxSstC: 31,
+            /*
+             * V10 carries four atmospheric levels.
+             *
+             * Surface:
+             * locally experienced weather.
+             *
+             * 925 hPa:
+             * low-level air mass and boundary-layer structure.
+             *
+             * 850 hPa:
+             * principal air-mass temperature and frontal layer.
+             *
+             * 700 hPa:
+             * lower-middle troposphere and precipitation/cloud depth.
+             */
 
-      freezeThresholdC: -1.7,
-      meltThresholdC: -0.8
-    }),
+            levels: [
+                {
+                    key: "surface",
+                    pressureHpa: null,
+                    approximateHeightM: 2
+                },
 
-    precipitation: Object.freeze({
-      snowMaxC: 1.5,
-      sleetMaxC: 3.0,
-      freezingRainWarmNoseC: 1.0
-    }),
+                {
+                    key: "925",
+                    pressureHpa: 925,
+                    approximateHeightM: 750
+                },
 
-    forcing: Object.freeze({
-      maxSteeringPaths: 16,
+                {
+                    key: "850",
+                    pressureHpa: 850,
+                    approximateHeightM: 1500
+                },
 
-      defaultWidthKm: 500,
-      defaultSpeedKmh: 40,
-      defaultStrength: 0.70,
+                {
+                    key: "700",
+                    pressureHpa: 700,
+                    approximateHeightM: 3000
+                }
+            ],
 
-      maxSpeedKmh: 180,
+            environmentalLapseRateCPerKm: 6.2,
 
-      maxPressureSystems: 12
-    }),
+            dryAdiabaticLapseRateCPerKm: 9.8,
 
-    renderer: Object.freeze({
-      isobarIntervalHpa: 4,
-      contourRefreshMs: 900,
-      fieldRefreshMs: 80,
+            moistAdiabaticLapseRateCPerKm: 5.8,
 
-      particleCount: 1400,
-      particleTrail: 0.91
-    }),
+            backgroundMixingPerHour: 0.025,
 
-    safety: Object.freeze({
-      longSeekWarningDays: 7,
-      maxPhysicsStepsPerAnimationFrame: 5,
-      maxSeekStepsPerYield: 150
-    })
-  });
-})();
+            frontalMixingPerHour: 0.08,
+
+            convectiveMixingPerHour: 0.18
+        },
+
+
+        /* ==========================================================
+           ADVECTION
+        ========================================================== */
+
+        advection: {
+
+            scheme: "semi-lagrangian",
+
+            /*
+             * Keep fronts and injected air masses recognisable.
+             */
+            temperatureDiffusionPerHour: 0.004,
+
+            moistureDiffusionPerHour: 0.005,
+
+            momentumDiffusionPerHour: 0.008,
+
+            cloudDiffusionPerHour: 0.004,
+
+            tracerDiffusionPerHour: 0.0025,
+
+            boundaryRelaxationPerHour: 0.015
+        },
+
+
+        /* ==========================================================
+           AIR MASS SYSTEM
+        ========================================================== */
+
+        airMasses: {
+
+            enabled: true,
+
+            tracerTypes: [
+                "Atlantic",
+                "Polar Maritime",
+                "Arctic Maritime",
+                "Greenland Ice-Sheet",
+                "North Sea",
+                "Baltic Maritime",
+                "Mediterranean",
+                "Black Sea",
+                "Caspian Maritime",
+                "North African",
+                "Eurasian Continental",
+                "British Landmass",
+                "Iberian Interior",
+                "West-Central European",
+                "Central / Eastern European",
+                "Scandinavian Interior",
+                "Balkan Modified",
+                "Anatolian Interior"
+            ],
+
+            maxInjectedMasses: 20,
+
+            defaultRadiusKm: 650,
+
+            minimumRadiusKm: 100,
+
+            maximumRadiusKm: 2200,
+
+            defaultStrength: 0.90,
+
+            /*
+             * Source identity should survive transport for days.
+             * Modification occurs gradually through mixing and surface
+             * interaction instead of disappearing within a few steps.
+             */
+            tracerDecayPerDay: 0.018,
+
+            environmentalModificationPerHour: 0.012,
+
+            minimumDominantTracer: 0.08,
+
+            collisionContrastThreshold: 0.20
+        },
+
+
+        /* ==========================================================
+           PRESSURE AND WIND
+        ========================================================== */
+
+        dynamics: {
+
+            pressureGradientAcceleration: 1.0,
+
+            coriolisStrength: 1.0,
+
+            surfaceDragLand: 0.11,
+
+            surfaceDragSea: 0.055,
+
+            upperAirDrag: 0.012,
+
+            /*
+             * Pressure is prognostic.
+             *
+             * Convergence/ascent and warm-column structure can lower
+             * pressure; subsidence and cold dense structure can build it.
+             */
+            pressureRelaxationPerHour: 0.012,
+
+            thermalPressureResponse: 0.038,
+
+            convergencePressureResponse: 0.18,
+
+            ascentPressureResponse: 0.14,
+
+            latentHeatingPressureResponse: 0.045,
+
+            divergencePressureResponse: 0.10,
+
+            maxPressureChangeHpaPerHour: 3.5
+        },
+
+
+        /* ==========================================================
+           FRONTOGENESIS
+        ========================================================== */
+
+        fronts: {
+
+            temperatureGradientThresholdCPer100Km: 1.0,
+
+            humidityGradientThresholdPer100Km: 0.03,
+
+            tracerContrastThreshold: 0.16,
+
+            convergenceThreshold: 0.018,
+
+            frontogenesisPerHour: 0.30,
+
+            decayPerHour: 0.035,
+
+            temperatureGradientWeight: 1.00,
+
+            humidityGradientWeight: 0.45,
+
+            tracerContrastWeight: 0.90,
+
+            convergenceWeight: 1.30,
+
+            /*
+             * Deliberately stronger than V8.
+             *
+             * V8's principal failure was insufficient vertical forcing
+             * when contrasting air actually met.
+             */
+            frontalLiftMultiplier: 2.8,
+
+            coldFrontLiftMultiplier: 1.45,
+
+            warmFrontLiftMultiplier: 1.15,
+
+            occlusionLiftMultiplier: 1.30,
+
+            maximumFrontStrength: 3.0
+        },
+
+
+        /* ==========================================================
+           VERTICAL MOTION
+        ========================================================== */
+
+        verticalMotion: {
+
+            convergenceMultiplier: 3.0,
+
+            frontalMultiplier: 2.4,
+
+            orographicMultiplier: 1.8,
+
+            convectiveMultiplier: 1.4,
+
+            pressureTendencyMultiplier: 0.35,
+
+            dampingPerHour: 0.10,
+
+            /*
+             * Very weak ascent should not produce unrealistic continuous
+             * precipitation.
+             */
+            meaningfulAscentThreshold: 0.04
+        },
+
+
+        /* ==========================================================
+           TERRAIN
+        ========================================================== */
+
+        terrain: {
+
+            mountainBlockingEnabled: true,
+
+            blockingStartM: 650,
+
+            strongBlockingM: 1200,
+
+            blockingStrength: 0.55,
+
+            upslopeLiftStrength: 1.70,
+
+            saturatedUpslopeBoost: 1.45,
+
+            rainShadowStrength: 0.42,
+
+            surfaceLapseRateCPerKm: 6.2
+        },
+
+
+        /* ==========================================================
+           OCEAN
+        ========================================================== */
+
+        ocean: {
+
+            minSstC: -2.0,
+
+            maxSstC: 32.0,
+
+            seasonalRelaxationPerHour: 0.0008,
+
+            airSeaHeatExchangePerHour: 0.035,
+
+            windHeatExchangeBoost: 0.055,
+
+            evaporationBasePerHour: 0.012,
+
+            windEvaporationBoost: 0.065,
+
+            humidityDeficitBoost: 1.0,
+
+            /*
+             * Cold air moving across relatively warm water needs enough
+             * heat/moisture supply to form genuine maritime showers.
+             */
+            coldAirInstabilityBoost: 0.75
+        },
+
+
+        /* ==========================================================
+           LAND SURFACE
+        ========================================================== */
+
+        ground: {
+
+            temperatureMemory: 0.985,
+
+            airGroundExchangePerHour: 0.060,
+
+            moistureMemory: 0.995,
+
+            rainWettingPerMm: 0.04,
+
+            dryingPerHour: 0.005,
+
+            snowInsulationStrength: 0.45
+        },
+
+
+        /* ==========================================================
+           RADIATION
+        ========================================================== */
+
+        radiation: {
+
+            landSolarHeating: 0.085,
+
+            oceanSolarHeating: 0.012,
+
+            clearNightCooling: 0.065,
+
+            cloudShortwaveSuppression: 0.72,
+
+            lowCloudLongwaveRetention: 0.75,
+
+            highCloudLongwaveRetention: 0.50,
+
+            snowAlbedoCooling: 0.60
+        },
+
+
+        /* ==========================================================
+           SATURATION AND CLOUD
+        ========================================================== */
+
+        moisture: {
+
+            /*
+             * Condensation is driven primarily by actual saturation.
+             */
+            saturationRH: 1.0,
+
+            nearSaturationRH: 0.90,
+
+            cloudFormationRH: 0.92,
+
+            condensationEfficiency: 0.82,
+
+            forcedLiftCondensationEfficiency: 0.40,
+
+            evaporationEfficiency: 0.20,
+
+            sublimationEfficiency: 0.10,
+
+            latentHeatStrength: 1.0
+        },
+
+
+        cloud: {
+
+            liquidAutoconversionKgKg: 0.00012,
+
+            iceAutoconversionKgKg: 0.00009,
+
+            liquidAutoconversionRate: 0.30,
+
+            iceAutoconversionRate: 0.25,
+
+            accretionRate: 0.20,
+
+            frontalPersistence: 0.97,
+
+            stratiformPersistence: 0.94,
+
+            convectivePersistence: 0.82
+        },
+
+
+        /* ==========================================================
+           PRECIPITATION
+        ========================================================== */
+
+        precipitation: {
+
+            frontalEfficiency: 1.25,
+
+            orographicEfficiency: 1.15,
+
+            convectiveEfficiency: 1.10,
+
+            belowCloudEvaporation: 0.18,
+
+            maximumMmHr: 100,
+
+            drizzleMmHr: 0.05,
+
+            lightMmHr: 0.5,
+
+            moderateMmHr: 2.5,
+
+            heavyMmHr: 7.5,
+
+            extremeMmHr: 25,
+
+            /*
+             * V10 precipitation sanity protection.
+             *
+             * This is NOT artificial random rain.
+             *
+             * It only activates when the model contains physically
+             * contradictory state: near-saturation, cloud condensate and
+             * meaningful ascent but effectively zero precipitation.
+             */
+            sanityFloor: {
+                enabled: true,
+
+                minimumRH: 0.965,
+
+                minimumVerticalMotion: 0.12,
+
+                minimumCondensateKgKg: 0.00008,
+
+                minimumRateMmHr: 0.08
+            }
+        },
+
+
+        /* ==========================================================
+           PRECIPITATION PHASE
+        ========================================================== */
+
+        precipitationPhase: {
+
+            /*
+             * Surface temperature alone is NOT sufficient.
+             *
+             * V10 uses wet-bulb plus the 925/850/700 hPa column.
+             */
+
+            definiteSnowWetBulbC: 0.4,
+
+            wetSnowUpperWetBulbC: 1.2,
+
+            mixedUpperWetBulbC: 2.2,
+
+            definiteRainWetBulbC: 3.0,
+
+            warmNoseMinimumC: 0.5,
+
+            strongWarmNoseC: 2.0,
+
+            refreezeLayerC: -1.0,
+
+            evaporativeCoolingStrength: 0.70,
+
+            dynamicCoolingStrength: 0.60,
+
+            precipitationCoolingStrength: 0.45
+        },
+
+
+        /* ==========================================================
+           CONVECTION
+        ========================================================== */
+
+        convection: {
+
+            enabled: true,
+
+            minimumInstabilityC: 2.5,
+
+            strongInstabilityC: 7.0,
+
+            minimumRH: 0.72,
+
+            minimumTriggerLift: 0.10,
+
+            oceanColdAirBoost: 0.85,
+
+            maximumLiftBoost: 2.2
+        },
+
+
+        /* ==========================================================
+           SNOW
+        ========================================================== */
+
+        snow: {
+
+            minimumAccumulatingRateMmHr: 0.10,
+
+            wetSnowRatioCmPerMm: 0.55,
+
+            normalSnowRatioCmPerMm: 1.0,
+
+            drySnowRatioCmPerMm: 1.45,
+
+            settlingPerHour: 0.008,
+
+            airTemperatureMeltPerHour: 0.035,
+
+            rainMeltPerMm: 0.018,
+
+            solarMeltPerHour: 0.025
+        },
+
+
+        /* ==========================================================
+           HISTORY AND STATIONS
+        ========================================================== */
+
+        history: {
+
+            snapshotEveryMinutes: 60,
+
+            maxSnapshots: 24 * 35,
+
+            stationSampleEveryMinutes: 4,
+
+            maxStationSamples: 24 * 15 * 90
+        },
+
+
+        /* ==========================================================
+           DEVELOPMENT CONTROLS
+        ========================================================== */
+
+        forcing: {
+
+            maxSteeringArrows: 10,
+
+            arrowDefaultWidthKm: 800,
+
+            arrowDefaultSpeedKmh: 45,
+
+            arrowDefaultStrength: 0.65,
+
+            arrowMaximumSpeedKmh: 160,
+
+            airMassDefaultRadiusKm: 650,
+
+            airMassDefaultStrength: 0.90
+        },
+
+
+        /* ==========================================================
+           DIAGNOSTICS
+        ========================================================== */
+
+        diagnostics: {
+
+            enabled: true,
+
+            storeRH: true,
+
+            storeWetBulb: true,
+
+            storeConvergence: true,
+
+            storeTemperatureGradient: true,
+
+            storeTracerContrast: true,
+
+            storeFrontStrength: true,
+
+            storeVerticalVelocity: true,
+
+            storeOrographicLift: true,
+
+            storeConvectiveLift: true,
+
+            storeCondensation: true,
+
+            storeCloudLiquid: true,
+
+            storeCloudIce: true,
+
+            storePrecipProduction: true,
+
+            storePrecipEvaporation: true,
+
+            storeSaturationDeficit: true,
+
+            storeDominantAirMass: true,
+
+            storePrecipitationReason: true
+        },
+
+
+        /* ==========================================================
+           ACCEPTANCE TARGET
+        ========================================================== */
+
+        acceptance: {
+
+            /*
+             * During development, deliberately create two contrasting
+             * air masses and force them together.
+             *
+             * At accelerated playback V10 should visibly develop:
+             *
+             * temperature boundary
+             * pressure response
+             * convergence
+             * frontal ascent
+             * cloud
+             * precipitation
+             *
+             * within a practical testing period.
+             */
+
+            collisionTestTargetRealSeconds: 10,
+
+            requirePersistentAirMasses: true,
+
+            requireDynamicPressure: true,
+
+            requireFrontogenesis: true,
+
+            requireVerticalAtmosphere: true,
+
+            requirePhysicalCloudFormation: true,
+
+            requirePhysicalPrecipitation: true
+        }
+    };
+
+
+    function deepFreeze(value) {
+
+        if (
+            value === null ||
+            typeof value !== "object" ||
+            Object.isFrozen(value)
+        ) {
+            return value;
+        }
+
+        Object.freeze(value);
+
+        for (
+            const child of Object.values(value)
+        ) {
+            deepFreeze(child);
+        }
+
+        return value;
+    }
+
+
+    global.EuropaConfig =
+        deepFreeze(CONFIG);
+
+})(window);
