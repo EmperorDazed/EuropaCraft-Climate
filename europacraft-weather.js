@@ -1,8652 +1,8505 @@
 "use strict";
 
-/*
-    ========================================================================
-    EuropaCraft Weather Planner — deterministic authoring engine
-    File 3 of 3 code files: europacraft-weather.js
-
-    Required data file beside it:
-        europacraft-elevation.png
-
-    IMPORTANT DATASET RULES
-    -----------------------
-    The PNG must cover exactly:
-        74°N to 30°N
-        26°W to 52°E
-
-    Projection:
-        equirectangular / Plate Carrée
-        north at top, west at left
-
-    Encoding:
-        SEA  = RGB 0,0,0
-        LAND = grayscale 1..255
-
-    Recommended planner copy size:
-        1560 × 880 pixels
-
-    The planner deliberately uses the raster itself as the land/sea mask.
-    There are NO hand-drawn Europe polygons and NO random coastlines.
-
-    Weather is deterministic. Nothing meteorological uses Math.random().
-    ========================================================================
-*/
-
 (function () {
-    "use strict";
 
-    if (!window.EuropaWeatherPlan) {
-        throw new Error(
-            "europacraft-weather-plan.js must load before europacraft-weather.js"
-        );
-    }
+  const BOUNDS = {
+    north: 74,
+    south: 30,
+    west: -26,
+    east: 52
+  };
 
-    const PLAN = window.EuropaWeatherPlan;
 
-    const ENGINE_VERSION = "2.0-authored-raster-paths";
-    const STORAGE_KEY = "europacraft-weather-planner-v2";
+  /*
+      Static geography only.
 
-    const MS_MINUTE = 60 * 1000;
-    const MS_HOUR = 60 * MS_MINUTE;
-    const MS_DAY = 24 * MS_HOUR;
+      These are NOT weather APIs.
 
-    const KM_PER_DEG = 111.32;
+      Natural Earth supplies the real coastline/land mask.
 
-    /*
-        Adjust only if your grayscale DEM uses a different vertical scale.
-    */
-    const DEM_MAX_METRES = 4500;
+      AWS Terrarium supplies real elevation at a deliberately coarse
+      zoom appropriate for a continental weather planner.
+  */
 
-    /*
-        Pure black is sea.
+  const GEO_URL =
+    "https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@ca96624a/geojson/ne_50m_land.geojson";
 
-        IMPORTANT:
-        Real low-lying land must therefore be at least grayscale value 1.
-    */
-    const SEA_PIXEL_MAX = 0;
 
-    /*
-        Environmental lapse rate used by the simple climate baseline.
-    */
-    const LAPSE_RATE_C_PER_KM = 6.2;
+  const TERRAIN_URL =
+    "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
 
-    const ORIGINAL_FILE_PLAN =
-        deepCopy(
-            PLAN.toSerializable()
-        );
 
+  /*
+      Zoom 4 is intentionally coarse.
 
-    /* =====================================================================
-       DOM
-       ===================================================================== */
+      At continental scale this is enough to represent:
+      - Alps
+      - Pyrenees
+      - Carpathians
+      - Scandinavian mountains
+      - Scottish Highlands
+      - Balkan mountains
+      - major lowlands
 
-    const canvas =
-        document.getElementById("weatherMap");
+      without turning the browser into a terrain-processing project.
+  */
+  const TERRAIN_ZOOM =
+    4;
 
-    const ctx =
-        canvas.getContext("2d");
 
+  const KM_PER_DEG =
+    111.32;
 
-    const el = {
-        currentTime:
-            document.getElementById("ec-current-time"),
 
-        planRange:
-            document.getElementById("ec-plan-range"),
+  const MS_HOUR =
+    3600000;
 
-        lockState:
-            document.getElementById("ec-lock-state"),
 
-        mapHelp:
-            document.getElementById("ec-map-help"),
+  const MS_DAY =
+    86400000;
 
-        mapCoordinates:
-            document.getElementById("ec-map-coordinates"),
 
-        timeSlider:
-            document.getElementById("ec-time-slider"),
+  const STORAGE_KEY =
+    "europacraft-weather-studio-v1";
 
-        timeInput:
-            document.getElementById("ec-time-input"),
 
-        timelineStart:
-            document.getElementById("ec-timeline-start"),
+  const DEFAULT_PLAN = {
 
-        timelineMiddle:
-            document.getElementById("ec-timeline-middle"),
+    version:
+      1,
 
-        timelineEnd:
-            document.getElementById("ec-timeline-end"),
+    blockStart:
+      "2026-10-01T00:00:00Z",
 
-        minus6h:
-            document.getElementById("ec-minus-6h"),
+    blockEnd:
+      "2026-12-31T23:59:59Z",
 
-        minus1h:
-            document.getElementById("ec-minus-1h"),
+    lockedHistoryHours:
+      12,
 
-        plus1h:
-            document.getElementById("ec-plus-1h"),
+    doneThrough:
+      null,
 
-        plus6h:
-            document.getElementById("ec-plus-6h"),
+    lockedThrough:
+      null,
 
-        deleteSelected:
-            document.getElementById("ec-delete-selected"),
+    objects:
+      []
 
-        duplicateSelected:
-            document.getElementById("ec-duplicate-selected"),
+  };
 
-        inspectedLocation:
-            document.getElementById("ec-inspected-location"),
 
-        wxTemp:
-            document.getElementById("wx-temp"),
+  let plan =
+    loadPlan() ||
+    structuredCloneSafe(
+      DEFAULT_PLAN
+    );
 
-        wxPressure:
-            document.getElementById("wx-pressure"),
 
-        wxWind:
-            document.getElementById("wx-wind"),
+  const canvas =
+    document.getElementById(
+      "map"
+    );
 
-        wxCloud:
-            document.getElementById("wx-cloud"),
 
-        wxPrecip:
-            document.getElementById("wx-precip"),
+  const ctx =
+    canvas.getContext(
+      "2d"
+    );
+
+
+  const ui = {
+
+    currentTime:
+      document.getElementById(
+        "currentTime"
+      ),
+
+    planRange:
+      document.getElementById(
+        "planRange"
+      ),
+
+    planState:
+      document.getElementById(
+        "planState"
+      ),
+
+    mapHint:
+      document.getElementById(
+        "mapHint"
+      ),
+
+    coords:
+      document.getElementById(
+        "coords"
+      ),
+
+    layer:
+      document.getElementById(
+        "layer"
+      ),
+
+    finishAir:
+      document.getElementById(
+        "finishAir"
+      ),
+
+    cancelAir:
+      document.getElementById(
+        "cancelAir"
+      ),
+
+    airType:
+      document.getElementById(
+        "airType"
+      ),
+
+    airIntensity:
+      document.getElementById(
+        "airIntensity"
+      ),
+
+    airWidth:
+      document.getElementById(
+        "airWidth"
+      ),
+
+    airDuration:
+      document.getElementById(
+        "airDuration"
+      ),
+
+    pressureStrength:
+      document.getElementById(
+        "pressureStrength"
+      ),
+
+    pressureDuration:
+      document.getElementById(
+        "pressureDuration"
+      ),
+
+    timeSlider:
+      document.getElementById(
+        "timeSlider"
+      ),
+
+    timeInput:
+      document.getElementById(
+        "timeInput"
+      ),
+
+    timeStart:
+      document.getElementById(
+        "timeStart"
+      ),
+
+    timeMiddle:
+      document.getElementById(
+        "timeMiddle"
+      ),
+
+    timeEnd:
+      document.getElementById(
+        "timeEnd"
+      ),
+
+    m6:
+      document.getElementById(
+        "m6"
+      ),
+
+    m1:
+      document.getElementById(
+        "m1"
+      ),
+
+    p1:
+      document.getElementById(
+        "p1"
+      ),
+
+    p6:
+      document.getElementById(
+        "p6"
+      ),
+
+    where:
+      document.getElementById(
+        "where"
+      ),
+
+    wxTemp:
+      document.getElementById(
+        "wxTemp"
+      ),
+
+    wxAnom:
+      document.getElementById(
+        "wxAnom"
+      ),
+
+    wxPressure:
+      document.getElementById(
+        "wxPressure"
+      ),
+
+    wxWind:
+      document.getElementById(
+        "wxWind"
+      ),
+
+    wxCloud:
+      document.getElementById(
+        "wxCloud"
+      ),
+
+    wxMoisture:
+      document.getElementById(
+        "wxMoisture"
+      ),
+
+    wxPrecip:
+      document.getElementById(
+        "wxPrecip"
+      ),
+
+    wxSnow:
+      document.getElementById(
+        "wxSnow"
+      ),
+
+    wxElevation:
+      document.getElementById(
+        "wxElevation"
+      ),
+
+    objects:
+      document.getElementById(
+        "objects"
+      ),
+
+    deleteSelected:
+      document.getElementById(
+        "deleteSelected"
+      ),
+
+    markDone:
+      document.getElementById(
+        "markDone"
+      ),
+
+    lockThrough:
+      document.getElementById(
+        "lockThrough"
+      ),
+
+    nextBlock:
+      document.getElementById(
+        "nextBlock"
+      ),
+
+    save:
+      document.getElementById(
+        "save"
+      ),
+
+    export:
+      document.getElementById(
+        "export"
+      ),
 
-        wxSnow:
-            document.getElementById("wx-snow"),
+    reset:
+      document.getElementById(
+        "reset"
+      ),
 
-        wxSurface:
-            document.getElementById("wx-surface"),
+    message:
+      document.getElementById(
+        "message"
+      )
 
-        objectList:
-            document.getElementById("ec-object-list"),
+  };
 
-        selectedEmpty:
-            document.getElementById("ec-selected-empty"),
 
-        selectedEditor:
-            document.getElementById("ec-selected-editor"),
+  const state = {
 
-        lockedObjectNote:
-            document.getElementById("ec-locked-object-note"),
+    tool:
+      "inspect",
 
-        objName:
-            document.getElementById("obj-name"),
+    layer:
+      "synoptic",
 
-        objType:
-            document.getElementById("obj-type"),
+    now:
+      Date.parse(
+        plan.blockStart
+      ),
 
-        objStartTime:
-            document.getElementById("obj-start-time"),
+    displayStart:
+      0,
 
-        objEndTime:
-            document.getElementById("obj-end-time"),
+    displayEnd:
+      0,
 
-        objStartLat:
-            document.getElementById("obj-start-lat"),
+    selectedId:
+      null,
 
-        objStartLon:
-            document.getElementById("obj-start-lon"),
+    inspect: {
+      lat: 53.5,
+      lon: 15
+    },
 
-        objEndLat:
-            document.getElementById("obj-end-lat"),
+    drawPath:
+      [],
 
-        objEndLon:
-            document.getElementById("obj-end-lon"),
+    drawActive:
+      false,
 
-        objStrength:
-            document.getElementById("obj-strength"),
+    width:
+      900,
 
-        objRadius:
-            document.getElementById("obj-radius"),
+    height:
+      520,
 
-        objAirmass:
-            document.getElementById("obj-airmass"),
+    dpr:
+      1,
 
-        objAngle:
-            document.getElementById("obj-angle"),
+    geoReady:
+      false,
 
-        objLength:
-            document.getElementById("obj-length"),
+    terrainReady:
+      false,
 
-        objPrecipMode:
-            document.getElementById("obj-precip-mode"),
+    terrainLoading:
+      false,
 
-        objPrecipRate:
-            document.getElementById("obj-precip-rate"),
+    landMask:
+      null,
 
-        objCloud:
-            document.getElementById("obj-cloud"),
+    baseCanvas:
+      document.createElement(
+        "canvas"
+      ),
 
-        objNotes:
-            document.getElementById("obj-notes"),
+    terrainTiles:
+      new Map(),
 
-        fieldAirmass:
-            document.getElementById("field-airmass"),
+    overlayCache:
+      new Map()
 
-        fieldFront:
-            document.getElementById("field-front"),
+  };
 
-        fieldPrecip:
-            document.getElementById("field-precip"),
 
-        markDone:
-            document.getElementById("ec-mark-done"),
+  const MASK_W =
+    780;
 
-        lockThrough:
-            document.getElementById("ec-lock-through"),
 
-        saveLocal:
-            document.getElementById("ec-save-local"),
+  const MASK_H =
+    440;
 
-        exportPlan:
-            document.getElementById("ec-export-plan"),
 
-        exportServer:
-            document.getElementById("ec-export-server"),
+  const landCanvas =
+    document.createElement(
+      "canvas"
+    );
 
-        resetPlan:
-            document.getElementById("ec-reset-plan"),
 
-        status:
-            document.getElementById("ec-status-message")
-    };
+  landCanvas.width =
+    MASK_W;
 
 
-    /* =====================================================================
-       STATE
-       ===================================================================== */
+  landCanvas.height =
+    MASK_H;
 
-    const state = {
-        tool:
-            "inspect",
 
-        layer:
-            "synoptic",
+  const landCtx =
+    landCanvas.getContext(
+      "2d",
+      {
+        willReadFrequently:
+          true
+      }
+    );
 
-        currentTime:
-            Date.parse(
-                PLAN.planningBlock.start
-            ),
 
-        selectedObjectId:
-            null,
+  /*
+      ==========================================================
+      GENERIC HELPERS
+      ==========================================================
+  */
 
-        inspectedPoint: {
-            lat: 53.5,
-            lon: 15.0
-        },
 
-        displayStart:
-            0,
+  function structuredCloneSafe(
+    value
+  ) {
 
-        displayEnd:
-            0,
+    return JSON.parse(
+      JSON.stringify(
+        value
+      )
+    );
 
-        dirty:
-            false,
+  }
 
-        drawingWidth:
-            0,
 
-        drawingHeight:
-            0,
+  function clamp(
+    v,
+    min,
+    max
+  ) {
 
-        dpr:
-            1,
+    v =
+      Number(v);
 
-        rasterReady:
-            false,
 
-        rasterError:
-            false,
-
-        drawPath:
-            [],
-
-        drawPathActive:
-            false
-    };
-
-
-    /* =====================================================================
-       ELEVATION RASTER
-       ===================================================================== */
-
-    const dem = {
-        canvas:
-            document.createElement("canvas"),
-
-        ctx:
-            null,
-
-        width:
-            0,
-
-        height:
-            0,
-
-        pixels:
-            null,
-
-        baseMapCanvas:
-            document.createElement("canvas")
-    };
-
-
-    dem.ctx =
-        dem.canvas.getContext(
-            "2d",
-            {
-                willReadFrequently: true
-            }
-        );
-
-
-    function loadElevationDataset() {
-
-        const image =
-            new Image();
-
-
-        image.onload =
-            function () {
-
-                /*
-                    Downsample once to a manageable planning raster.
-
-                    This means even if you accidentally provide a much larger
-                    source PNG, the weather planner does not perform every
-                    calculation against a 30,000-pixel-wide image.
-                */
-                const targetW =
-                    Math.min(
-                        1800,
-                        image.naturalWidth ||
-                        1560
-                    );
-
-
-                const targetH =
-                    Math.max(
-                        1,
-                        Math.round(
-                            targetW *
-                            44 /
-                            78
-                        )
-                    );
-
-
-                dem.width =
-                    targetW;
-
-                dem.height =
-                    targetH;
-
-
-                dem.canvas.width =
-                    targetW;
-
-                dem.canvas.height =
-                    targetH;
-
-
-                dem.ctx.imageSmoothingEnabled =
-                    true;
-
-
-                dem.ctx.drawImage(
-                    image,
-                    0,
-                    0,
-                    targetW,
-                    targetH
-                );
-
-
-                try {
-
-                    dem.pixels =
-                        dem.ctx.getImageData(
-                            0,
-                            0,
-                            targetW,
-                            targetH
-                        ).data;
-                }
-                catch (error) {
-
-                    console.error(
-                        error
-                    );
-
-
-                    state.rasterError =
-                        true;
-
-
-                    statusMessage(
-                        "Elevation PNG loaded but its pixels could not be read. " +
-                        "Keep the file on the same GitHub Pages origin.",
-                        "Dataset error:"
-                    );
-
-
-                    render();
-
-                    return;
-                }
-
-
-                state.rasterReady =
-                    true;
-
-                state.rasterError =
-                    false;
-
-
-                buildBaseMapRaster();
-
-
-                statusMessage(
-                    "EuropaCraft elevation dataset loaded. " +
-                    "Land, sea and elevation now come from the raster."
-                );
-
-
-                refreshEverything();
-            };
-
-
-        image.onerror =
-            function () {
-
-                state.rasterReady =
-                    false;
-
-                state.rasterError =
-                    true;
-
-
-                statusMessage(
-                    "Add europacraft-elevation.png beside the three code files. " +
-                    "Europe will not be approximated with fake polygons.",
-                    "Elevation dataset missing:"
-                );
-
-
-                render();
-            };
-
-
-        image.src =
-            "europacraft-elevation.png?v=2";
-    }
-
-
-    function rasterPixel(
-        lat,
-        lon
+    if (
+      !Number.isFinite(
+        v
+      )
     ) {
 
-        if (
-            !state.rasterReady ||
-            !dem.pixels
+      return min;
+
+    }
+
+
+    return Math.max(
+      min,
+      Math.min(
+        max,
+        v
+      )
+    );
+
+  }
+
+
+  function lerp(
+    a,
+    b,
+    t
+  ) {
+
+    return (
+      a +
+      (
+        b -
+        a
+      ) *
+      t
+    );
+
+  }
+
+
+  function smoothstep(
+    t
+  ) {
+
+    t =
+      clamp(
+        t,
+        0,
+        1
+      );
+
+
+    return (
+      t *
+      t *
+      (
+        3 -
+        2 *
+        t
+      )
+    );
+
+  }
+
+
+  function degToRad(
+    d
+  ) {
+
+    return (
+      d *
+      Math.PI /
+      180
+    );
+
+  }
+
+
+  function radToDeg(
+    r
+  ) {
+
+    return (
+      r *
+      180 /
+      Math.PI
+    );
+
+  }
+
+
+  function normDeg(
+    d
+  ) {
+
+    d %=
+      360;
+
+
+    if (
+      d <
+      0
+    ) {
+
+      d +=
+        360;
+
+    }
+
+
+    return d;
+
+  }
+
+
+  function pad2(
+    n
+  ) {
+
+    return String(
+      n
+    )
+    .padStart(
+      2,
+      "0"
+    );
+
+  }
+
+
+  function monthName(
+    i
+  ) {
+
+    return [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec"
+    ][i];
+
+  }
+
+
+  function formatUTC(
+    ms
+  ) {
+
+    const d =
+      new Date(
+        ms
+      );
+
+
+    return (
+      d.getUTCFullYear() +
+      "-" +
+      pad2(
+        d.getUTCMonth() +
+        1
+      ) +
+      "-" +
+      pad2(
+        d.getUTCDate()
+      ) +
+      " " +
+      pad2(
+        d.getUTCHours()
+      ) +
+      ":" +
+      pad2(
+        d.getUTCMinutes()
+      ) +
+      " UTC"
+    );
+
+  }
+
+
+  function shortUTC(
+    ms
+  ) {
+
+    const d =
+      new Date(
+        ms
+      );
+
+
+    return (
+      pad2(
+        d.getUTCDate()
+      ) +
+      " " +
+      monthName(
+        d.getUTCMonth()
+      ) +
+      " " +
+      pad2(
+        d.getUTCHours()
+      ) +
+      ":" +
+      pad2(
+        d.getUTCMinutes()
+      )
+    );
+
+  }
+
+
+  function toLocalInput(
+    ms
+  ) {
+
+    const d =
+      new Date(
+        ms
+      );
+
+
+    return (
+      d.getUTCFullYear() +
+      "-" +
+      pad2(
+        d.getUTCMonth() +
+        1
+      ) +
+      "-" +
+      pad2(
+        d.getUTCDate()
+      ) +
+      "T" +
+      pad2(
+        d.getUTCHours()
+      ) +
+      ":" +
+      pad2(
+        d.getUTCMinutes()
+      )
+    );
+
+  }
+
+
+  function parseLocalInputAsUTC(
+    text
+  ) {
+
+    const m =
+      /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/
+      .exec(
+        text ||
+        ""
+      );
+
+
+    if (!m) {
+
+      return NaN;
+
+    }
+
+
+    return Date.UTC(
+      +m[1],
+      +m[2] -
+      1,
+      +m[3],
+      +m[4],
+      +m[5]
+    );
+
+  }
+
+
+  function dayOfYear(
+    ms
+  ) {
+
+    const d =
+      new Date(
+        ms
+      );
+
+
+    return (
+      Math.floor(
+        (
+          ms -
+          Date.UTC(
+            d.getUTCFullYear(),
+            0,
+            1
+          )
+        ) /
+        MS_DAY
+      ) +
+      1
+    );
+
+  }
+
+
+  function msg(
+    text,
+    lead =
+      ""
+  ) {
+
+    ui.message.textContent =
+      lead
+        ? lead +
+          " " +
+          text
+        : text;
+
+  }
+
+
+  /*
+      ==========================================================
+      MAP PROJECTION
+      ==========================================================
+  */
+
+
+  function lonToX(
+    lon,
+    width =
+      state.width
+  ) {
+
+    return (
+      (
+        lon -
+        BOUNDS.west
+      ) /
+      (
+        BOUNDS.east -
+        BOUNDS.west
+      ) *
+      width
+    );
+
+  }
+
+
+  function latToY(
+    lat,
+    height =
+      state.height
+  ) {
+
+    return (
+      (
+        BOUNDS.north -
+        lat
+      ) /
+      (
+        BOUNDS.north -
+        BOUNDS.south
+      ) *
+      height
+    );
+
+  }
+
+
+  function xToLon(
+    x,
+    width =
+      state.width
+  ) {
+
+    return (
+      BOUNDS.west +
+      x /
+      width *
+      (
+        BOUNDS.east -
+        BOUNDS.west
+      )
+    );
+
+  }
+
+
+  function yToLat(
+    y,
+    height =
+      state.height
+  ) {
+
+    return (
+      BOUNDS.north -
+      y /
+      height *
+      (
+        BOUNDS.north -
+        BOUNDS.south
+      )
+    );
+
+  }
+
+
+  function canvasPoint(
+    evt
+  ) {
+
+    const r =
+      canvas.getBoundingClientRect();
+
+
+    return {
+
+      x:
+        (
+          evt.clientX -
+          r.left
+        ) *
+        state.width /
+        r.width,
+
+      y:
+        (
+          evt.clientY -
+          r.top
+        ) *
+        state.height /
+        r.height
+
+    };
+
+  }
+
+
+  function kmPerLonDeg(
+    lat
+  ) {
+
+    return (
+      KM_PER_DEG *
+      Math.max(
+        0.12,
+        Math.cos(
+          degToRad(
+            lat
+          )
+        )
+      )
+    );
+
+  }
+
+
+  function distanceKm(
+    aLat,
+    aLon,
+    bLat,
+    bLon
+  ) {
+
+    const ml =
+      (
+        aLat +
+        bLat
+      ) /
+      2;
+
+
+    const dx =
+      (
+        bLon -
+        aLon
+      ) *
+      kmPerLonDeg(
+        ml
+      );
+
+
+    const dy =
+      (
+        bLat -
+        aLat
+      ) *
+      KM_PER_DEG;
+
+
+    return Math.hypot(
+      dx,
+      dy
+    );
+
+  }
+
+
+  function localVectorKm(
+    aLat,
+    aLon,
+    bLat,
+    bLon
+  ) {
+
+    const ml =
+      (
+        aLat +
+        bLat
+      ) /
+      2;
+
+
+    return {
+
+      x:
+        (
+          bLon -
+          aLon
+        ) *
+        kmPerLonDeg(
+          ml
+        ),
+
+      y:
+        (
+          bLat -
+          aLat
+        ) *
+        KM_PER_DEG
+
+    };
+
+  }
+
+
+  function uid(
+    prefix
+  ) {
+
+    return (
+      prefix +
+      "_" +
+      Date.now()
+        .toString(
+          36
+        ) +
+      "_" +
+      Math.random()
+        .toString(
+          36
+        )
+        .slice(
+          2,
+          7
+        )
+    );
+
+  }
+
+
+  /*
+      ==========================================================
+      PLAN SAVE / LOAD
+      ==========================================================
+  */
+
+
+  function loadPlan() {
+
+    try {
+
+      const raw =
+        localStorage.getItem(
+          STORAGE_KEY
+        );
+
+
+      if (!raw) {
+
+        return null;
+
+      }
+
+
+      const p =
+        JSON.parse(
+          raw
+        );
+
+
+      if (
+        !p ||
+        !Array.isArray(
+          p.objects
+        ) ||
+        !p.blockStart ||
+        !p.blockEnd
+      ) {
+
+        return null;
+
+      }
+
+
+      return p;
+
+    }
+    catch (_) {
+
+      return null;
+
+    }
+
+  }
+
+
+  function savePlan() {
+
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(
+        plan
+      )
+    );
+
+
+    msg(
+      "Working plan saved locally."
+    );
+
+  }
+
+
+  function savePlanSilently() {
+
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(
+        plan
+      )
+    );
+
+  }
+
+
+  /*
+      ==========================================================
+      LOCKING
+      ==========================================================
+  */
+
+
+  function isLocked(
+    ms
+  ) {
+
+    if (
+      !plan.lockedThrough
+    ) {
+
+      return false;
+
+    }
+
+
+    return (
+      ms <=
+      Date.parse(
+        plan.lockedThrough
+      )
+    );
+
+  }
+
+
+  function objectFrozen(
+    obj
+  ) {
+
+    if (
+      !plan.lockedThrough
+    ) {
+
+      return false;
+
+    }
+
+
+    return (
+      Date.parse(
+        obj.startTime
+      ) <=
+      Date.parse(
+        plan.lockedThrough
+      )
+    );
+
+  }
+
+
+  function planningState(
+    ms =
+      state.now
+  ) {
+
+    if (
+      plan.lockedThrough &&
+      ms <=
+      Date.parse(
+        plan.lockedThrough
+      )
+    ) {
+
+      return "LOCKED";
+
+    }
+
+
+    if (
+      plan.doneThrough &&
+      ms <=
+      Date.parse(
+        plan.doneThrough
+      )
+    ) {
+
+      return "DONE";
+
+    }
+
+
+    return "NOT DONE";
+
+  }
+
+
+  /*
+      ==========================================================
+      TIMELINE
+      ==========================================================
+  */
+
+
+  function rebuildTimeline() {
+
+    const start =
+      Date.parse(
+        plan.blockStart
+      );
+
+
+    const end =
+      Date.parse(
+        plan.blockEnd
+      );
+
+
+    let displayStart =
+      start;
+
+
+    /*
+        When moving into a later planning block, expose the
+        final 12 hours of already-locked history.
+    */
+
+    if (
+      plan.lockedThrough
+    ) {
+
+      const locked =
+        Date.parse(
+          plan.lockedThrough
+        );
+
+
+      if (
+        locked <
+        start
+      ) {
+
+        displayStart =
+          locked -
+          plan.lockedHistoryHours *
+          MS_HOUR;
+
+      }
+
+    }
+
+
+    state.displayStart =
+      displayStart;
+
+
+    state.displayEnd =
+      end;
+
+
+    state.now =
+      clamp(
+        state.now,
+        displayStart,
+        end
+      );
+
+
+    ui.timeStart.textContent =
+      shortUTC(
+        displayStart
+      );
+
+
+    ui.timeEnd.textContent =
+      shortUTC(
+        end
+      );
+
+
+    syncTimeControls();
+
+  }
+
+
+  function syncTimeControls() {
+
+    const f =
+      (
+        state.now -
+        state.displayStart
+      ) /
+      Math.max(
+        1,
+        state.displayEnd -
+        state.displayStart
+      );
+
+
+    ui.timeSlider.value =
+      String(
+        clamp(
+          f *
+          2000,
+          0,
+          2000
+        )
+      );
+
+
+    ui.timeInput.value =
+      toLocalInput(
+        state.now
+      );
+
+  }
+
+
+  function setTime(
+    ms
+  ) {
+
+    state.now =
+      clamp(
+        ms,
+        state.displayStart,
+        state.displayEnd
+      );
+
+
+    state.overlayCache.clear();
+
+
+    syncTimeControls();
+
+    updateTop();
+
+    updateObjects();
+
+    updateInspect();
+
+    render();
+
+  }
+
+
+  function updateTop() {
+
+    ui.currentTime.textContent =
+      formatUTC(
+        state.now
+      );
+
+
+    ui.planRange.textContent =
+      shortUTC(
+        Date.parse(
+          plan.blockStart
+        )
+      ) +
+      " → " +
+      shortUTC(
+        Date.parse(
+          plan.blockEnd
+        )
+      );
+
+
+    const s =
+      planningState();
+
+
+    ui.planState.textContent =
+      s;
+
+
+    ui.timeMiddle.textContent =
+      s ===
+      "LOCKED"
+        ? "LOCKED · view only"
+        : s ===
+          "DONE"
+          ? "DONE · reviewed, still editable"
+          : "NOT DONE · editable";
+
+  }
+
+
+  /*
+      ==========================================================
+      REAL GEOGRAPHY
+      ==========================================================
+  */
+
+
+  async function loadGeography() {
+
+    try {
+
+      msg(
+        "Loading Natural Earth coastline…"
+      );
+
+
+      const res =
+        await fetch(
+          GEO_URL,
+          {
+            cache:
+              "force-cache"
+          }
+        );
+
+
+      if (
+        !res.ok
+      ) {
+
+        throw new Error(
+          "Natural Earth HTTP " +
+          res.status
+        );
+
+      }
+
+
+      const geo =
+        await res.json();
+
+
+      buildLandMask(
+        geo
+      );
+
+
+      state.geoReady =
+        true;
+
+
+      buildBaseMap();
+
+      render();
+
+
+      msg(
+        "Real coastline loaded. Loading terrain elevation…"
+      );
+
+
+      await loadTerrainTiles();
+
+
+      buildBaseMap();
+
+      render();
+
+      updateInspect();
+
+
+      msg(
+        "Ready. Draw an air path, place a high or low, then use the overlays to see what develops."
+      );
+
+    }
+    catch (
+      err
+    ) {
+
+      console.error(
+        err
+      );
+
+
+      msg(
+        "Could not load real geography. The planner will not substitute fake Europe.",
+        "DATA ERROR:"
+      );
+
+
+      ui.mapHint.textContent =
+        "REAL GEOGRAPHY COULD NOT LOAD — check internet/static dataset access.";
+
+
+      render();
+
+    }
+
+  }
+
+
+  function buildLandMask(
+    geo
+  ) {
+
+    landCtx.clearRect(
+      0,
+      0,
+      MASK_W,
+      MASK_H
+    );
+
+
+    landCtx.fillStyle =
+      "#fff";
+
+
+    landCtx.beginPath();
+
+
+    function ringPath(
+      ring
+    ) {
+
+      if (
+        !ring ||
+        ring.length <
+        2
+      ) {
+
+        return;
+
+      }
+
+
+      const p0 =
+        ring[0];
+
+
+      landCtx.moveTo(
+        lonToX(
+          p0[0],
+          MASK_W
+        ),
+        latToY(
+          p0[1],
+          MASK_H
+        )
+      );
+
+
+      for (
+        let i = 1;
+        i <
+        ring.length;
+        i++
+      ) {
+
+        landCtx.lineTo(
+          lonToX(
+            ring[i][0],
+            MASK_W
+          ),
+          latToY(
+            ring[i][1],
+            MASK_H
+          )
+        );
+
+      }
+
+
+      landCtx.closePath();
+
+    }
+
+
+    for (
+      const feature of
+      geo.features ||
+      []
+    ) {
+
+      const g =
+        feature.geometry;
+
+
+      if (!g) {
+
+        continue;
+
+      }
+
+
+      if (
+        g.type ===
+        "Polygon"
+      ) {
+
+        for (
+          const ring of
+          g.coordinates
         ) {
 
-            return {
-                land: false,
-                value: 0,
-                elevationM: 0
-            };
+          ringPath(
+            ring
+          );
+
         }
 
+      }
+      else if (
+        g.type ===
+        "MultiPolygon"
+      ) {
 
-        const b =
-            PLAN.bounds;
+        for (
+          const poly of
+          g.coordinates
+        ) {
+
+          for (
+            const ring of
+            poly
+          ) {
+
+            ringPath(
+              ring
+            );
+
+          }
+
+        }
+
+      }
+
+    }
 
 
-        const fx =
-            clamp(
-                (
-                    lon -
-                    b.west
-                ) /
-                (
-                    b.east -
-                    b.west
-                ),
+    landCtx.fill(
+      "evenodd"
+    );
+
+
+    state.landMask =
+      landCtx.getImageData(
+        0,
+        0,
+        MASK_W,
+        MASK_H
+      ).data;
+
+  }
+
+
+  function isLand(
+    lat,
+    lon
+  ) {
+
+    if (
+      !state.geoReady ||
+      !state.landMask
+    ) {
+
+      return false;
+
+    }
+
+
+    const x =
+      clamp(
+        Math.floor(
+          (
+            lon -
+            BOUNDS.west
+          ) /
+          (
+            BOUNDS.east -
+            BOUNDS.west
+          ) *
+          MASK_W
+        ),
+        0,
+        MASK_W -
+        1
+      );
+
+
+    const y =
+      clamp(
+        Math.floor(
+          (
+            BOUNDS.north -
+            lat
+          ) /
+          (
+            BOUNDS.north -
+            BOUNDS.south
+          ) *
+          MASK_H
+        ),
+        0,
+        MASK_H -
+        1
+      );
+
+
+    return (
+      state.landMask[
+        (
+          y *
+          MASK_W +
+          x
+        ) *
+        4 +
+        3
+      ] >
+      0
+    );
+
+  }
+
+
+  /*
+      ==========================================================
+      REAL ELEVATION
+      AWS TERRARIUM
+      ==========================================================
+  */
+
+
+  function mercatorTileXY(
+    lat,
+    lon,
+    z
+  ) {
+
+    const n =
+      2 **
+      z;
+
+
+    const latRad =
+      degToRad(
+        clamp(
+          lat,
+          -85.0511,
+          85.0511
+        )
+      );
+
+
+    const xf =
+      (
+        lon +
+        180
+      ) /
+      360 *
+      n;
+
+
+    const yf =
+      (
+        1 -
+        Math.asinh(
+          Math.tan(
+            latRad
+          )
+        ) /
+        Math.PI
+      ) /
+      2 *
+      n;
+
+
+    return {
+
+      xf:
+        xf,
+
+      yf:
+        yf,
+
+      x:
+        Math.floor(
+          xf
+        ),
+
+      y:
+        Math.floor(
+          yf
+        )
+
+    };
+
+  }
+
+
+  async function imageDataFromBlob(
+    blob
+  ) {
+
+    if (
+      "createImageBitmap" in
+      window
+    ) {
+
+      const bmp =
+        await createImageBitmap(
+          blob
+        );
+
+
+      const c =
+        document.createElement(
+          "canvas"
+        );
+
+
+      c.width =
+        bmp.width;
+
+
+      c.height =
+        bmp.height;
+
+
+      const cctx =
+        c.getContext(
+          "2d",
+          {
+            willReadFrequently:
+              true
+          }
+        );
+
+
+      cctx.drawImage(
+        bmp,
+        0,
+        0
+      );
+
+
+      if (
+        bmp.close
+      ) {
+
+        bmp.close();
+
+      }
+
+
+      return cctx.getImageData(
+        0,
+        0,
+        c.width,
+        c.height
+      );
+
+    }
+
+
+    return await new Promise(
+      (
+        resolve,
+        reject
+      ) => {
+
+        const url =
+          URL.createObjectURL(
+            blob
+          );
+
+
+        const img =
+          new Image();
+
+
+        img.onload =
+          () => {
+
+            const c =
+              document.createElement(
+                "canvas"
+              );
+
+
+            c.width =
+              img.naturalWidth;
+
+
+            c.height =
+              img.naturalHeight;
+
+
+            const cctx =
+              c.getContext(
+                "2d",
+                {
+                  willReadFrequently:
+                    true
+                }
+              );
+
+
+            cctx.drawImage(
+              img,
+              0,
+              0
+            );
+
+
+            URL.revokeObjectURL(
+              url
+            );
+
+
+            resolve(
+              cctx.getImageData(
                 0,
-                0.999999
-            );
-
-
-        const fy =
-            clamp(
-                (
-                    b.north -
-                    lat
-                ) /
-                (
-                    b.north -
-                    b.south
-                ),
                 0,
-                0.999999
+                c.width,
+                c.height
+              )
             );
 
-
-        const x =
-            Math.floor(
-                fx *
-                dem.width
-            );
+          };
 
 
-        const y =
-            Math.floor(
-                fy *
-                dem.height
-            );
+        img.onerror =
+          reject;
 
 
-        const idx =
-            (
-                y *
-                dem.width +
-                x
-            ) *
-            4;
+        img.src =
+          url;
+
+      }
+    );
+
+  }
 
 
-        const r =
-            dem.pixels[idx];
+  async function loadTerrainTile(
+    z,
+    x,
+    y
+  ) {
 
-        const g =
-            dem.pixels[idx + 1];
+    const key =
+      z +
+      "/" +
+      x +
+      "/" +
+      y;
 
-        const bl =
-            dem.pixels[idx + 2];
+
+    if (
+      state.terrainTiles.has(
+        key
+      )
+    ) {
+
+      return;
+
+    }
 
 
-        const value =
-            Math.round(
-                (
-                    r +
-                    g +
-                    bl
-                ) /
-                3
-            );
+    const url =
+      TERRAIN_URL
+        .replace(
+          "{z}",
+          z
+        )
+        .replace(
+          "{x}",
+          x
+        )
+        .replace(
+          "{y}",
+          y
+        );
+
+
+    const res =
+      await fetch(
+        url,
+        {
+          cache:
+            "force-cache"
+        }
+      );
+
+
+    if (
+      !res.ok
+    ) {
+
+      throw new Error(
+        "Terrain " +
+        key +
+        ": HTTP " +
+        res.status
+      );
+
+    }
+
+
+    const imageData =
+      await imageDataFromBlob(
+        await res.blob()
+      );
+
+
+    state.terrainTiles.set(
+      key,
+      imageData
+    );
+
+  }
+
+
+  async function loadTerrainTiles() {
+
+    if (
+      state.terrainLoading
+    ) {
+
+      return;
+
+    }
+
+
+    state.terrainLoading =
+      true;
+
+
+    const nw =
+      mercatorTileXY(
+        BOUNDS.north,
+        BOUNDS.west,
+        TERRAIN_ZOOM
+      );
+
+
+    const se =
+      mercatorTileXY(
+        BOUNDS.south,
+        BOUNDS.east,
+        TERRAIN_ZOOM
+      );
+
+
+    const jobs =
+      [];
+
+
+    for (
+      let x = nw.x;
+      x <=
+      se.x;
+      x++
+    ) {
+
+      for (
+        let y = nw.y;
+        y <=
+        se.y;
+        y++
+      ) {
+
+        jobs.push(
+          loadTerrainTile(
+            TERRAIN_ZOOM,
+            x,
+            y
+          )
+        );
+
+      }
+
+    }
+
+
+    const results =
+      await Promise.allSettled(
+        jobs
+      );
+
+
+    const ok =
+      results.filter(
+        result =>
+          result.status ===
+          "fulfilled"
+      ).length;
+
+
+    state.terrainReady =
+      ok >
+      0;
+
+
+    state.terrainLoading =
+      false;
+
+
+    if (
+      ok !==
+      results.length
+    ) {
+
+      console.warn(
+        "Terrain tiles loaded " +
+        ok +
+        "/" +
+        results.length
+      );
+
+    }
+
+  }
+
+
+  function elevationAt(
+    lat,
+    lon
+  ) {
+
+    if (
+      !state.terrainReady
+    ) {
+
+      return 0;
+
+    }
+
+
+    const t =
+      mercatorTileXY(
+        lat,
+        lon,
+        TERRAIN_ZOOM
+      );
+
+
+    const data =
+      state.terrainTiles.get(
+        TERRAIN_ZOOM +
+        "/" +
+        t.x +
+        "/" +
+        t.y
+      );
+
+
+    if (!data) {
+
+      return 0;
+
+    }
+
+
+    const px =
+      clamp(
+        Math.floor(
+          (
+            t.xf -
+            t.x
+          ) *
+          data.width
+        ),
+        0,
+        data.width -
+        1
+      );
+
+
+    const py =
+      clamp(
+        Math.floor(
+          (
+            t.yf -
+            t.y
+          ) *
+          data.height
+        ),
+        0,
+        data.height -
+        1
+      );
+
+
+    const i =
+      (
+        py *
+        data.width +
+        px
+      ) *
+      4;
+
+
+    const r =
+      data.data[i];
+
+
+    const g =
+      data.data[
+        i +
+        1
+      ];
+
+
+    const b =
+      data.data[
+        i +
+        2
+      ];
+
+
+    /*
+        Terrarium encoding:
+
+        elevation =
+            R * 256
+            + G
+            + B / 256
+            - 32768
+    */
+
+    const h =
+      r *
+      256 +
+      g +
+      b /
+      256 -
+      32768;
+
+
+    return (
+      isLand(
+        lat,
+        lon
+      )
+        ? h
+        : 0
+    );
+
+  }
+
+
+  /*
+      ==========================================================
+      BASE MAP
+      ==========================================================
+  */
+
+
+  function buildBaseMap() {
+
+    const W =
+      MASK_W;
+
+
+    const H =
+      MASK_H;
+
+
+    state.baseCanvas.width =
+      W;
+
+
+    state.baseCanvas.height =
+      H;
+
+
+    const bctx =
+      state.baseCanvas.getContext(
+        "2d"
+      );
+
+
+    const img =
+      bctx.createImageData(
+        W,
+        H
+      );
+
+
+    for (
+      let y = 0;
+      y <
+      H;
+      y++
+    ) {
+
+      const lat =
+        yToLat(
+          y +
+          0.5,
+          H
+        );
+
+
+      for (
+        let x = 0;
+        x <
+        W;
+        x++
+      ) {
+
+        const lon =
+          xToLon(
+            x +
+            0.5,
+            W
+          );
 
 
         const land =
-            Math.max(
-                r,
-                g,
-                bl
-            ) >
-            SEA_PIXEL_MAX;
-
-
-        return {
-            land:
-                land,
-
-            value:
-                value,
-
-            elevationM:
-                land
-                    ? (
-                        value /
-                        255
-                    ) *
-                    DEM_MAX_METRES
-                    : 0
-        };
-    }
-
-
-    function isLand(
-        lat,
-        lon
-    ) {
-
-        return rasterPixel(
+          isLand(
             lat,
             lon
-        ).land;
-    }
+          );
 
 
-    function elevationM(
-        lat,
-        lon
-    ) {
+        const i =
+          (
+            y *
+            W +
+            x
+          ) *
+          4;
 
-        return rasterPixel(
-            lat,
-            lon
-        ).elevationM;
-    }
 
+        let r;
+        let g;
+        let b;
 
-    function buildBaseMapRaster() {
 
-        const w =
-            dem.width;
+        if (!land) {
 
-        const h =
-            dem.height;
+          r =
+            19;
 
+          g =
+            48;
 
-        const base =
-            dem.baseMapCanvas;
+          b =
+            66;
 
-
-        base.width =
-            w;
-
-        base.height =
-            h;
-
-
-        const bctx =
-            base.getContext("2d");
-
-
-        const image =
-            bctx.createImageData(
-                w,
-                h
-            );
-
-
-        for (
-            let y = 0;
-            y < h;
-            y++
-        ) {
-
-            for (
-                let x = 0;
-                x < w;
-                x++
-            ) {
-
-                const src =
-                    (
-                        y *
-                        w +
-                        x
-                    ) *
-                    4;
-
-
-                const r =
-                    dem.pixels[src];
-
-                const g =
-                    dem.pixels[src + 1];
-
-                const bl =
-                    dem.pixels[src + 2];
-
-
-                const value =
-                    (
-                        r +
-                        g +
-                        bl
-                    ) /
-                    3;
-
-
-                const land =
-                    Math.max(
-                        r,
-                        g,
-                        bl
-                    ) >
-                    SEA_PIXEL_MAX;
-
-
-                const dst =
-                    src;
-
-
-                if (!land) {
-
-                    image.data[dst] =
-                        20;
-
-                    image.data[dst + 1] =
-                        51;
-
-                    image.data[dst + 2] =
-                        70;
-
-                    image.data[dst + 3] =
-                        255;
-
-                    continue;
-                }
-
-
-                const n =
-                    value /
-                    255;
-
-
-                let rr;
-                let gg;
-                let bb;
-
-
-                if (
-                    n <
-                    0.16
-                ) {
-
-                    rr =
-                        lerp(
-                            62,
-                            90,
-                            n /
-                            0.16
-                        );
-
-                    gg =
-                        lerp(
-                            92,
-                            110,
-                            n /
-                            0.16
-                        );
-
-                    bb =
-                        lerp(
-                            59,
-                            63,
-                            n /
-                            0.16
-                        );
-                }
-                else if (
-                    n <
-                    0.42
-                ) {
-
-                    const t =
-                        (
-                            n -
-                            0.16
-                        ) /
-                        0.26;
-
-
-                    rr =
-                        lerp(
-                            90,
-                            117,
-                            t
-                        );
-
-                    gg =
-                        lerp(
-                            110,
-                            106,
-                            t
-                        );
-
-                    bb =
-                        lerp(
-                            63,
-                            77,
-                            t
-                        );
-                }
-                else if (
-                    n <
-                    0.72
-                ) {
-
-                    const t =
-                        (
-                            n -
-                            0.42
-                        ) /
-                        0.30;
-
-
-                    rr =
-                        lerp(
-                            117,
-                            148,
-                            t
-                        );
-
-                    gg =
-                        lerp(
-                            106,
-                            130,
-                            t
-                        );
-
-                    bb =
-                        lerp(
-                            77,
-                            105,
-                            t
-                        );
-                }
-                else {
-
-                    const t =
-                        (
-                            n -
-                            0.72
-                        ) /
-                        0.28;
-
-
-                    rr =
-                        lerp(
-                            148,
-                            222,
-                            t
-                        );
-
-                    gg =
-                        lerp(
-                            130,
-                            218,
-                            t
-                        );
-
-                    bb =
-                        lerp(
-                            105,
-                            210,
-                            t
-                        );
-                }
-
-
-                image.data[dst] =
-                    Math.round(rr);
-
-                image.data[dst + 1] =
-                    Math.round(gg);
-
-                image.data[dst + 2] =
-                    Math.round(bb);
-
-                image.data[dst + 3] =
-                    255;
-            }
-        }
-
-
-        bctx.putImageData(
-            image,
-            0,
-            0
-        );
-    }
-
-
-    /* =====================================================================
-       GENERIC HELPERS
-       ===================================================================== */
-
-    function clamp(
-        value,
-        min,
-        max
-    ) {
-
-        value =
-            Number(value);
-
-
-        if (
-            !Number.isFinite(
-                value
-            )
-        ) {
-
-            return min;
-        }
-
-
-        return Math.max(
-            min,
-            Math.min(
-                max,
-                value
-            )
-        );
-    }
-
-
-    function lerp(
-        a,
-        b,
-        t
-    ) {
-
-        return (
-            a +
-            (
-                b -
-                a
-            ) *
-            t
-        );
-    }
-
-
-    function smoothstep(t) {
-
-        t =
-            clamp(
-                t,
-                0,
-                1
-            );
-
-
-        return (
-            t *
-            t *
-            (
-                3 -
-                2 *
-                t
-            )
-        );
-    }
-
-
-    function deepCopy(value) {
-
-        return JSON.parse(
-            JSON.stringify(value)
-        );
-    }
-
-
-    function degToRad(deg) {
-
-        return (
-            deg *
-            Math.PI /
-            180
-        );
-    }
-
-
-    function radToDeg(rad) {
-
-        return (
-            rad *
-            180 /
-            Math.PI
-        );
-    }
-
-
-    function normalizeDegrees(value) {
-
-        value %=
-            360;
-
-
-        if (
-            value <
-            0
-        ) {
-
-            value +=
-                360;
-        }
-
-
-        return value;
-    }
-
-
-    function pad2(value) {
-
-        return String(
-            value
-        )
-        .padStart(
-            2,
-            "0"
-        );
-    }
-
-
-    function monthShort(index) {
-
-        return [
-            "Jan",
-            "Feb",
-            "Mar",
-            "Apr",
-            "May",
-            "Jun",
-            "Jul",
-            "Aug",
-            "Sep",
-            "Oct",
-            "Nov",
-            "Dec"
-        ][index];
-    }
-
-
-    function formatDateTimeUTC(ms) {
-
-        const d =
-            new Date(ms);
-
-
-        return (
-            d.getUTCFullYear() +
-            "-" +
-            pad2(
-                d.getUTCMonth() +
-                1
-            ) +
-            "-" +
-            pad2(
-                d.getUTCDate()
-            ) +
-            " " +
-            pad2(
-                d.getUTCHours()
-            ) +
-            ":" +
-            pad2(
-                d.getUTCMinutes()
-            ) +
-            " UTC"
-        );
-    }
-
-
-    function formatShortUTC(ms) {
-
-        const d =
-            new Date(ms);
-
-
-        return (
-            pad2(
-                d.getUTCDate()
-            ) +
-            " " +
-            monthShort(
-                d.getUTCMonth()
-            ) +
-            " " +
-            pad2(
-                d.getUTCHours()
-            ) +
-            ":" +
-            pad2(
-                d.getUTCMinutes()
-            )
-        );
-    }
-
-
-    function toDateTimeLocalValue(ms) {
-
-        const d =
-            new Date(ms);
-
-
-        return (
-            d.getUTCFullYear() +
-            "-" +
-            pad2(
-                d.getUTCMonth() +
-                1
-            ) +
-            "-" +
-            pad2(
-                d.getUTCDate()
-            ) +
-            "T" +
-            pad2(
-                d.getUTCHours()
-            ) +
-            ":" +
-            pad2(
-                d.getUTCMinutes()
-            )
-        );
-    }
-
-
-    function parseDateTimeLocalAsUTC(value) {
-
-        const match =
-            /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/
-            .exec(
-                value ||
-                ""
-            );
-
-
-        if (!match) {
-            return NaN;
-        }
-
-
-        return Date.UTC(
-            Number(
-                match[1]
-            ),
-            Number(
-                match[2]
-            ) -
-            1,
-            Number(
-                match[3]
-            ),
-            Number(
-                match[4]
-            ),
-            Number(
-                match[5]
-            )
-        );
-    }
-
-
-    function dayOfYearUTC(ms) {
-
-        const d =
-            new Date(ms);
-
-
-        return (
-            Math.floor(
-                (
-                    ms -
-                    Date.UTC(
-                        d.getUTCFullYear(),
-                        0,
-                        1
-                    )
-                ) /
-                MS_DAY
-            ) +
-            1
-        );
-    }
-
-
-    function statusMessage(
-        text,
-        strong
-    ) {
-
-        if (strong) {
-
-            el.status.innerHTML =
-                "<strong>" +
-                escapeHTML(
-                    strong
-                ) +
-                "</strong> " +
-                escapeHTML(
-                    text
-                );
         }
         else {
 
-            el.status.textContent =
-                text;
-        }
-    }
-
-
-    function escapeHTML(text) {
-
-        return String(text)
-            .replaceAll(
-                "&",
-                "&amp;"
-            )
-            .replaceAll(
-                "<",
-                "&lt;"
-            )
-            .replaceAll(
-                ">",
-                "&gt;"
-            )
-            .replaceAll(
-                '"',
-                "&quot;"
-            )
-            .replaceAll(
-                "'",
-                "&#039;"
-            );
-    }
-
-
-    function kmPerLonDegree(lat) {
-
-        return (
-            KM_PER_DEG *
-            Math.max(
-                0.12,
-                Math.cos(
-                    degToRad(lat)
+          const h =
+            state.terrainReady
+              ? Math.max(
+                  -50,
+                  elevationAt(
+                    lat,
+                    lon
+                  )
                 )
-            )
-        );
-    }
+              : 0;
 
 
-    function distanceKm(
-        lat1,
-        lon1,
-        lat2,
-        lon2
-    ) {
+          if (
+            h <
+            150
+          ) {
 
-        const meanLat =
-            (
-                lat1 +
-                lat2
-            ) /
-            2;
+            r =
+              68;
 
+            g =
+              94;
 
-        const dx =
-            (
-                lon2 -
-                lon1
-            ) *
-            kmPerLonDegree(
-                meanLat
-            );
+            b =
+              61;
 
+          }
+          else if (
+            h <
+            600
+          ) {
 
-        const dy =
-            (
-                lat2 -
-                lat1
-            ) *
-            KM_PER_DEG;
+            const t =
+              (
+                h -
+                150
+              ) /
+              450;
 
 
-        return Math.hypot(
-            dx,
-            dy
-        );
-    }
+            r =
+              lerp(
+                68,
+                111,
+                t
+              );
+
+            g =
+              lerp(
+                94,
+                104,
+                t
+              );
+
+            b =
+              lerp(
+                61,
+                68,
+                t
+              );
+
+          }
+          else if (
+            h <
+            1500
+          ) {
+
+            const t =
+              (
+                h -
+                600
+              ) /
+              900;
 
 
-    function localVectorKm(
-        fromLat,
-        fromLon,
-        toLat,
-        toLon
-    ) {
+            r =
+              lerp(
+                111,
+                142,
+                t
+              );
 
-        const meanLat =
-            (
-                fromLat +
-                toLat
-            ) /
-            2;
+            g =
+              lerp(
+                104,
+                127,
+                t
+              );
+
+            b =
+              lerp(
+                68,
+                98,
+                t
+              );
+
+          }
+          else if (
+            h <
+            2800
+          ) {
+
+            const t =
+              (
+                h -
+                1500
+              ) /
+              1300;
 
 
-        return {
-            x:
+            r =
+              lerp(
+                142,
+                177,
+                t
+              );
+
+            g =
+              lerp(
+                127,
+                162,
+                t
+              );
+
+            b =
+              lerp(
+                98,
+                140,
+                t
+              );
+
+          }
+          else {
+
+            const t =
+              clamp(
                 (
-                    toLon -
-                    fromLon
-                ) *
-                kmPerLonDegree(
-                    meanLat
-                ),
-
-            y:
-                (
-                    toLat -
-                    fromLat
-                ) *
-                KM_PER_DEG
-        };
-    }
+                  h -
+                  2800
+                ) /
+                1800,
+                0,
+                1
+              );
 
 
-    /* =====================================================================
-       PROJECTION
-       ===================================================================== */
+            r =
+              lerp(
+                177,
+                232,
+                t
+              );
 
-    function lonToX(lon) {
+            g =
+              lerp(
+                162,
+                229,
+                t
+              );
 
-        const b =
-            PLAN.bounds;
+            b =
+              lerp(
+                140,
+                225,
+                t
+              );
 
+          }
 
-        return (
-            (
-                lon -
-                b.west
-            ) /
-            (
-                b.east -
-                b.west
-            ) *
-            state.drawingWidth
-        );
-    }
-
-
-    function latToY(lat) {
-
-        const b =
-            PLAN.bounds;
-
-
-        return (
-            (
-                b.north -
-                lat
-            ) /
-            (
-                b.north -
-                b.south
-            ) *
-            state.drawingHeight
-        );
-    }
-
-
-    function xToLon(x) {
-
-        const b =
-            PLAN.bounds;
-
-
-        return (
-            b.west +
-            x /
-            state.drawingWidth *
-            (
-                b.east -
-                b.west
-            )
-        );
-    }
-
-
-    function yToLat(y) {
-
-        const b =
-            PLAN.bounds;
-
-
-        return (
-            b.north -
-            y /
-            state.drawingHeight *
-            (
-                b.north -
-                b.south
-            )
-        );
-    }
-
-
-    function canvasPointFromEvent(event) {
-
-        const rect =
-            canvas.getBoundingClientRect();
-
-
-        return {
-            x:
-                (
-                    event.clientX -
-                    rect.left
-                ) *
-                state.drawingWidth /
-                rect.width,
-
-            y:
-                (
-                    event.clientY -
-                    rect.top
-                ) *
-                state.drawingHeight /
-                rect.height
-        };
-    }
-
-
-    /* =====================================================================
-       COMPACT CLIMATOLOGY
-       ===================================================================== */
-
-    function continentality(
-        lat,
-        lon,
-        land
-    ) {
-
-        if (!land) {
-            return 0.05;
         }
 
 
-        let c =
-            clamp(
-                (
-                    lon +
-                    5
-                ) /
-                38,
-                0.08,
-                0.95
-            );
+        img.data[i] =
+          Math.round(
+            r
+          );
 
 
-        if (
+        img.data[
+          i +
+          1
+        ] =
+          Math.round(
+            g
+          );
+
+
+        img.data[
+          i +
+          2
+        ] =
+          Math.round(
+            b
+          );
+
+
+        img.data[
+          i +
+          3
+        ] =
+          255;
+
+      }
+
+    }
+
+
+    bctx.putImageData(
+      img,
+      0,
+      0
+    );
+
+  }
+
+
+  /*
+      ==========================================================
+      CLIMATOLOGICAL BASELINE
+      ==========================================================
+  */
+
+
+  function baselineTempNoElevation(
+    lat,
+    lon,
+    ms
+  ) {
+
+    const land =
+      isLand(
+        lat,
+        lon
+      );
+
+
+    const doy =
+      dayOfYear(
+        ms
+      );
+
+
+    let annual =
+      17.5 -
+      0.46 *
+      (
+        lat -
+        35
+      );
+
+
+    if (!land) {
+
+      annual +=
+        0.7;
+
+    }
+
+
+    if (
+      land &&
+      lon <
+      2 &&
+      lat >
+      48
+    ) {
+
+      annual +=
+        1.2;
+
+    }
+
+
+    if (
+      land &&
+      lat <
+      45
+    ) {
+
+      annual +=
+        1.2;
+
+    }
+
+
+    const cont =
+      land
+        ? clamp(
+            (
+              lon +
+              5
+            ) /
+            38,
+            0.08,
+            0.95
+          ) *
+          (
             lon <
             3 &&
             lat >
             48
-        ) {
+              ? 0.5
+              : 1
+          )
+        : 0.05;
 
-            c *=
-                0.48;
-        }
+
+    const amp =
+      land
+        ? (
+            6.0 +
+            cont *
+            8.0 +
+            Math.max(
+              0,
+              lat -
+              48
+            ) *
+            0.06
+          )
+        : 5.0;
 
 
-        if (
-            lat <
-            45 &&
-            lon <
+    const seasonal =
+      amp *
+      Math.cos(
+        2 *
+        Math.PI *
+        (
+          doy -
+          200
+        ) /
+        365.2422
+      );
+
+
+    const d =
+      new Date(
+        ms
+      );
+
+
+    let solarHour =
+      d.getUTCHours() +
+      d.getUTCMinutes() /
+      60 +
+      lon /
+      15;
+
+
+    solarHour =
+      (
+        (
+          solarHour %
+          24
+        ) +
+        24
+      ) %
+      24;
+
+
+    const diurnalAmp =
+      land
+        ? (
+            1.7 +
+            cont *
+            2.5
+          )
+        : 0.6;
+
+
+    const diurnal =
+      diurnalAmp *
+      Math.cos(
+        2 *
+        Math.PI *
+        (
+          solarHour -
+          15
+        ) /
+        24
+      );
+
+
+    return (
+      annual +
+      seasonal +
+      diurnal
+    );
+
+  }
+
+
+  function baselineTemp(
+    lat,
+    lon,
+    ms
+  ) {
+
+    return (
+      baselineTempNoElevation(
+        lat,
+        lon,
+        ms
+      ) -
+      Math.max(
+        0,
+        elevationAt(
+          lat,
+          lon
+        )
+      ) /
+      1000 *
+      6.2
+    );
+
+  }
+
+
+  function baselinePressure(
+    lat,
+    ms
+  ) {
+
+    const winter =
+      (
+        1 +
+        Math.cos(
+          2 *
+          Math.PI *
+          (
+            dayOfYear(
+              ms
+            ) -
             15
-        ) {
-
-            c *=
-                0.72;
-        }
-
-
-        return c;
-    }
+          ) /
+          365.2422
+        )
+      ) /
+      2;
 
 
-    function baselineAnnualTemperature(
+    return (
+      1015.5 -
+      clamp(
+        (
+          lat -
+          45
+        ) /
+        25,
+        0,
+        1
+      ) *
+      winter *
+      3.2
+    );
+
+  }
+
+
+  function baselineCloud(
+    lat,
+    lon,
+    ms
+  ) {
+
+    const winter =
+      (
+        1 +
+        Math.cos(
+          2 *
+          Math.PI *
+          (
+            dayOfYear(
+              ms
+            ) -
+            15
+          ) /
+          365.2422
+        )
+      ) /
+      2;
+
+
+    let cloud =
+      42 +
+      17 *
+      winter;
+
+
+    if (
+      !isLand(
         lat,
-        lon,
-        land
+        lon
+      )
     ) {
 
-        let annual =
-            17.7 -
-            0.47 *
-            (
-                lat -
-                35
-            );
+      cloud +=
+        8;
 
-
-        if (!land) {
-
-            annual +=
-                0.7;
-        }
-
-
-        if (
-            land &&
-            lon <
-            2 &&
-            lat >
-            48
-        ) {
-
-            annual +=
-                1.1;
-        }
-
-
-        if (
-            land &&
-            lat <
-            45
-        ) {
-
-            annual +=
-                1.2;
-        }
-
-
-        if (
-            land &&
-            lon >
-            22
-        ) {
-
-            annual -=
-                0.3;
-        }
-
-
-        return annual;
     }
 
 
-    function baselineTemperatureNoElevation(
+    if (
+      lon <
+      2 &&
+      lat >
+      48
+    ) {
+
+      cloud +=
+        8;
+
+    }
+
+
+    if (
+      lat <
+      45 &&
+      lon >
+      -8
+    ) {
+
+      cloud -=
+        14;
+
+    }
+
+
+    return clamp(
+      cloud,
+      12,
+      88
+    );
+
+  }
+
+
+  function baselineMoisture(
+    lat,
+    lon,
+    ms
+  ) {
+
+    let m =
+      isLand(
         lat,
-        lon,
+        lon
+      )
+        ? 0.48
+        : 0.73;
+
+
+    const d =
+      new Date(
         ms
+      );
+
+
+    const month =
+      d.getUTCMonth();
+
+
+    if (
+      lat <
+      45 &&
+      month >=
+      4 &&
+      month <=
+      8
     ) {
 
-        const land =
-            isLand(
-                lat,
-                lon
-            );
+      m -=
+        0.08;
+
+    }
 
 
-        const doy =
-            dayOfYearUTC(
-                ms
-            );
+    if (
+      lon <
+      2 &&
+      lat >
+      48
+    ) {
+
+      m +=
+        0.05;
+
+    }
 
 
-        const c =
-            continentality(
-                lat,
-                lon,
-                land
-            );
+    return clamp(
+      m,
+      0.25,
+      0.82
+    );
+
+  }
 
 
-        const annual =
-            baselineAnnualTemperature(
-                lat,
-                lon,
-                land
-            );
+  /*
+      ==========================================================
+      AIR SOURCES
+
+      User chooses WHAT air is entering Europe.
+
+      They do not paint anomalies manually.
+      ==========================================================
+  */
 
 
-        const amplitude =
-            land
-                ? (
-                    6.2 +
-                    c *
-                    8.0 +
-                    Math.max(
-                        0,
-                        lat -
-                        48
-                    ) *
-                    0.06
-                )
-                : 5.2;
+  function airBaseAnomaly(
+    type,
+    ms
+  ) {
+
+    const winter =
+      (
+        1 +
+        Math.cos(
+          2 *
+          Math.PI *
+          (
+            dayOfYear(
+              ms
+            ) -
+            15
+          ) /
+          365.2422
+        )
+      ) /
+      2;
 
 
-        const seasonal =
-            amplitude *
-            Math.cos(
-                2 *
-                Math.PI *
-                (
-                    doy -
-                    200
-                ) /
-                365.2422
-            );
+    switch (
+      type
+    ) {
 
+      case "arctic":
 
-        const date =
-            new Date(ms);
-
-
-        let solarHour =
-            date.getUTCHours() +
-            date.getUTCMinutes() /
-            60 +
-            lon /
-            15;
-
-
-        solarHour =
-            (
-                (
-                    solarHour %
-                    24
-                ) +
-                24
-            ) %
-            24;
-
-
-        const diurnalAmplitude =
-            land
-                ? (
-                    1.8 +
-                    c *
-                    2.7
-                )
-                : 0.65;
-
-
-        const diurnal =
-            diurnalAmplitude *
-            Math.cos(
-                2 *
-                Math.PI *
-                (
-                    solarHour -
-                    15
-                ) /
-                24
-            );
-
-
-        return (
-            annual +
-            seasonal +
-            diurnal
+        return lerp(
+          -5.5,
+          -13.0,
+          winter
         );
-    }
 
 
-    function baselineTemperature(
-        lat,
-        lon,
-        ms
-    ) {
+      case "polar_maritime":
 
-        const base =
-            baselineTemperatureNoElevation(
-                lat,
-                lon,
-                ms
-            );
-
-
-        const elevation =
-            elevationM(
-                lat,
-                lon
-            );
-
-
-        return (
-            base -
-            LAPSE_RATE_C_PER_KM *
-            elevation /
-            1000
+        return lerp(
+          -2.5,
+          -6.0,
+          winter
         );
-    }
 
 
-    function baselinePressure(
-        lat,
-        lon,
-        ms
-    ) {
+      case "atlantic":
 
-        const doy =
-            dayOfYearUTC(
-                ms
-            );
-
-
-        const winterFactor =
-            (
-                1 +
-                Math.cos(
-                    2 *
-                    Math.PI *
-                    (
-                        doy -
-                        15
-                    ) /
-                    365.2422
-                )
-            ) /
-            2;
-
-
-        return (
-            1015.5 -
-            clamp(
-                (
-                    lat -
-                    45
-                ) /
-                25,
-                0,
-                1
-            ) *
-            winterFactor *
-            3
+        return lerp(
+          -2.0,
+          3.0,
+          winter
         );
-    }
 
 
-    function baselineCloud(
-        lat,
-        lon,
-        ms
-    ) {
+      case "continental":
 
-        const land =
-            isLand(
-                lat,
-                lon
-            );
-
-
-        const doy =
-            dayOfYearUTC(
-                ms
-            );
-
-
-        const winterFactor =
-            (
-                1 +
-                Math.cos(
-                    2 *
-                    Math.PI *
-                    (
-                        doy -
-                        15
-                    ) /
-                    365.2422
-                )
-            ) /
-            2;
-
-
-        let cloud =
-            42 +
-            winterFactor *
-            18;
-
-
-        if (!land) {
-
-            cloud +=
-                10;
-        }
-
-
-        if (
-            lon <
-            2 &&
-            lat >
-            48
-        ) {
-
-            cloud +=
-                8;
-        }
-
-
-        if (
-            lat <
-            45 &&
-            lon >
-            -8
-        ) {
-
-            cloud -=
-                14;
-        }
-
-
-        if (
-            lon >
-            18
-        ) {
-
-            cloud -=
-                3;
-        }
-
-
-        return clamp(
-            cloud,
-            12,
-            88
+        return lerp(
+          4.5,
+          -7.0,
+          winter
         );
-    }
 
 
-    /* =====================================================================
-       CURVED / ZIG-ZAG TRACKS
-       ===================================================================== */
+      case "mediterranean":
 
-    function objectTimes(object) {
-
-        return {
-            start:
-                Date.parse(
-                    object.startTime
-                ),
-
-            end:
-                Date.parse(
-                    object.endTime
-                )
-        };
-    }
-
-
-    function objectActiveAt(
-        object,
-        ms
-    ) {
-
-        const t =
-            objectTimes(
-                object
-            );
-
-
-        return (
-            Number.isFinite(
-                t.start
-            ) &&
-            Number.isFinite(
-                t.end
-            ) &&
-            ms >=
-            t.start &&
-            ms <=
-            t.end
+        return lerp(
+          5.0,
+          7.0,
+          winter
         );
-    }
 
 
-    function objectProgress(
-        object,
-        ms
-    ) {
+      case "tropical":
 
-        const t =
-            objectTimes(
-                object
-            );
-
-
-        if (
-            !Number.isFinite(
-                t.start
-            ) ||
-            !Number.isFinite(
-                t.end
-            ) ||
-            t.end <=
-            t.start
-        ) {
-
-            return 0;
-        }
-
-
-        const progress =
-            clamp(
-                (
-                    ms -
-                    t.start
-                ) /
-                (
-                    t.end -
-                    t.start
-                ),
-                0,
-                1
-            );
-
-
-        if (
-            PLAN.settings
-                .movementInterpolation ===
-            "linear"
-        ) {
-
-            return progress;
-        }
-
-
-        return smoothstep(
-            progress
+        return lerp(
+          9.0,
+          11.5,
+          winter
         );
+
+
+      default:
+
+        return 0;
+
     }
 
-
-    function trackPoints(object) {
-
-        if (
-            Array.isArray(
-                object.path
-            ) &&
-            object.path.length >=
-            2
-        ) {
-
-            return object.path.map(
-                (
-                    point,
-                    index,
-                    array
-                ) => {
-
-                    return {
-                        lat:
-                            Number(
-                                point.lat
-                            ),
-
-                        lon:
-                            Number(
-                                point.lon
-                            ),
-
-                        u:
-                            Number.isFinite(
-                                Number(
-                                    point.u
-                                )
-                            )
-                                ? clamp(
-                                    Number(
-                                        point.u
-                                    ),
-                                    0,
-                                    1
-                                )
-                                : (
-                                    index /
-                                    (
-                                        array.length -
-                                        1
-                                    )
-                                )
-                    };
-                }
-            );
-        }
+  }
 
 
-        return [
-            {
-                lat:
-                    Number(
-                        object.start.lat
-                    ),
+  function airSourceMoisture(
+    type
+  ) {
 
-                lon:
-                    Number(
-                        object.start.lon
-                    ),
-
-                u:
-                    0
-            },
-
-            {
-                lat:
-                    Number(
-                        object.end.lat
-                    ),
-
-                lon:
-                    Number(
-                        object.end.lon
-                    ),
-
-                u:
-                    1
-            }
-        ];
-    }
-
-
-    function catmullRom(
-        a,
-        b,
-        c,
-        d,
-        t
+    switch (
+      type
     ) {
 
-        const t2 =
-            t *
-            t;
+      case "arctic":
+        return 0.22;
 
+      case "polar_maritime":
+        return 0.62;
 
-        const t3 =
-            t2 *
-            t;
+      case "atlantic":
+        return 0.78;
 
+      case "continental":
+        return 0.26;
 
-        return (
-            0.5 *
-            (
-                2 *
-                b +
+      case "mediterranean":
+        return 0.68;
 
-                (
-                    -a +
-                    c
-                ) *
-                t +
+      case "tropical":
+        return 0.32;
 
-                (
-                    2 *
-                    a -
-                    5 *
-                    b +
-                    4 *
-                    c -
-                    d
-                ) *
-                t2 +
+      default:
+        return 0.5;
 
-                (
-                    -a +
-                    3 *
-                    b -
-                    3 *
-                    c +
-                    d
-                ) *
-                t3
-            )
-        );
     }
 
+  }
 
-    function positionOnTrack(
-        object,
-        progress
+
+  function intensityMultiplier(
+    name
+  ) {
+
+    return (
+      {
+        gentle:
+          0.72,
+
+        normal:
+          1.0,
+
+        strong:
+          1.28,
+
+        extreme:
+          1.55
+      }[name] ||
+      1
+    );
+
+  }
+
+
+  function intensityWind(
+    name
+  ) {
+
+    return (
+      {
+        gentle:
+          6,
+
+        normal:
+          9,
+
+        strong:
+          13,
+
+        extreme:
+          18
+      }[name] ||
+      9
+    );
+
+  }
+
+
+  function pressureStrength(
+    name
+  ) {
+
+    return (
+      {
+        weak:
+          9,
+
+        normal:
+          18,
+
+        strong:
+          28,
+
+        extreme:
+          38
+      }[name] ||
+      18
+    );
+
+  }
+
+
+  /*
+      ==========================================================
+      CURVED AIR PATHS
+      ==========================================================
+  */
+
+
+  function catmull(
+    a,
+    b,
+    c,
+    d,
+    t
+  ) {
+
+    const t2 =
+      t *
+      t;
+
+
+    const t3 =
+      t2 *
+      t;
+
+
+    return (
+      0.5 *
+      (
+        2 *
+        b +
+
+        (
+          -a +
+          c
+        ) *
+        t +
+
+        (
+          2 *
+          a -
+          5 *
+          b +
+          4 *
+          c -
+          d
+        ) *
+        t2 +
+
+        (
+          -a +
+          3 *
+          b -
+          3 *
+          c +
+          d
+        ) *
+        t3
+      )
+    );
+
+  }
+
+
+  function pathPosition(
+    path,
+    u
+  ) {
+
+    if (
+      !Array.isArray(
+        path
+      ) ||
+      path.length ===
+      0
     ) {
 
-        const points =
-            trackPoints(
-                object
-            );
+      return {
+        lat:
+          50,
 
+        lon:
+          10
+      };
 
-        progress =
-            clamp(
-                progress,
-                0,
-                1
-            );
-
-
-        let segment =
-            0;
-
-
-        while (
-            segment <
-            points.length -
-            2 &&
-            progress >
-            points[
-                segment +
-                1
-            ].u
-        ) {
-
-            segment++;
-        }
-
-
-        const p1 =
-            points[
-                segment
-            ];
-
-
-        const p2 =
-            points[
-                Math.min(
-                    segment +
-                    1,
-                    points.length -
-                    1
-                )
-            ];
-
-
-        const span =
-            Math.max(
-                0.000001,
-                p2.u -
-                p1.u
-            );
-
-
-        const localT =
-            clamp(
-                (
-                    progress -
-                    p1.u
-                ) /
-                span,
-                0,
-                1
-            );
-
-
-        if (
-            points.length ===
-            2 ||
-            object.pathStyle ===
-            "linear"
-        ) {
-
-            return {
-                lat:
-                    lerp(
-                        p1.lat,
-                        p2.lat,
-                        localT
-                    ),
-
-                lon:
-                    lerp(
-                        p1.lon,
-                        p2.lon,
-                        localT
-                    )
-            };
-        }
-
-
-        const p0 =
-            points[
-                Math.max(
-                    0,
-                    segment -
-                    1
-                )
-            ];
-
-
-        const p3 =
-            points[
-                Math.min(
-                    points.length -
-                    1,
-                    segment +
-                    2
-                )
-            ];
-
-
-        return {
-            lat:
-                catmullRom(
-                    p0.lat,
-                    p1.lat,
-                    p2.lat,
-                    p3.lat,
-                    localT
-                ),
-
-            lon:
-                catmullRom(
-                    p0.lon,
-                    p1.lon,
-                    p2.lon,
-                    p3.lon,
-                    localT
-                )
-        };
     }
 
 
-    function objectPosition(
-        object,
-        ms
+    if (
+      path.length ===
+      1
     ) {
 
-        return positionOnTrack(
-            object,
-            objectProgress(
-                object,
-                ms
-            )
-        );
+      return {
+        lat:
+          path[0].lat,
+
+        lon:
+          path[0].lon
+      };
+
     }
 
 
-    function radialWeight(
-        distance,
+    u =
+      clamp(
+        u,
+        0,
+        1
+      );
+
+
+    const scaled =
+      u *
+      (
+        path.length -
+        1
+      );
+
+
+    const i =
+      Math.min(
+        path.length -
+        2,
+        Math.floor(
+          scaled
+        )
+      );
+
+
+    const t =
+      scaled -
+      i;
+
+
+    const p0 =
+      path[
+        Math.max(
+          0,
+          i -
+          1
+        )
+      ];
+
+
+    const p1 =
+      path[i];
+
+
+    const p2 =
+      path[
+        i +
+        1
+      ];
+
+
+    const p3 =
+      path[
+        Math.min(
+          path.length -
+          1,
+          i +
+          2
+        )
+      ];
+
+
+    return {
+
+      lat:
+        catmull(
+          p0.lat,
+          p1.lat,
+          p2.lat,
+          p3.lat,
+          t
+        ),
+
+      lon:
+        catmull(
+          p0.lon,
+          p1.lon,
+          p2.lon,
+          p3.lon,
+          t
+        )
+
+    };
+
+  }
+
+
+  function pathTangent(
+    path,
+    u
+  ) {
+
+    const a =
+      pathPosition(
+        path,
+        clamp(
+          u -
+          0.008,
+          0,
+          1
+        )
+      );
+
+
+    const b =
+      pathPosition(
+        path,
+        clamp(
+          u +
+          0.008,
+          0,
+          1
+        )
+      );
+
+
+    const v =
+      localVectorKm(
+        a.lat,
+        a.lon,
+        b.lat,
+        b.lon
+      );
+
+
+    const l =
+      Math.hypot(
+        v.x,
+        v.y
+      ) ||
+      1;
+
+
+    return {
+
+      x:
+        v.x /
+        l,
+
+      y:
+        v.y /
+        l
+
+    };
+
+  }
+
+
+  function active(
+    obj,
+    ms
+  ) {
+
+    const s =
+      Date.parse(
+        obj.startTime
+      );
+
+
+    const e =
+      Date.parse(
+        obj.endTime
+      );
+
+
+    return (
+      Number.isFinite(
+        s
+      ) &&
+      Number.isFinite(
+        e
+      ) &&
+      ms >=
+      s &&
+      ms <=
+      e
+    );
+
+  }
+
+
+  function progress(
+    obj,
+    ms
+  ) {
+
+    const s =
+      Date.parse(
+        obj.startTime
+      );
+
+
+    const e =
+      Date.parse(
+        obj.endTime
+      );
+
+
+    if (
+      !Number.isFinite(
+        s
+      ) ||
+      !Number.isFinite(
+        e
+      ) ||
+      e <=
+      s
+    ) {
+
+      return 0;
+
+    }
+
+
+    return smoothstep(
+      clamp(
+        (
+          ms -
+          s
+        ) /
+        (
+          e -
+          s
+        ),
+        0,
+        1
+      )
+    );
+
+  }
+
+
+  function radialWeight(
+    d,
+    radius
+  ) {
+
+    const x =
+      d /
+      Math.max(
+        1,
         radius
+      );
+
+
+    if (
+      x >=
+      1
     ) {
 
-        const x =
-            distance /
-            Math.max(
-                1,
-                radius
-            );
+      return 0;
+
+    }
+
+
+    const t =
+      1 -
+      x;
+
+
+    return (
+      t *
+      t *
+      (
+        3 -
+        2 *
+        t
+      )
+    );
+
+  }
+
+
+  /*
+      Air is not merely a circular blob.
+
+      The recently traversed section of the curved route remains
+      influential, making the result feel more like an actual
+      stream of air moving into Europe.
+  */
+
+  function distanceToRecentPath(
+    obj,
+    lat,
+    lon,
+    u
+  ) {
+
+    const startU =
+      Math.max(
+        0,
+        u -
+        0.22
+      );
+
+
+    const endU =
+      Math.min(
+        1,
+        u +
+        0.035
+      );
+
+
+    let best =
+      Infinity;
+
+
+    const samples =
+      18;
+
+
+    for (
+      let i = 0;
+      i <=
+      samples;
+      i++
+    ) {
+
+      const q =
+        pathPosition(
+          obj.path,
+          lerp(
+            startU,
+            endU,
+            i /
+            samples
+          )
+        );
+
+
+      best =
+        Math.min(
+          best,
+          distanceKm(
+            lat,
+            lon,
+            q.lat,
+            q.lon
+          )
+        );
+
+    }
+
+
+    return best;
+
+  }
+
+
+  /*
+      ==========================================================
+      SEA MOISTURE PICKUP
+
+      This is one of the core ideas of this version.
+
+      Drag Arctic air:
+          Scandinavia
+          → Norwegian Sea
+          → North Sea
+          → Denmark
+          → Baltic
+          → Poland
+
+      and it becomes progressively more moisture-rich.
+
+      Long continental journeys gradually dry it again.
+      ==========================================================
+  */
+
+
+  function moistureAlongPath(
+    obj,
+    u
+  ) {
+
+    let moisture =
+      airSourceMoisture(
+        obj.airType
+      );
+
+
+    let prev =
+      pathPosition(
+        obj.path,
+        0
+      );
+
+
+    const steps =
+      Math.max(
+        1,
+        Math.round(
+          34 *
+          u
+        )
+      );
+
+
+    for (
+      let i = 1;
+      i <=
+      steps;
+      i++
+    ) {
+
+      const p =
+        pathPosition(
+          obj.path,
+          u *
+          i /
+          steps
+        );
+
+
+      const d =
+        distanceKm(
+          prev.lat,
+          prev.lon,
+          p.lat,
+          p.lon
+        );
+
+
+      if (
+        !isLand(
+          p.lat,
+          p.lon
+        )
+      ) {
+
+        const pickup =
+          1 -
+          Math.exp(
+            -d /
+            260
+          );
+
+
+        moisture =
+          lerp(
+            moisture,
+            0.95,
+            pickup
+          );
+
+      }
+      else {
+
+        const dry =
+          1 -
+          Math.exp(
+            -d /
+            850
+          );
+
+
+        moisture =
+          lerp(
+            moisture,
+            0.38,
+            dry *
+            0.32
+          );
+
+      }
+
+
+      prev =
+        p;
+
+    }
+
+
+    return clamp(
+      moisture,
+      0.08,
+      0.97
+    );
+
+  }
+
+
+  /*
+      ==========================================================
+      CORE ATMOSPHERIC FIELD
+
+      This calculates the CAUSES.
+
+      Precipitation is not calculated here yet.
+
+      Output includes:
+      - temperature
+      - anomaly
+      - pressure
+      - moisture
+      - cloud tendency
+      - wind
+      - broad synoptic lift
+      ==========================================================
+  */
+
+
+  function coreField(
+    lat,
+    lon,
+    ms
+  ) {
+
+    const baseT =
+      baselineTemp(
+        lat,
+        lon,
+        ms
+      );
+
+
+    let temp =
+      baseT;
+
+
+    let pressure =
+      baselinePressure(
+        lat,
+        ms
+      );
+
+
+    let cloud =
+      baselineCloud(
+        lat,
+        lon,
+        ms
+      );
+
+
+    let moisture =
+      baselineMoisture(
+        lat,
+        lon,
+        ms
+      );
+
+
+    /*
+        Gentle climatological westerly background.
+    */
+    let uWind =
+      4.0;
+
+
+    let vWind =
+      0.0;
+
+
+    let synopticLift =
+      0;
+
+
+    for (
+      const obj of
+      plan.objects
+    ) {
+
+      if (
+        !active(
+          obj,
+          ms
+        )
+      ) {
+
+        continue;
+
+      }
+
+
+      /*
+          ------------------------------------------------------
+          AIR STREAM
+          ------------------------------------------------------
+      */
+
+      if (
+        obj.kind ===
+        "air"
+      ) {
+
+        const pr =
+          progress(
+            obj,
+            ms
+          );
+
+
+        const head =
+          pathPosition(
+            obj.path,
+            pr
+          );
+
+
+        const dist =
+          distanceToRecentPath(
+            obj,
+            lat,
+            lon,
+            pr
+          );
+
+
+        const w =
+          radialWeight(
+            dist,
+            obj.widthKm
+          );
 
 
         if (
-            x >=
-            1
+          w <=
+          0
         ) {
 
-            return 0;
+          continue;
+
         }
 
 
-        const t =
-            1 -
-            x;
+        const anomaly =
+          airBaseAnomaly(
+            obj.airType,
+            ms
+          ) *
+          intensityMultiplier(
+            obj.intensity
+          );
 
 
-        return (
-            t *
-            t *
-            (
-                3 -
-                2 *
-                t
-            )
-        );
-    }
+        const moist =
+          moistureAlongPath(
+            obj,
+            pr
+          );
 
 
-    /* =====================================================================
-       AIR-MASS MOISTURE PICKUP
-       ===================================================================== */
-
-    function defaultAirmassMoisture(type) {
-
-        switch (type) {
-
-            case "arctic":
-                return 0.22;
-
-            case "polar_maritime":
-                return 0.72;
-
-            case "atlantic":
-                return 0.78;
-
-            case "continental":
-                return 0.26;
-
-            case "mediterranean":
-                return 0.62;
-
-            case "tropical":
-                return 0.28;
-
-            default:
-                return 0.48;
-        }
-    }
+        const tangent =
+          pathTangent(
+            obj.path,
+            pr
+          );
 
 
-    function moistureAlongTrack(
-        object,
-        progress
-    ) {
-
-        let moisture =
-            defaultAirmassMoisture(
-                object.airmass
-            );
+        const speed =
+          intensityWind(
+            obj.intensity
+          );
 
 
-        const samples =
-            36;
+        temp +=
+          anomaly *
+          w;
 
 
-        const steps =
-            Math.max(
-                1,
-                Math.ceil(
-                    samples *
-                    clamp(
-                        progress,
-                        0,
-                        1
-                    )
-                )
-            );
-
-
-        let previous =
-            positionOnTrack(
-                object,
-                0
-            );
-
-
-        for (
-            let i = 1;
-            i <= steps;
-            i++
-        ) {
-
-            const u =
-                clamp(
-                    progress *
-                    i /
-                    steps,
-                    0,
-                    1
-                );
-
-
-            const point =
-                positionOnTrack(
-                    object,
-                    u
-                );
-
-
-            const distance =
-                distanceKm(
-                    previous.lat,
-                    previous.lon,
-                    point.lat,
-                    point.lon
-                );
-
-
-            const overSea =
-                !isLand(
-                    point.lat,
-                    point.lon
-                );
-
-
-            if (overSea) {
-
-                /*
-                    Long sea tracks progressively load the air mass with
-                    moisture.
-
-                    Arctic air dragged over Norwegian Sea -> North Sea ->
-                    Baltic can therefore become extremely moisture-rich.
-                */
-                const pickup =
-                    1 -
-                    Math.exp(
-                        -distance /
-                        260
-                    );
-
-
-                moisture =
-                    lerp(
-                        moisture,
-                        0.94,
-                        pickup
-                    );
-            }
-            else {
-
-                /*
-                    Moisture slowly decays over long continental journeys.
-                */
-                const decay =
-                    1 -
-                    Math.exp(
-                        -distance /
-                        700
-                    );
-
-
-                moisture =
-                    lerp(
-                        moisture,
-                        0.34,
-                        decay *
-                        0.45
-                    );
-            }
-
-
-            previous =
-                point;
-        }
-
-
-        return clamp(
+        moisture =
+          lerp(
             moisture,
-            0.05,
-            0.98
-        );
+            moist,
+            w *
+            0.88
+          );
+
+
+        cloud +=
+          Math.max(
+            0,
+            moist -
+            0.56
+          ) *
+          42 *
+          w;
+
+
+        uWind +=
+          tangent.x *
+          speed *
+          w;
+
+
+        vWind +=
+          tangent.y *
+          speed *
+          w;
+
+
+        /*
+            Moist maritime air arriving over land has some
+            natural broad ascent / instability.
+        */
+
+        if (
+          isLand(
+            lat,
+            lon
+          ) &&
+          moist >
+          0.72
+        ) {
+
+          synopticLift +=
+            (
+              moist -
+              0.72
+            ) *
+            0.8 *
+            w;
+
+        }
+
+
+        const headD =
+          distanceKm(
+            lat,
+            lon,
+            head.lat,
+            head.lon
+          );
+
+
+        if (
+          headD <
+          obj.widthKm *
+          0.75
+        ) {
+
+          synopticLift +=
+            0.08 *
+            w;
+
+        }
+
+      }
+
+
+      /*
+          ------------------------------------------------------
+          HIGH / LOW PRESSURE
+          ------------------------------------------------------
+      */
+
+      if (
+        obj.kind ===
+        "high" ||
+        obj.kind ===
+        "low"
+      ) {
+
+        const d =
+          distanceKm(
+            lat,
+            lon,
+            obj.lat,
+            obj.lon
+          );
+
+
+        const radius =
+          obj.radiusKm ||
+          900;
+
+
+        const w =
+          radialWeight(
+            d,
+            radius
+          );
+
+
+        if (
+          w <=
+          0
+        ) {
+
+          continue;
+
+        }
+
+
+        const amp =
+          pressureStrength(
+            obj.strength
+          ) *
+          (
+            obj.kind ===
+            "high"
+              ? 1
+              : -1
+          );
+
+
+        pressure +=
+          amp *
+          w;
+
+
+        cloud +=
+          (
+            obj.kind ===
+            "high"
+              ? -24
+              : 28
+          ) *
+          w;
+
+
+        synopticLift +=
+          (
+            obj.kind ===
+            "high"
+              ? -0.5
+              : 0.9
+          ) *
+          w;
+
+
+        /*
+            Northern Hemisphere pressure circulation.
+
+            Low:
+                counter-clockwise.
+
+            High:
+                clockwise.
+        */
+
+        const vec =
+          localVectorKm(
+            obj.lat,
+            obj.lon,
+            lat,
+            lon
+          );
+
+
+        const len =
+          Math.hypot(
+            vec.x,
+            vec.y
+          ) ||
+          1;
+
+
+        const nx =
+          vec.x /
+          len;
+
+
+        const ny =
+          vec.y /
+          len;
+
+
+        const tx =
+          obj.kind ===
+          "low"
+            ? -ny
+            : ny;
+
+
+        const ty =
+          obj.kind ===
+          "low"
+            ? nx
+            : -nx;
+
+
+        const speed =
+          pressureStrength(
+            obj.strength
+          ) *
+          0.34 *
+          w;
+
+
+        uWind +=
+          tx *
+          speed;
+
+
+        vWind +=
+          ty *
+          speed;
+
+      }
+
     }
 
 
-    /* =====================================================================
-       FRONTS
-       ===================================================================== */
+    cloud =
+      clamp(
+        cloud +
 
-    function pointToFrontDistanceKm(
+        Math.max(
+          0,
+          moisture -
+          0.62
+        ) *
+        22 +
+
+        Math.max(
+          0,
+          synopticLift
+        ) *
+        12,
+
+        0,
+        100
+      );
+
+
+    return {
+
+      lat:
+        lat,
+
+      lon:
+        lon,
+
+      land:
+        isLand(
+          lat,
+          lon
+        ),
+
+      elevationM:
+        elevationAt(
+          lat,
+          lon
+        ),
+
+      baselineTemperatureC:
+        baseT,
+
+      temperatureC:
+        temp,
+
+      anomalyC:
+        temp -
+        baseT,
+
+      pressureHpa:
+        pressure,
+
+      moisture:
+        clamp(
+          moisture,
+          0,
+          1
+        ),
+
+      cloud:
+        cloud,
+
+      uWind:
+        uWind,
+
+      vWind:
+        vWind,
+
+      windSpeed:
+        Math.hypot(
+          uWind,
+          vWind
+        ),
+
+      synopticLift:
+        synopticLift
+
+    };
+
+  }
+
+
+  /*
+      ==========================================================
+      NATURAL PRECIPITATION
+
+      There is deliberately no user precipitation object.
+
+      The engine asks:
+
+      1. Is enough moisture present?
+      2. Are winds converging?
+      3. Is low pressure generating ascent?
+      4. Is real terrain forcing the air upward?
+      5. Is hot/moist air convectively unstable?
+      6. Is there enough cloud support?
+
+      Only then does precipitation emerge.
+      ==========================================================
+  */
+
+
+  function precipitationField(
+    lat,
+    lon,
+    ms,
+    centerCore =
+      null
+  ) {
+
+    const c =
+      centerCore ||
+      coreField(
         lat,
         lon,
-        object,
         ms
-    ) {
-
-        const centre =
-            objectPosition(
-                object,
-                ms
-            );
+      );
 
 
-        const angle =
-            degToRad(
-                Number(
-                    object.angle ||
-                    0
-                )
-            );
+    /*
+        Sample nearby wind fields and estimate horizontal
+        divergence.
+
+        Negative divergence = convergence = rising-air tendency.
+    */
+
+    const dLat =
+      0.32;
 
 
-        const halfLength =
-            Number(
-                object.lengthKm ||
-                700
-            ) /
-            2;
+    const dLon =
+      0.42;
 
 
-        const ux =
-            Math.sin(
-                angle
-            );
-
-
-        const uy =
-            Math.cos(
-                angle
-            );
-
-
-        const point =
-            localVectorKm(
-                centre.lat,
-                centre.lon,
-                lat,
-                lon
-            );
-
-
-        const projection =
-            clamp(
-                point.x *
-                ux +
-                point.y *
-                uy,
-                -halfLength,
-                halfLength
-            );
-
-
-        return Math.hypot(
-            point.x -
-            ux *
-            projection,
-
-            point.y -
-            uy *
-            projection
-        );
-    }
-
-
-    /* =====================================================================
-       NATURAL PRECIPITATION HELPERS
-       ===================================================================== */
-
-    function sampleUpwindElevation(
+    const west =
+      coreField(
         lat,
+        lon -
+        dLon,
+        ms
+      );
+
+
+    const east =
+      coreField(
+        lat,
+        lon +
+        dLon,
+        ms
+      );
+
+
+    const south =
+      coreField(
+        lat -
+        dLat,
         lon,
-        windFromDeg,
-        distanceKmValue
+        ms
+      );
+
+
+    const north =
+      coreField(
+        lat +
+        dLat,
+        lon,
+        ms
+      );
+
+
+    const dxKm =
+      2 *
+      dLon *
+      kmPerLonDeg(
+        lat
+      );
+
+
+    const dyKm =
+      2 *
+      dLat *
+      KM_PER_DEG;
+
+
+    const divergence =
+      (
+        east.uWind -
+        west.uWind
+      ) /
+      Math.max(
+        1,
+        dxKm
+      ) +
+
+      (
+        north.vWind -
+        south.vWind
+      ) /
+      Math.max(
+        1,
+        dyKm
+      );
+
+
+    const convergence =
+      clamp(
+        -divergence *
+        24,
+        0,
+        1.8
+      );
+
+
+    /*
+        --------------------------------------------------------
+        REAL TERRAIN UPLIFT
+        --------------------------------------------------------
+    */
+
+    let oro =
+      0;
+
+
+    if (
+      c.land &&
+      c.windSpeed >
+      1.2
     ) {
 
-        const direction =
-            degToRad(
-                windFromDeg
-            );
+      const ux =
+        c.uWind /
+        c.windSpeed;
 
 
-        const dx =
-            Math.sin(
-                direction
-            ) *
-            distanceKmValue;
+      const uy =
+        c.vWind /
+        c.windSpeed;
 
 
-        const dy =
-            Math.cos(
-                direction
-            ) *
-            distanceKmValue;
-
+      function upwindElevation(
+        km
+      ) {
 
         const upLat =
-            lat +
-            dy /
-            KM_PER_DEG;
+          lat -
+          uy *
+          km /
+          KM_PER_DEG;
 
 
         const upLon =
-            lon +
-            dx /
-            kmPerLonDegree(
-                lat
-            );
+          lon -
+          ux *
+          km /
+          kmPerLonDeg(
+            lat
+          );
 
 
-        return elevationM(
-            upLat,
-            upLon
+        return elevationAt(
+          upLat,
+          upLon
         );
-    }
 
-
-    function automaticPrecipitationPhase(
-        temperature
-    ) {
-
-        if (
-            temperature <=
-            -0.5
-        ) {
-
-            return "snow";
-        }
-
-
-        if (
-            temperature <=
-            0.7
-        ) {
-
-            return "wet_snow";
-        }
-
-
-        if (
-            temperature <=
-            2.0
-        ) {
-
-            return "sleet";
-        }
-
-
-        return "rain";
-    }
-
-
-    /* =====================================================================
-       WEATHER CORE
-       ===================================================================== */
-
-    function calculateWeatherCore(
-        lat,
-        lon,
-        ms
-    ) {
-
-        lat =
-            clamp(
-                lat,
-                PLAN.bounds.south,
-                PLAN.bounds.north
-            );
-
-
-        lon =
-            clamp(
-                lon,
-                PLAN.bounds.west,
-                PLAN.bounds.east
-            );
-
-
-        const land =
-            isLand(
-                lat,
-                lon
-            );
-
-
-        const baselineTemp =
-            baselineTemperature(
-                lat,
-                lon,
-                ms
-            );
-
-
-        let temperature =
-            baselineTemp;
-
-
-        let pressure =
-            baselinePressure(
-                lat,
-                lon,
-                ms
-            );
-
-
-        let cloud =
-            baselineCloud(
-                lat,
-                lon,
-                ms
-            );
-
-
-        let moisture =
-            land
-                ? 0.46
-                : 0.72;
-
-
-        let precipRate =
-            0;
-
-
-        let forcedPhase =
-            null;
-
-
-        let synopticLift =
-            0;
-
-
-        let frontalLift =
-            0;
-
-
-        /*
-            Modest climatological westerly background.
-        */
-        let windX =
-            4.5;
-
-
-        let windY =
-            0;
-
-
-        const contributions =
-            [];
-
-
-        for (
-            const object of
-            PLAN.objects
-        ) {
-
-            if (
-                !objectActiveAt(
-                    object,
-                    ms
-                )
-            ) {
-
-                continue;
-            }
-
-
-            const position =
-                objectPosition(
-                    object,
-                    ms
-                );
-
-
-            const distance =
-                distanceKm(
-                    lat,
-                    lon,
-                    position.lat,
-                    position.lon
-                );
-
-
-            const radius =
-                Math.max(
-                    20,
-                    Number(
-                        object.radiusKm ||
-                        400
-                    )
-                );
-
-
-            const weight =
-                radialWeight(
-                    distance,
-                    radius
-                );
-
-
-            /* -------------------------------------------------------------
-               HIGH / LOW
-               ------------------------------------------------------------- */
-
-            if (
-                object.type ===
-                "high" ||
-                object.type ===
-                "low"
-            ) {
-
-                if (
-                    weight <=
-                    0
-                ) {
-
-                    continue;
-                }
-
-
-                const strength =
-                    Number(
-                        object.strength ||
-                        0
-                    );
-
-
-                pressure +=
-                    strength *
-                    weight;
-
-
-                if (
-                    object.type ===
-                    "high"
-                ) {
-
-                    cloud -=
-                        25 *
-                        weight;
-
-
-                    synopticLift -=
-                        0.45 *
-                        weight;
-                }
-                else {
-
-                    cloud +=
-                        26 *
-                        weight;
-
-
-                    synopticLift +=
-                        clamp(
-                            (
-                                -strength -
-                                5
-                            ) /
-                            25,
-                            0,
-                            1.5
-                        ) *
-                        weight;
-                }
-
-
-                /*
-                    Northern Hemisphere circulation.
-
-                    Low:
-                        counter-clockwise
-
-                    High:
-                        clockwise
-                */
-                const vector =
-                    localVectorKm(
-                        position.lat,
-                        position.lon,
-                        lat,
-                        lon
-                    );
-
-
-                const length =
-                    Math.hypot(
-                        vector.x,
-                        vector.y
-                    ) ||
-                    1;
-
-
-                const nx =
-                    vector.x /
-                    length;
-
-
-                const ny =
-                    vector.y /
-                    length;
-
-
-                const tangentX =
-                    object.type ===
-                    "low"
-                        ? -ny
-                        : ny;
-
-
-                const tangentY =
-                    object.type ===
-                    "low"
-                        ? nx
-                        : -nx;
-
-
-                const speed =
-                    Math.abs(
-                        strength
-                    ) *
-                    0.35 *
-                    weight;
-
-
-                windX +=
-                    tangentX *
-                    speed;
-
-
-                windY +=
-                    tangentY *
-                    speed;
-
-
-                contributions.push({
-                    id:
-                        object.id,
-
-                    type:
-                        object.type,
-
-                    weight:
-                        weight
-                });
-
-
-                continue;
-            }
-
-
-            /* -------------------------------------------------------------
-               AIR MASS
-               ------------------------------------------------------------- */
-
-            if (
-                object.type ===
-                "airmass"
-            ) {
-
-                if (
-                    weight <=
-                    0
-                ) {
-
-                    continue;
-                }
-
-
-                const anomaly =
-                    Number.isFinite(
-                        Number(
-                            object.temperatureAnomaly
-                        )
-                    )
-                        ? Number(
-                            object.temperatureAnomaly
-                        )
-                        : Number(
-                            object.strength ||
-                            0
-                        );
-
-
-                const pathMoisture =
-                    moistureAlongTrack(
-                        object,
-                        objectProgress(
-                            object,
-                            ms
-                        )
-                    );
-
-
-                temperature +=
-                    anomaly *
-                    weight;
-
-
-                moisture =
-                    lerp(
-                        moisture,
-                        pathMoisture,
-                        weight *
-                        0.9
-                    );
-
-
-                cloud +=
-                    Math.max(
-                        0,
-                        pathMoisture -
-                        0.52
-                    ) *
-                    58 *
-                    weight;
-
-
-                /*
-                    Moist air that has crossed sea and then reaches land
-                    acquires a weak precipitation tendency even before any
-                    explicit front is added.
-                */
-                if (
-                    land &&
-                    pathMoisture >
-                    0.72
-                ) {
-
-                    synopticLift +=
-                        (
-                            pathMoisture -
-                            0.72
-                        ) *
-                        1.2 *
-                        weight;
-                }
-
-
-                contributions.push({
-                    id:
-                        object.id,
-
-                    type:
-                        object.type,
-
-                    weight:
-                        weight,
-
-                    moisture:
-                        pathMoisture
-                });
-
-
-                continue;
-            }
-
-
-            /* -------------------------------------------------------------
-               FRONTS
-               ------------------------------------------------------------- */
-
-            if (
-                object.type ===
-                "coldfront" ||
-                object.type ===
-                "warmfront"
-            ) {
-
-                const frontDistance =
-                    pointToFrontDistanceKm(
-                        lat,
-                        lon,
-                        object,
-                        ms
-                    );
-
-
-                const frontWeight =
-                    radialWeight(
-                        frontDistance,
-                        Math.max(
-                            20,
-                            Number(
-                                object.widthKm ||
-                                120
-                            )
-                        )
-                    );
-
-
-                if (
-                    frontWeight <=
-                    0
-                ) {
-
-                    continue;
-                }
-
-
-                const contrast =
-                    Math.abs(
-                        Number(
-                            object.temperatureContrast ??
-                            object.strength ??
-                            4
-                        )
-                    );
-
-
-                temperature +=
-                    (
-                        object.type ===
-                        "warmfront"
-                            ? 0.18
-                            : -0.22
-                    ) *
-                    contrast *
-                    frontWeight;
-
-
-                cloud =
-                    Math.max(
-                        cloud,
-                        Number(
-                            object.cloudCover ||
-                            95
-                        ) *
-                        frontWeight
-                    );
-
-
-                frontalLift +=
-                    1.25 *
-                    frontWeight;
-
-
-                const explicitPrecip =
-                    Math.max(
-                        0,
-                        Number(
-                            object.precipitationRate ||
-                            0
-                        )
-                    );
-
-
-                /*
-                    You can still explicitly strengthen a front's rain,
-                    but precipitation no longer requires this value.
-                */
-                if (
-                    explicitPrecip >
-                    0
-                ) {
-
-                    precipRate +=
-                        explicitPrecip *
-                        frontWeight;
-                }
-
-
-                if (
-                    object.precipitationPhase &&
-                    object.precipitationPhase !==
-                    "auto" &&
-                    frontWeight >
-                    0.45
-                ) {
-
-                    forcedPhase =
-                        object.precipitationPhase;
-                }
-
-
-                contributions.push({
-                    id:
-                        object.id,
-
-                    type:
-                        object.type,
-
-                    weight:
-                        frontWeight
-                });
-
-
-                continue;
-            }
-
-
-            /* -------------------------------------------------------------
-               EXPLICIT PRECIP AREA
-               ------------------------------------------------------------- */
-
-            if (
-                object.type ===
-                "precip"
-            ) {
-
-                if (
-                    weight <=
-                    0
-                ) {
-
-                    continue;
-                }
-
-
-                precipRate +=
-                    Math.max(
-                        0,
-                        Number(
-                            object.precipitationRate ||
-                            object.strength ||
-                            0
-                        )
-                    ) *
-                    weight;
-
-
-                cloud =
-                    Math.max(
-                        cloud,
-                        Number(
-                            object.cloudCover ||
-                            100
-                        ) *
-                        weight
-                    );
-
-
-                if (
-                    object.precipitationPhase &&
-                    object.precipitationPhase !==
-                    "auto" &&
-                    weight >
-                    0.35
-                ) {
-
-                    forcedPhase =
-                        object.precipitationPhase;
-                }
-
-
-                contributions.push({
-                    id:
-                        object.id,
-
-                    type:
-                        object.type,
-
-                    weight:
-                        weight
-                });
-            }
-        }
-
-
-        /* -------------------------------------------------------------
-           WIND
-           ------------------------------------------------------------- */
-
-        const windSpeed =
-            Math.hypot(
-                windX,
-                windY
-            );
-
-
-        const windToward =
-            normalizeDegrees(
-                radToDeg(
-                    Math.atan2(
-                        windX,
-                        windY
-                    )
-                )
-            );
-
-
-        const windFrom =
-            normalizeDegrees(
-                windToward +
-                180
-            );
-
-
-        /* -------------------------------------------------------------
-           REAL DEM OROGRAPHIC LIFT
-           ------------------------------------------------------------- */
-
-        let orographicLift =
-            0;
-
-
-        if (
-            land &&
-            windSpeed >
-            1.5
-        ) {
-
-            const currentElevation =
-                elevationM(
-                    lat,
-                    lon
-                );
-
-
-            const upwind80 =
-                sampleUpwindElevation(
-                    lat,
-                    lon,
-                    windFrom,
-                    80
-                );
-
-
-            const upwind160 =
-                sampleUpwindElevation(
-                    lat,
-                    lon,
-                    windFrom,
-                    160
-                );
-
-
-            const rise =
-                Math.max(
-                    0,
-                    currentElevation -
-                    Math.min(
-                        upwind80,
-                        upwind160
-                    )
-                );
-
-
-            orographicLift =
-                clamp(
-                    rise /
-                    700,
-                    0,
-                    1.8
-                ) *
-                clamp(
-                    windSpeed /
-                    8,
-                    0.3,
-                    1.8
-                );
-        }
-
-
-        /* -------------------------------------------------------------
-           NATURAL CLOUD BUILDUP
-           ------------------------------------------------------------- */
-
-        cloud =
-            clamp(
-                cloud +
-
-                15 *
-                orographicLift +
-
-                16 *
-                frontalLift +
-
-                10 *
-                Math.max(
-                    0,
-                    synopticLift
-                ),
-
-                0,
-                100
-            );
-
-
-        /* -------------------------------------------------------------
-           NATURAL PRECIPITATION
-           ------------------------------------------------------------- */
-
-        const saturation =
-            clamp(
-                (
-                    moisture -
-                    0.50
-                ) /
-                0.40,
-                0,
-                1
-            );
-
-
-        const lift =
-            Math.max(
-                0,
-                synopticLift +
-                frontalLift +
-                orographicLift
-            );
-
-
-        const cloudSupport =
-            clamp(
-                (
-                    cloud -
-                    68
-                ) /
-                32,
-                0,
-                1
-            );
-
-
-        if (
-            saturation >
-            0 &&
-            cloudSupport >
-            0
-        ) {
-
-            const naturalRate =
-                saturation *
-                cloudSupport *
-                (
-                    0.20 +
-                    1.65 *
-                    lift
-                );
-
-
-            precipRate +=
-                naturalRate;
-        }
-
-
-        /*
-            Thick, moisture-saturated maritime cloud may produce drizzle
-            even with weak dynamical lift.
-        */
-        if (
-            precipRate <
-            0.08 &&
-            moisture >
-            0.78 &&
-            cloud >
-            91
-        ) {
-
-            precipRate =
-                0.10 +
-                (
-                    moisture -
-                    0.78
-                ) *
-                1.4;
-        }
-
-
-        precipRate =
-            Math.max(
-                0,
-                precipRate
-            );
-
-
-        const precipPhase =
-            precipRate >=
-            0.05
-                ? (
-                    forcedPhase ||
-                    automaticPrecipitationPhase(
-                        temperature
-                    )
-                )
-                : "none";
-
-
-        return {
-            lat:
-                lat,
-
-            lon:
-                lon,
-
-            time:
-                new Date(
-                    ms
-                ).toISOString(),
-
-            land:
-                land,
-
-            elevationM:
-                elevationM(
-                    lat,
-                    lon
-                ),
-
-            baselineTemperatureC:
-                baselineTemp,
-
-            temperatureC:
-                temperature,
-
-            temperatureAnomalyC:
-                temperature -
-                baselineTemp,
-
-            pressureHpa:
-                pressure,
-
-            humidityIndex:
-                clamp(
-                    moisture,
-                    0,
-                    1
-                ),
-
-            cloudCoverPercent:
-                clamp(
-                    cloud,
-                    0,
-                    100
-                ),
-
-            precipitationRateMmH:
-                precipRate,
-
-            precipitationPhase:
-                precipPhase,
-
-            windSpeedMs:
-                windSpeed,
-
-            windDirectionDeg:
-                windFrom,
-
-            orographicLift:
-                orographicLift,
-
-            synopticLift:
-                synopticLift,
-
-            contributions:
-                contributions
-        };
-    }
-
-
-    /* =====================================================================
-       SNOW ACCUMULATION
-       ===================================================================== */
-
-    function calculateSnowDepthCm(
-        lat,
-        lon,
-        ms
-    ) {
-
-        if (
-            !PLAN.settings
-                .snowAccumulationEnabled ||
-            !isLand(
-                lat,
-                lon
+      }
+
+
+      const rise =
+        Math.max(
+          0,
+          c.elevationM -
+          Math.min(
+            upwindElevation(
+              90
+            ),
+            upwindElevation(
+              170
             )
-        ) {
-
-            return 0;
-        }
-
-
-        const step =
-            3 *
-            MS_HOUR;
-
-
-        const start =
-            ms -
-            24 *
-            MS_DAY;
-
-
-        let snow =
-            0;
-
-
-        for (
-            let time = start;
-            time <= ms;
-            time += step
-        ) {
-
-            const weather =
-                calculateWeatherCore(
-                    lat,
-                    lon,
-                    time
-                );
-
-
-            const hours =
-                3;
-
-
-            const amount =
-                weather
-                    .precipitationRateMmH *
-                hours;
-
-
-            if (
-                weather
-                    .precipitationPhase ===
-                "snow"
-            ) {
-
-                snow +=
-                    amount *
-                    0.95;
-            }
-            else if (
-                weather
-                    .precipitationPhase ===
-                "wet_snow"
-            ) {
-
-                snow +=
-                    amount *
-                    0.55;
-            }
-            else if (
-                weather
-                    .precipitationPhase ===
-                "sleet"
-            ) {
-
-                snow +=
-                    amount *
-                    0.16;
-            }
-            else if (
-                weather
-                    .precipitationPhase ===
-                "rain" &&
-                snow >
-                0
-            ) {
-
-                snow -=
-                    amount *
-                    0.20;
-            }
-
-
-            if (
-                weather.temperatureC >
-                0
-            ) {
-
-                const melt =
-                    0.035 *
-                    weather.temperatureC +
-
-                    0.003 *
-                    weather.temperatureC *
-                    weather.temperatureC;
-
-
-                snow -=
-                    melt *
-                    hours;
-            }
-
-
-            snow *=
-                Math.pow(
-                    0.999,
-                    hours
-                );
-
-
-            snow =
-                Math.max(
-                    0,
-                    snow
-                );
-        }
-
-
-        return Math.min(
-            500,
-            snow
+          )
         );
+
+
+      oro =
+        clamp(
+          rise /
+          650,
+          0,
+          1.8
+        ) *
+        clamp(
+          c.windSpeed /
+          8,
+          0.3,
+          1.8
+        );
+
     }
 
 
-    function calculateWeather(
+    /*
+        --------------------------------------------------------
+        LIMITED CONVECTION
+        --------------------------------------------------------
+
+        This is intentionally restrained.
+
+        It allows warm/moist summer air to generate additional
+        precipitation without turning the project back into the
+        abandoned full atmospheric simulator.
+    */
+
+    const convective =
+      c.temperatureC >
+      18 &&
+      c.moisture >
+      0.72
+
+        ? clamp(
+            (
+              c.temperatureC -
+              18
+            ) /
+            12,
+            0,
+            1
+          ) *
+          clamp(
+            (
+              c.moisture -
+              0.72
+            ) /
+            0.22,
+            0,
+            1
+          ) *
+          0.8
+
+        : 0;
+
+
+    const lift =
+      Math.max(
+        0,
+
+        c.synopticLift +
+
+        convergence *
+        1.15 +
+
+        oro +
+
+        convective
+      );
+
+
+    const moist =
+      clamp(
+        (
+          c.moisture -
+          0.56
+        ) /
+        0.38,
+        0,
+        1
+      );
+
+
+    const cloudSupport =
+      clamp(
+        (
+          c.cloud -
+          62
+        ) /
+        38,
+        0,
+        1
+      );
+
+
+    let rate =
+      moist *
+      cloudSupport *
+      (
+        0.08 +
+        lift *
+        3.1
+      );
+
+
+    /*
+        Weak saturated maritime drizzle.
+    */
+
+    if (
+      rate <
+      0.08 &&
+      c.moisture >
+      0.81 &&
+      c.cloud >
+      88 &&
+      lift >
+      0.05
+    ) {
+
+      rate =
+        0.08 +
+        (
+          c.moisture -
+          0.81
+        ) *
+        1.5;
+
+    }
+
+
+    if (
+      rate <
+      0.04
+    ) {
+
+      rate =
+        0;
+
+    }
+
+
+    /*
+        Precipitation phase from local temperature.
+    */
+
+    let phase =
+      "none";
+
+
+    if (
+      rate >
+      0
+    ) {
+
+      if (
+        c.temperatureC <=
+        0.2
+      ) {
+
+        phase =
+          "snow";
+
+      }
+      else if (
+        c.temperatureC <=
+        1.0
+      ) {
+
+        phase =
+          "wet snow";
+
+      }
+      else if (
+        c.temperatureC <=
+        2.2
+      ) {
+
+        phase =
+          "sleet";
+
+      }
+      else {
+
+        phase =
+          "rain";
+
+      }
+
+    }
+
+
+    return {
+
+      rate:
+        rate,
+
+      phase:
+        phase,
+
+      convergence:
+        convergence,
+
+      orographicLift:
+        oro,
+
+      lift:
+        lift
+
+    };
+
+  }
+
+
+  /*
+      ==========================================================
+      COMPLETE WEATHER
+      ==========================================================
+  */
+
+
+  function weatherAt(
+    lat,
+    lon,
+    ms,
+    withSnow =
+      false
+  ) {
+
+    const c =
+      coreField(
+        lat,
+        lon,
+        ms
+      );
+
+
+    const p =
+      precipitationField(
         lat,
         lon,
         ms,
-        includeSnow = true
+        c
+      );
+
+
+    let snowDepth =
+      0;
+
+
+    /*
+        Snow is only integrated when specifically required,
+        such as when inspecting a point.
+
+        The full map therefore remains responsive.
+    */
+
+    if (
+      withSnow &&
+      c.land
     ) {
 
-        const weather =
-            calculateWeatherCore(
-                lat,
-                lon,
-                ms
-            );
+      const start =
+        ms -
+        72 *
+        MS_HOUR;
 
 
-        weather.snowDepthCm =
-            includeSnow
-                ? calculateSnowDepthCm(
-                    lat,
-                    lon,
-                    ms
-                )
-                : 0;
+      for (
+        let t = start;
+        t <=
+        ms;
+        t +=
+        3 *
+        MS_HOUR
+      ) {
+
+        const cc =
+          coreField(
+            lat,
+            lon,
+            t
+          );
 
 
-        weather.biomeState =
-            determineBiomeState(
-                weather
-            );
+        const pp =
+          precipitationField(
+            lat,
+            lon,
+            t,
+            cc
+          );
 
 
-        return weather;
+        const amount =
+          pp.rate *
+          3;
+
+
+        if (
+          pp.phase ===
+          "snow"
+        ) {
+
+          snowDepth +=
+            amount *
+            0.9;
+
+        }
+        else if (
+          pp.phase ===
+          "wet snow"
+        ) {
+
+          snowDepth +=
+            amount *
+            0.5;
+
+        }
+        else if (
+          pp.phase ===
+          "sleet"
+        ) {
+
+          snowDepth +=
+            amount *
+            0.15;
+
+        }
+        else if (
+          pp.phase ===
+          "rain"
+        ) {
+
+          snowDepth -=
+            amount *
+            0.18;
+
+        }
+
+
+        if (
+          cc.temperatureC >
+          0
+        ) {
+
+          snowDepth -=
+            (
+              0.04 *
+              cc.temperatureC +
+
+              0.003 *
+              cc.temperatureC *
+              cc.temperatureC
+            ) *
+            3;
+
+        }
+
+
+        snowDepth *=
+          0.998;
+
+
+        snowDepth =
+          Math.max(
+            0,
+            snowDepth
+          );
+
+      }
+
     }
 
 
-    function determineBiomeState(
-        weather
+    return {
+
+      ...c,
+      ...p,
+
+      snowDepthCm:
+        snowDepth
+
+    };
+
+  }
+
+
+  /*
+      ==========================================================
+      MAP RENDERING
+      ==========================================================
+  */
+
+
+  function drawBase() {
+
+    ctx.clearRect(
+      0,
+      0,
+      state.width,
+      state.height
+    );
+
+
+    ctx.fillStyle =
+      "#112a38";
+
+
+    ctx.fillRect(
+      0,
+      0,
+      state.width,
+      state.height
+    );
+
+
+    if (
+      !state.geoReady
     ) {
 
-        if (
-            !weather.land
-        ) {
-
-            if (
-                weather.temperatureC <=
-                -2 &&
-                weather.lat >=
-                58
-            ) {
-
-                return "cold_sea";
-            }
+      ctx.fillStyle =
+        "#d9e4ea";
 
 
-            return "sea";
-        }
+      ctx.font =
+        "bold 18px system-ui";
 
 
-        if (
-            weather.snowDepthCm >=
+      ctx.textAlign =
+        "center";
+
+
+      ctx.fillText(
+        "LOADING REAL EUROPE…",
+        state.width /
+        2,
+        state.height /
+        2
+      );
+
+
+      return;
+
+    }
+
+
+    ctx.imageSmoothingEnabled =
+      true;
+
+
+    ctx.drawImage(
+      state.baseCanvas,
+      0,
+      0,
+      state.width,
+      state.height
+    );
+
+  }
+
+
+  function overlayColor(
+    layer,
+    wx
+  ) {
+
+    /*
+        TEMPERATURE
+    */
+
+    if (
+      layer ===
+      "temperature"
+    ) {
+
+      const t =
+        clamp(
+          (
+            wx.temperatureC +
+            20
+          ) /
+          55,
+          0,
+          1
+        );
+
+
+      return (
+        "rgba(" +
+
+        Math.round(
+          45 +
+          210 *
+          t
+        ) +
+        "," +
+
+        Math.round(
+          95 +
+          90 *
+          (
+            1 -
+            Math.abs(
+              t -
+              0.5
+            ) *
             2
-        ) {
+          )
+        ) +
+        "," +
 
-            return "snow_covered";
-        }
+        Math.round(
+          235 -
+          205 *
+          t
+        ) +
+
+        ",.48)"
+      );
+
+    }
 
 
-        if (
-            weather.temperatureC <=
-            -0.5
-        ) {
+    /*
+        TEMPERATURE ANOMALY
+    */
 
-            return "frozen_ground";
-        }
+    if (
+      layer ===
+      "anomaly"
+    ) {
+
+      const a =
+        clamp(
+          Math.abs(
+            wx.anomalyC
+          ) /
+          14,
+          0,
+          1
+        );
 
 
-        if (
-            weather
-                .precipitationRateMmH >=
+      if (
+        wx.anomalyC <
+        -0.1
+      ) {
+
+        return (
+          "rgba(" +
+
+          Math.round(
+            55 -
+            20 *
+            a
+          ) +
+          "," +
+
+          Math.round(
+            135 +
+            50 *
+            a
+          ) +
+          "," +
+
+          Math.round(
+            215 +
+            30 *
+            a
+          ) +
+          "," +
+
+          (
+            0.08 +
+            0.55 *
+            a
+          ) +
+
+          ")"
+        );
+
+      }
+
+
+      if (
+        wx.anomalyC >
+        0.1
+      ) {
+
+        return (
+          "rgba(" +
+
+          Math.round(
+            220 +
+            30 *
+            a
+          ) +
+          "," +
+
+          Math.round(
+            145 -
+            90 *
+            a
+          ) +
+          "," +
+
+          Math.round(
+            65 -
+            30 *
+            a
+          ) +
+          "," +
+
+          (
+            0.08 +
+            0.55 *
+            a
+          ) +
+
+          ")"
+        );
+
+      }
+
+
+      return (
+        "rgba(180,180,180,.03)"
+      );
+
+    }
+
+
+    /*
+        PRECIPITATION
+    */
+
+    if (
+      layer ===
+      "precip"
+    ) {
+
+      if (
+        wx.rate <=
+        0
+      ) {
+
+        return null;
+
+      }
+
+
+      const a =
+        0.2 +
+        0.65 *
+        clamp(
+          Math.log1p(
+            wx.rate
+          ) /
+          Math.log(
+            8
+          ),
+          0,
+          1
+        );
+
+
+      if (
+        wx.phase ===
+        "snow" ||
+        wx.phase ===
+        "wet snow"
+      ) {
+
+        return (
+          "rgba(235,245,255," +
+          a +
+          ")"
+        );
+
+      }
+
+
+      if (
+        wx.phase ===
+        "sleet"
+      ) {
+
+        return (
+          "rgba(145,205,235," +
+          a +
+          ")"
+        );
+
+      }
+
+
+      return (
+        "rgba(35,115,225," +
+        a +
+        ")"
+      );
+
+    }
+
+
+    /*
+        MOISTURE
+    */
+
+    if (
+      layer ===
+      "moisture"
+    ) {
+
+      const a =
+        clamp(
+          (
+            wx.moisture -
+            0.3
+          ) /
+          0.65,
+          0,
+          1
+        );
+
+
+      return (
+        "rgba(" +
+
+        Math.round(
+          75 -
+          30 *
+          a
+        ) +
+        "," +
+
+        Math.round(
+          125 +
+          60 *
+          a
+        ) +
+        "," +
+
+        Math.round(
+          180 +
+          60 *
+          a
+        ) +
+        "," +
+
+        (
+          0.12 +
+          0.42 *
+          a
+        ) +
+
+        ")"
+      );
+
+    }
+
+
+    return null;
+
+  }
+
+
+  function drawOverlay() {
+
+    if (
+      !state.geoReady ||
+      state.layer ===
+      "synoptic" ||
+      state.layer ===
+      "elevation"
+    ) {
+
+      return;
+
+    }
+
+
+    const cols =
+      62;
+
+
+    const rows =
+      35;
+
+
+    const cw =
+      state.width /
+      cols;
+
+
+    const ch =
+      state.height /
+      rows;
+
+
+    for (
+      let gy = 0;
+      gy <
+      rows;
+      gy++
+    ) {
+
+      const lat =
+        yToLat(
+          (
+            gy +
             0.5
-        ) {
+          ) *
+          ch
+        );
 
-            return "wet";
-        }
+
+      for (
+        let gx = 0;
+        gx <
+        cols;
+        gx++
+      ) {
+
+        const lon =
+          xToLon(
+            (
+              gx +
+              0.5
+            ) *
+            cw
+          );
+
+
+        let wx;
 
 
         if (
-            weather.temperatureC >=
-            25
+          state.layer ===
+          "precip"
         ) {
 
-            return "hot";
+          wx =
+            weatherAt(
+              lat,
+              lon,
+              state.now,
+              false
+            );
+
+        }
+        else {
+
+          wx =
+            coreField(
+              lat,
+              lon,
+              state.now
+            );
+
         }
 
 
-        return "normal";
-    }
+        const color =
+          overlayColor(
+            state.layer,
+            wx
+          );
 
 
-    /* =====================================================================
-       EXTRA CONTROLS
-       ===================================================================== */
+        if (!color) {
 
-    function installExtraToolbar() {
+          continue;
 
-        const toolbar =
-            document.querySelector(
-                ".toolbar"
-            );
-
-
-        if (
-            !toolbar ||
-            document.getElementById(
-                "ec-layer-select"
-            )
-        ) {
-
-            return;
         }
-
-
-        const pathGroup =
-            document.createElement(
-                "div"
-            );
-
-
-        pathGroup.className =
-            "toolbar-group";
-
-
-        const drawAir =
-            document.createElement(
-                "button"
-            );
-
-
-        drawAir.type =
-            "button";
-
-        drawAir.className =
-            "btn";
-
-        drawAir.id =
-            "ec-draw-air";
-
-        drawAir.textContent =
-            "↝ Draw Air Path";
-
-
-        const finish =
-            document.createElement(
-                "button"
-            );
-
-
-        finish.type =
-            "button";
-
-        finish.className =
-            "btn good hidden";
-
-        finish.id =
-            "ec-finish-air";
-
-        finish.textContent =
-            "Finish Path";
-
-
-        const cancel =
-            document.createElement(
-                "button"
-            );
-
-
-        cancel.type =
-            "button";
-
-        cancel.className =
-            "btn danger hidden";
-
-        cancel.id =
-            "ec-cancel-air";
-
-        cancel.textContent =
-            "Cancel Path";
-
-
-        pathGroup.append(
-            drawAir,
-            finish,
-            cancel
-        );
-
-
-        toolbar.appendChild(
-            pathGroup
-        );
-
-
-        const layerGroup =
-            document.createElement(
-                "div"
-            );
-
-
-        layerGroup.className =
-            "toolbar-group";
-
-
-        const label =
-            document.createElement(
-                "label"
-            );
-
-
-        label.textContent =
-            "Layer ";
-
-
-        label.style.fontSize =
-            "12px";
-
-        label.style.color =
-            "#9aa9b6";
-
-
-        const select =
-            document.createElement(
-                "select"
-            );
-
-
-        select.id =
-            "ec-layer-select";
-
-        select.className =
-            "btn";
-
-        select.style.minHeight =
-            "34px";
-
-
-        select.innerHTML = `
-            <option value="synoptic">Synoptic</option>
-            <option value="temp_anomaly">Temperature anomaly</option>
-            <option value="temperature">Temperature</option>
-            <option value="precipitation">Precipitation</option>
-            <option value="elevation">Elevation</option>
-        `;
-
-
-        label.appendChild(
-            select
-        );
-
-
-        layerGroup.appendChild(
-            label
-        );
-
-
-        toolbar.appendChild(
-            layerGroup
-        );
-
-
-        drawAir.addEventListener(
-            "click",
-            startAirPathDrawing
-        );
-
-
-        finish.addEventListener(
-            "click",
-            finishAirPathDrawing
-        );
-
-
-        cancel.addEventListener(
-            "click",
-            cancelAirPathDrawing
-        );
-
-
-        select.addEventListener(
-            "change",
-            function () {
-
-                state.layer =
-                    select.value;
-
-
-                render();
-            }
-        );
-    }
-
-
-    /* =====================================================================
-       AIR-PATH DRAWING
-       ===================================================================== */
-
-    function startAirPathDrawing() {
-
-        if (
-            PLAN.isTimeLocked(
-                state.currentTime
-            )
-        ) {
-
-            statusMessage(
-                "You cannot create an air path in locked weather.",
-                "Locked:"
-            );
-
-            return;
-        }
-
-
-        state.tool =
-            "drawair";
-
-        state.drawPath =
-            [];
-
-        state.drawPathActive =
-            true;
-
-
-        updateAirPathButtons();
-
-
-        el.mapHelp.textContent =
-            "Draw Air Path: click a start point, then click as many " +
-            "curved/zig-zag waypoints as you want. Press Finish Path " +
-            "or Enter when done.";
-
-
-        render();
-    }
-
-
-    function cancelAirPathDrawing() {
-
-        state.drawPath =
-            [];
-
-        state.drawPathActive =
-            false;
-
-        state.tool =
-            "inspect";
-
-
-        updateAirPathButtons();
-
-        setTool(
-            "inspect"
-        );
-
-        render();
-    }
-
-
-    function finishAirPathDrawing() {
-
-        if (
-            !state.drawPathActive ||
-            state.drawPath.length <
-            2
-        ) {
-
-            statusMessage(
-                "Add at least two points before finishing the air path."
-            );
-
-            return;
-        }
-
-
-        const first =
-            state.drawPath[0];
-
-
-        const last =
-            state.drawPath[
-                state.drawPath.length -
-                1
-            ];
-
-
-        const object =
-            PLAN.createObject(
-                "airmass",
-                first.lat,
-                first.lon,
-                new Date(
-                    state.currentTime
-                ).toISOString()
-            );
-
-
-        /*
-            Strong but not ridiculous default for testing.
-        */
-        object.name =
-            "Arctic Air Path";
-
-        object.airmass =
-            "arctic";
-
-        object.temperatureAnomaly =
-            -8;
-
-        object.strength =
-            -8;
-
-        object.radiusKm =
-            750;
-
-        object.pathStyle =
-            "curved";
-
-
-        object.start = {
-            lat:
-                first.lat,
-
-            lon:
-                first.lon
-        };
-
-
-        object.end = {
-            lat:
-                last.lat,
-
-            lon:
-                last.lon
-        };
-
-
-        object.endTime =
-            new Date(
-                Math.min(
-                    Date.parse(
-                        PLAN.planningBlock.end
-                    ),
-                    state.currentTime +
-                    48 *
-                    MS_HOUR
-                )
-            ).toISOString();
-
-
-        object.path =
-            state.drawPath.map(
-                (
-                    point,
-                    index,
-                    array
-                ) => {
-
-                    return {
-                        lat:
-                            point.lat,
-
-                        lon:
-                            point.lon,
-
-                        u:
-                            array.length ===
-                            1
-                                ? 0
-                                : (
-                                    index /
-                                    (
-                                        array.length -
-                                        1
-                                    )
-                                )
-                    };
-                }
-            );
-
-
-        PLAN.objects.push(
-            object
-        );
-
-
-        markDirty();
-
-
-        state.drawPath =
-            [];
-
-        state.drawPathActive =
-            false;
-
-        state.tool =
-            "inspect";
-
-
-        updateAirPathButtons();
-
-
-        selectObject(
-            object.id
-        );
-
-
-        setTool(
-            "inspect"
-        );
-
-
-        statusMessage(
-            "Curved Arctic air path created. Change its air-mass type, " +
-            "anomaly, radius or timing in the editor."
-        );
-    }
-
-
-    function updateAirPathButtons() {
-
-        const draw =
-            document.getElementById(
-                "ec-draw-air"
-            );
-
-
-        const finish =
-            document.getElementById(
-                "ec-finish-air"
-            );
-
-
-        const cancel =
-            document.getElementById(
-                "ec-cancel-air"
-            );
-
-
-        if (
-            !draw ||
-            !finish ||
-            !cancel
-        ) {
-
-            return;
-        }
-
-
-        draw.classList.toggle(
-            "active",
-            state.drawPathActive
-        );
-
-
-        finish.classList.toggle(
-            "hidden",
-            !state.drawPathActive
-        );
-
-
-        cancel.classList.toggle(
-            "hidden",
-            !state.drawPathActive
-        );
-
-
-        finish.disabled =
-            state.drawPath.length <
-            2;
-    }
-
-
-    /* =====================================================================
-       RENDERING
-       ===================================================================== */
-
-    function resizeCanvas() {
-
-        const rect =
-            canvas.getBoundingClientRect();
-
-
-        state.dpr =
-            Math.max(
-                1,
-                Math.min(
-                    2,
-                    window.devicePixelRatio ||
-                    1
-                )
-            );
-
-
-        state.drawingWidth =
-            Math.max(
-                300,
-                Math.round(
-                    rect.width
-                )
-            );
-
-
-        state.drawingHeight =
-            Math.max(
-                300,
-                Math.round(
-                    rect.height
-                )
-            );
-
-
-        canvas.width =
-            Math.round(
-                state.drawingWidth *
-                state.dpr
-            );
-
-
-        canvas.height =
-            Math.round(
-                state.drawingHeight *
-                state.dpr
-            );
-
-
-        ctx.setTransform(
-            state.dpr,
-            0,
-            0,
-            state.dpr,
-            0,
-            0
-        );
-
-
-        render();
-    }
-
-
-    function render() {
-
-        drawBaseMap();
-
-
-        if (
-            state.rasterReady &&
-            state.layer !==
-            "synoptic" &&
-            state.layer !==
-            "elevation"
-        ) {
-
-            drawWeatherLayer();
-        }
-
-
-        drawGraticule();
-
-        drawWeatherObjects();
-
-        drawDraftAirPath();
-
-        drawInspectionMarker();
-    }
-
-
-    function drawBaseMap() {
-
-        ctx.clearRect(
-            0,
-            0,
-            state.drawingWidth,
-            state.drawingHeight
-        );
 
 
         ctx.fillStyle =
-            "#102532";
+          color;
 
 
         ctx.fillRect(
-            0,
-            0,
-            state.drawingWidth,
-            state.drawingHeight
+          gx *
+          cw,
+          gy *
+          ch,
+          cw +
+          1,
+          ch +
+          1
         );
 
+      }
 
-        if (
-            !state.rasterReady
-        ) {
-
-            ctx.fillStyle =
-                "#dbe5ec";
-
-            ctx.textAlign =
-                "center";
-
-            ctx.font =
-                "bold 18px sans-serif";
-
-
-            ctx.fillText(
-                "ELEVATION DATASET REQUIRED",
-                state.drawingWidth /
-                2,
-                state.drawingHeight /
-                2 -
-                12
-            );
-
-
-            ctx.font =
-                "13px sans-serif";
-
-            ctx.fillStyle =
-                "#9fb0bd";
-
-
-            ctx.fillText(
-                "Add europacraft-elevation.png — no fake Europe fallback is used.",
-                state.drawingWidth /
-                2,
-                state.drawingHeight /
-                2 +
-                14
-            );
-
-
-            return;
-        }
-
-
-        ctx.imageSmoothingEnabled =
-            true;
-
-
-        ctx.drawImage(
-            dem.baseMapCanvas,
-            0,
-            0,
-            state.drawingWidth,
-            state.drawingHeight
-        );
     }
 
 
-    function drawWeatherLayer() {
+    drawLegend();
 
-        const cell =
-            Math.max(
-                14,
-                Math.round(
-                    state.drawingWidth /
-                    72
-                )
-            );
+  }
 
 
-        ctx.save();
+  function drawLegend() {
 
+    const labels = {
 
-        for (
-            let y = 0;
-            y < state.drawingHeight;
-            y += cell
-        ) {
+      temperature:
+        "TEMPERATURE °C",
 
-            for (
-                let x = 0;
-                x < state.drawingWidth;
-                x += cell
-            ) {
+      anomaly:
+        "TEMPERATURE ANOMALY °C",
 
-                const lat =
-                    yToLat(
-                        y +
-                        cell /
-                        2
-                    );
+      precip:
+        "PRECIPITATION",
 
+      moisture:
+        "MOISTURE"
 
-                const lon =
-                    xToLon(
-                        x +
-                        cell /
-                        2
-                    );
-
-
-                const weather =
-                    calculateWeatherCore(
-                        lat,
-                        lon,
-                        state.currentTime
-                    );
-
-
-                let color =
-                    null;
-
-
-                if (
-                    state.layer ===
-                    "temp_anomaly"
-                ) {
-
-                    color =
-                        anomalyColor(
-                            weather
-                                .temperatureAnomalyC
-                        );
-                }
-                else if (
-                    state.layer ===
-                    "temperature"
-                ) {
-
-                    color =
-                        temperatureColor(
-                            weather.temperatureC
-                        );
-                }
-                else if (
-                    state.layer ===
-                    "precipitation"
-                ) {
-
-                    color =
-                        precipitationColor(
-                            weather
-                                .precipitationRateMmH,
-
-                            weather
-                                .precipitationPhase
-                        );
-                }
-
-
-                if (color) {
-
-                    ctx.fillStyle =
-                        color;
-
-
-                    ctx.fillRect(
-                        x,
-                        y,
-                        cell +
-                        1,
-                        cell +
-                        1
-                    );
-                }
-            }
-        }
-
-
-        ctx.restore();
-    }
-
-
-    function anomalyColor(value) {
-
-        const amount =
-            clamp(
-                Math.abs(
-                    value
-                ) /
-                14,
-                0,
-                1
-            );
-
-
-        if (
-            value <
-            0
-        ) {
-
-            return (
-                "rgba(" +
-                Math.round(
-                    60 -
-                    15 *
-                    amount
-                ) +
-                "," +
-                Math.round(
-                    145 +
-                    40 *
-                    amount
-                ) +
-                "," +
-                Math.round(
-                    220 +
-                    25 *
-                    amount
-                ) +
-                "," +
-                (
-                    0.12 +
-                    0.52 *
-                    amount
-                ) +
-                ")"
-            );
-        }
-
-
-        if (
-            value >
-            0
-        ) {
-
-            return (
-                "rgba(" +
-                Math.round(
-                    225 +
-                    25 *
-                    amount
-                ) +
-                "," +
-                Math.round(
-                    145 -
-                    85 *
-                    amount
-                ) +
-                "," +
-                Math.round(
-                    70 -
-                    25 *
-                    amount
-                ) +
-                "," +
-                (
-                    0.12 +
-                    0.52 *
-                    amount
-                ) +
-                ")"
-            );
-        }
-
-
-        return (
-            "rgba(200,200,200,0.04)"
-        );
-    }
-
-
-    function temperatureColor(value) {
-
-        const t =
-            clamp(
-                (
-                    value +
-                    20
-                ) /
-                55,
-                0,
-                1
-            );
-
-
-        const r =
-            Math.round(
-                55 +
-                200 *
-                t
-            );
-
-
-        const g =
-            Math.round(
-                115 +
-                75 *
-                (
-                    1 -
-                    Math.abs(
-                        t -
-                        0.5
-                    ) *
-                    2
-                )
-            );
-
-
-        const b =
-            Math.round(
-                230 -
-                190 *
-                t
-            );
-
-
-        return (
-            "rgba(" +
-            r +
-            "," +
-            g +
-            "," +
-            b +
-            ",0.46)"
-        );
-    }
-
-
-    function precipitationColor(
-        rate,
-        phase
-    ) {
-
-        if (
-            rate <
-            0.05
-        ) {
-
-            return null;
-        }
-
-
-        const alpha =
-            0.18 +
-            0.62 *
-            clamp(
-                Math.log1p(
-                    rate
-                ) /
-                Math.log(
-                    11
-                ),
-                0,
-                1
-            );
-
-
-        if (
-            phase ===
-            "snow" ||
-            phase ===
-            "wet_snow"
-        ) {
-
-            return (
-                "rgba(225,240,255," +
-                alpha +
-                ")"
-            );
-        }
-
-
-        if (
-            phase ===
-            "sleet"
-        ) {
-
-            return (
-                "rgba(150,210,235," +
-                alpha +
-                ")"
-            );
-        }
-
-
-        return (
-            "rgba(45,125,225," +
-            alpha +
-            ")"
-        );
-    }
-
-
-    function drawGraticule() {
-
-        ctx.save();
-
-
-        ctx.strokeStyle =
-            "rgba(220,232,240,0.14)";
-
-
-        ctx.fillStyle =
-            "rgba(230,238,243,0.70)";
-
-
-        ctx.lineWidth =
-            1;
-
-
-        ctx.font =
-            "10px sans-serif";
-
-
-        for (
-            let lon = -20;
-            lon <= 50;
-            lon += 10
-        ) {
-
-            const x =
-                lonToX(
-                    lon
-                );
-
-
-            ctx.beginPath();
-
-            ctx.moveTo(
-                x,
-                0
-            );
-
-            ctx.lineTo(
-                x,
-                state.drawingHeight
-            );
-
-            ctx.stroke();
-
-
-            ctx.fillText(
-                lon >=
-                0
-                    ? lon +
-                    "°E"
-                    : Math.abs(
-                        lon
-                    ) +
-                    "°W",
-                x +
-                4,
-                13
-            );
-        }
-
-
-        for (
-            let lat = 30;
-            lat <= 70;
-            lat += 10
-        ) {
-
-            const y =
-                latToY(
-                    lat
-                );
-
-
-            ctx.beginPath();
-
-            ctx.moveTo(
-                0,
-                y
-            );
-
-            ctx.lineTo(
-                state.drawingWidth,
-                y
-            );
-
-            ctx.stroke();
-
-
-            ctx.fillText(
-                lat +
-                "°N",
-                4,
-                y -
-                4
-            );
-        }
-
-
-        ctx.restore();
-    }
-
-
-    function drawWeatherObjects() {
-
-        const active =
-            PLAN.objects.filter(
-                object =>
-                    objectActiveAt(
-                        object,
-                        state.currentTime
-                    )
-            );
-
-
-        for (
-            const object of
-            active
-        ) {
-
-            if (
-                object.type ===
-                "airmass" ||
-                object.type ===
-                "precip"
-            ) {
-
-                drawAreaObject(
-                    object
-                );
-            }
-        }
-
-
-        for (
-            const object of
-            active
-        ) {
-
-            if (
-                object.type ===
-                "high" ||
-                object.type ===
-                "low"
-            ) {
-
-                drawPressureObject(
-                    object
-                );
-            }
-        }
-
-
-        for (
-            const object of
-            active
-        ) {
-
-            if (
-                object.type ===
-                "coldfront" ||
-                object.type ===
-                "warmfront"
-            ) {
-
-                drawFrontObject(
-                    object
-                );
-            }
-        }
-    }
-
-
-    function drawTrack(object) {
-
-        const points =
-            trackPoints(
-                object
-            );
-
-
-        if (
-            points.length <
-            2
-        ) {
-
-            return;
-        }
-
-
-        ctx.save();
-
-
-        ctx.strokeStyle =
-            state.selectedObjectId ===
-            object.id
-                ? "rgba(255,228,130,0.95)"
-                : "rgba(235,242,246,0.72)";
-
-
-        ctx.lineWidth =
-            state.selectedObjectId ===
-            object.id
-                ? 3
-                : 1.7;
-
-
-        ctx.setLineDash(
-            [
-                7,
-                5
-            ]
-        );
-
-
-        ctx.beginPath();
-
-
-        const samples =
-            Math.max(
-                24,
-                points.length *
-                14
-            );
-
-
-        for (
-            let i = 0;
-            i <= samples;
-            i++
-        ) {
-
-            const point =
-                positionOnTrack(
-                    object,
-                    i /
-                    samples
-                );
-
-
-            const x =
-                lonToX(
-                    point.lon
-                );
-
-
-            const y =
-                latToY(
-                    point.lat
-                );
-
-
-            if (
-                i ===
-                0
-            ) {
-
-                ctx.moveTo(
-                    x,
-                    y
-                );
-            }
-            else {
-
-                ctx.lineTo(
-                    x,
-                    y
-                );
-            }
-        }
-
-
-        ctx.stroke();
-
-        ctx.setLineDash(
-            []
-        );
-
-
-        /*
-            Arrowheads along the path.
-        */
-        for (
-            let u = 0.25;
-            u < 1;
-            u += 0.28
-        ) {
-
-            const a =
-                positionOnTrack(
-                    object,
-                    u
-                );
-
-
-            const b =
-                positionOnTrack(
-                    object,
-                    Math.min(
-                        1,
-                        u +
-                        0.015
-                    )
-                );
-
-
-            const x1 =
-                lonToX(
-                    a.lon
-                );
-
-            const y1 =
-                latToY(
-                    a.lat
-                );
-
-            const x2 =
-                lonToX(
-                    b.lon
-                );
-
-            const y2 =
-                latToY(
-                    b.lat
-                );
-
-
-            const dx =
-                x2 -
-                x1;
-
-            const dy =
-                y2 -
-                y1;
-
-
-            const length =
-                Math.hypot(
-                    dx,
-                    dy
-                ) ||
-                1;
-
-
-            const ux =
-                dx /
-                length;
-
-            const uy =
-                dy /
-                length;
-
-
-            const px =
-                -uy;
-
-            const py =
-                ux;
-
-
-            ctx.fillStyle =
-                ctx.strokeStyle;
-
-
-            ctx.beginPath();
-
-
-            ctx.moveTo(
-                x2,
-                y2
-            );
-
-
-            ctx.lineTo(
-                x2 -
-                ux *
-                10 +
-                px *
-                5,
-
-                y2 -
-                uy *
-                10 +
-                py *
-                5
-            );
-
-
-            ctx.lineTo(
-                x2 -
-                ux *
-                10 -
-                px *
-                5,
-
-                y2 -
-                uy *
-                10 -
-                py *
-                5
-            );
-
-
-            ctx.closePath();
-
-            ctx.fill();
-        }
-
-
-        ctx.restore();
-    }
-
-
-    function drawAreaObject(object) {
-
-        drawTrack(
-            object
-        );
-
-
-        const position =
-            objectPosition(
-                object,
-                state.currentTime
-            );
-
-
-        const x =
-            lonToX(
-                position.lon
-            );
-
-
-        const y =
-            latToY(
-                position.lat
-            );
-
-
-        const radiusLon =
-            Number(
-                object.radiusKm ||
-                400
-            ) /
-            kmPerLonDegree(
-                position.lat
-            );
-
-
-        const radiusLat =
-            Number(
-                object.radiusKm ||
-                400
-            ) /
-            KM_PER_DEG;
-
-
-        const rx =
-            Math.abs(
-                lonToX(
-                    position.lon +
-                    radiusLon
-                ) -
-                x
-            );
-
-
-        const ry =
-            Math.abs(
-                latToY(
-                    position.lat +
-                    radiusLat
-                ) -
-                y
-            );
-
-
-        ctx.save();
-
-
-        if (
-            object.type ===
-            "precip"
-        ) {
-
-            ctx.fillStyle =
-                "rgba(55,130,220,0.18)";
-
-            ctx.strokeStyle =
-                "rgba(105,180,245,0.92)";
-        }
-        else {
-
-            const cold =
-                Number(
-                    object.temperatureAnomaly ??
-                    object.strength ??
-                    0
-                ) <
-                0;
-
-
-            ctx.fillStyle =
-                cold
-                    ? "rgba(80,165,235,0.16)"
-                    : "rgba(235,145,70,0.16)";
-
-
-            ctx.strokeStyle =
-                cold
-                    ? "rgba(145,210,250,0.92)"
-                    : "rgba(245,185,110,0.92)";
-        }
-
-
-        ctx.lineWidth =
-            state.selectedObjectId ===
-            object.id
-                ? 3
-                : 1.5;
-
-
-        ctx.beginPath();
-
-
-        ctx.ellipse(
-            x,
-            y,
-            Math.max(
-                8,
-                rx
-            ),
-            Math.max(
-                8,
-                ry
-            ),
-            0,
-            0,
-            Math.PI *
-            2
-        );
-
-
-        ctx.fill();
-
-        ctx.stroke();
-
-
-        ctx.fillStyle =
-            "#f2f6f8";
-
-
-        ctx.font =
-            state.selectedObjectId ===
-            object.id
-                ? "bold 12px sans-serif"
-                : "11px sans-serif";
-
-
-        ctx.textAlign =
-            "center";
-
-
-        let label =
-            object.name ||
-            object.type;
-
-
-        if (
-            object.type ===
-            "airmass"
-        ) {
-
-            const moisture =
-                moistureAlongTrack(
-                    object,
-                    objectProgress(
-                        object,
-                        state.currentTime
-                    )
-                );
-
-
-            const anomaly =
-                Number(
-                    object.temperatureAnomaly ??
-                    object.strength ??
-                    0
-                );
-
-
-            label +=
-                "  " +
-                (
-                    anomaly >=
-                    0
-                        ? "+"
-                        : ""
-                ) +
-                anomaly.toFixed(
-                    1
-                ) +
-                "°C  M" +
-                Math.round(
-                    moisture *
-                    100
-                );
-        }
-
-
-        ctx.fillText(
-            label,
-            x,
-            y
-        );
-
-
-        ctx.restore();
-    }
-
-
-    function drawPressureObject(object) {
-
-        drawTrack(
-            object
-        );
-
-
-        const position =
-            objectPosition(
-                object,
-                state.currentTime
-            );
-
-
-        const x =
-            lonToX(
-                position.lon
-            );
-
-
-        const y =
-            latToY(
-                position.lat
-            );
-
-
-        const high =
-            object.type ===
-            "high";
-
-
-        ctx.save();
-
-
-        ctx.fillStyle =
-            "rgba(10,15,20,0.82)";
-
-
-        ctx.strokeStyle =
-            high
-                ? "#94d6f4"
-                : "#ef9898";
-
-
-        ctx.lineWidth =
-            state.selectedObjectId ===
-            object.id
-                ? 3
-                : 1.7;
-
-
-        ctx.beginPath();
-
-
-        ctx.arc(
-            x,
-            y,
-            state.selectedObjectId ===
-            object.id
-                ? 24
-                : 20,
-            0,
-            Math.PI *
-            2
-        );
-
-
-        ctx.fill();
-
-        ctx.stroke();
-
-
-        ctx.textAlign =
-            "center";
-
-        ctx.textBaseline =
-            "middle";
-
-
-        ctx.font =
-            "bold 22px sans-serif";
-
-
-        ctx.fillStyle =
-            high
-                ? "#b5e5f8"
-                : "#ffb3b3";
-
-
-        ctx.fillText(
-            high
-                ? "H"
-                : "L",
-            x,
-            y -
-            2
-        );
-
-
-        ctx.font =
-            "10px sans-serif";
-
-
-        ctx.fillStyle =
-            "#eef3f6";
-
-
-        ctx.fillText(
-            Math.round(
-                1012 +
-                Number(
-                    object.strength ||
-                    0
-                )
-            ) +
-            " hPa",
-            x,
-            y +
-            29
-        );
-
-
-        ctx.restore();
-    }
-
-
-    function drawFrontObject(object) {
-
-        drawTrack(
-            object
-        );
-
-
-        const centre =
-            objectPosition(
-                object,
-                state.currentTime
-            );
-
-
-        const angle =
-            degToRad(
-                Number(
-                    object.angle ||
-                    0
-                )
-            );
-
-
-        const half =
-            Number(
-                object.lengthKm ||
-                700
-            ) /
-            2;
-
-
-        const ux =
-            Math.sin(
-                angle
-            );
-
-
-        const uy =
-            Math.cos(
-                angle
-            );
-
-
-        const start = {
-            lat:
-                centre.lat -
-                uy *
-                half /
-                KM_PER_DEG,
-
-            lon:
-                centre.lon -
-                ux *
-                half /
-                kmPerLonDegree(
-                    centre.lat
-                )
-        };
-
-
-        const end = {
-            lat:
-                centre.lat +
-                uy *
-                half /
-                KM_PER_DEG,
-
-            lon:
-                centre.lon +
-                ux *
-                half /
-                kmPerLonDegree(
-                    centre.lat
-                )
-        };
-
-
-        const x1 =
-            lonToX(
-                start.lon
-            );
-
-        const y1 =
-            latToY(
-                start.lat
-            );
-
-        const x2 =
-            lonToX(
-                end.lon
-            );
-
-        const y2 =
-            latToY(
-                end.lat
-            );
-
-
-        ctx.save();
-
-
-        ctx.strokeStyle =
-            object.type ===
-            "coldfront"
-                ? "#6bb5ff"
-                : "#ed7f88";
-
-
-        ctx.lineWidth =
-            state.selectedObjectId ===
-            object.id
-                ? 4
-                : 2.2;
-
-
-        ctx.beginPath();
-
-        ctx.moveTo(
-            x1,
-            y1
-        );
-
-        ctx.lineTo(
-            x2,
-            y2
-        );
-
-        ctx.stroke();
-
-
-        ctx.fillStyle =
-            "#f4f6f8";
-
-
-        ctx.font =
-            "11px sans-serif";
-
-
-        ctx.textAlign =
-            "center";
-
-
-        ctx.fillText(
-            object.name ||
-            object.type,
-            lonToX(
-                centre.lon
-            ),
-            latToY(
-                centre.lat
-            ) -
-            12
-        );
-
-
-        ctx.restore();
-    }
-
-
-    function drawDraftAirPath() {
-
-        if (
-            !state.drawPathActive ||
-            state.drawPath.length ===
-            0
-        ) {
-
-            return;
-        }
-
-
-        ctx.save();
-
-
-        ctx.strokeStyle =
-            "rgba(255,220,100,0.95)";
-
-
-        ctx.fillStyle =
-            "rgba(255,220,100,0.95)";
-
-
-        ctx.lineWidth =
-            2.5;
-
-
-        ctx.setLineDash(
-            [
-                6,
-                4
-            ]
-        );
-
-
-        ctx.beginPath();
-
-
-        state.drawPath.forEach(
-            (
-                point,
-                index
-            ) => {
-
-                const x =
-                    lonToX(
-                        point.lon
-                    );
-
-
-                const y =
-                    latToY(
-                        point.lat
-                    );
-
-
-                if (
-                    index ===
-                    0
-                ) {
-
-                    ctx.moveTo(
-                        x,
-                        y
-                    );
-                }
-                else {
-
-                    ctx.lineTo(
-                        x,
-                        y
-                    );
-                }
-            }
-        );
-
-
-        ctx.stroke();
-
-        ctx.setLineDash(
-            []
-        );
-
-
-        for (
-            const point of
-            state.drawPath
-        ) {
-
-            ctx.beginPath();
-
-
-            ctx.arc(
-                lonToX(
-                    point.lon
-                ),
-                latToY(
-                    point.lat
-                ),
-                4,
-                0,
-                Math.PI *
-                2
-            );
-
-
-            ctx.fill();
-        }
-
-
-        ctx.restore();
-    }
-
-
-    function drawInspectionMarker() {
-
-        if (
-            !state.inspectedPoint
-        ) {
-
-            return;
-        }
-
-
-        const x =
-            lonToX(
-                state.inspectedPoint.lon
-            );
-
-
-        const y =
-            latToY(
-                state.inspectedPoint.lat
-            );
-
-
-        ctx.save();
-
-
-        ctx.strokeStyle =
-            "#ffe16e";
-
-
-        ctx.lineWidth =
-            1.5;
-
-
-        ctx.beginPath();
-
-
-        ctx.arc(
-            x,
-            y,
-            6,
-            0,
-            Math.PI *
-            2
-        );
-
-
-        ctx.stroke();
-
-
-        ctx.beginPath();
-
-
-        ctx.moveTo(
-            x -
-            10,
-            y
-        );
-
-        ctx.lineTo(
-            x +
-            10,
-            y
-        );
-
-
-        ctx.moveTo(
-            x,
-            y -
-            10
-        );
-
-        ctx.lineTo(
-            x,
-            y +
-            10
-        );
-
-
-        ctx.stroke();
-
-
-        ctx.restore();
-    }
-
-
-    /* =====================================================================
-       MAP INTERACTION
-       ===================================================================== */
-
-    function nearestActiveObject(
-        x,
-        y,
-        maxPixels = 24
-    ) {
-
-        let best =
-            null;
-
-
-        let bestDistance =
-            maxPixels;
-
-
-        for (
-            const object of
-            PLAN.objects
-        ) {
-
-            if (
-                !objectActiveAt(
-                    object,
-                    state.currentTime
-                )
-            ) {
-
-                continue;
-            }
-
-
-            const position =
-                objectPosition(
-                    object,
-                    state.currentTime
-                );
-
-
-            const distance =
-                Math.hypot(
-                    lonToX(
-                        position.lon
-                    ) -
-                    x,
-
-                    latToY(
-                        position.lat
-                    ) -
-                    y
-                );
-
-
-            if (
-                distance <
-                bestDistance
-            ) {
-
-                bestDistance =
-                    distance;
-
-                best =
-                    object;
-            }
-        }
-
-
-        return best;
-    }
-
-
-    function handleMapClick(event) {
-
-        const point =
-            canvasPointFromEvent(
-                event
-            );
-
-
-        const lon =
-            clamp(
-                xToLon(
-                    point.x
-                ),
-                PLAN.bounds.west,
-                PLAN.bounds.east
-            );
-
-
-        const lat =
-            clamp(
-                yToLat(
-                    point.y
-                ),
-                PLAN.bounds.south,
-                PLAN.bounds.north
-            );
-
-
-        if (
-            state.tool ===
-            "drawair"
-        ) {
-
-            state.drawPath.push({
-                lat:
-                    lat,
-
-                lon:
-                    lon
-            });
-
-
-            updateAirPathButtons();
-
-            render();
-
-
-            statusMessage(
-                state.drawPath.length +
-                " air-path point" +
-                (
-                    state.drawPath.length ===
-                    1
-                        ? ""
-                        : "s"
-                ) +
-                ". Add more, then Finish Path."
-            );
-
-
-            return;
-        }
-
-
-        if (
-            state.tool ===
-            "inspect"
-        ) {
-
-            const nearby =
-                nearestActiveObject(
-                    point.x,
-                    point.y
-                );
-
-
-            if (nearby) {
-
-                selectObject(
-                    nearby.id
-                );
-            }
-            else {
-
-                state.inspectedPoint = {
-                    lat:
-                        lat,
-
-                    lon:
-                        lon
-                };
-
-
-                selectObject(
-                    null
-                );
-
-
-                updateInspection();
-
-                render();
-            }
-
-
-            return;
-        }
-
-
-        if (
-            PLAN.isTimeLocked(
-                state.currentTime
-            )
-        ) {
-
-            statusMessage(
-                "You cannot create weather inside a locked period.",
-                "Locked:"
-            );
-
-            return;
-        }
-
-
-        const object =
-            PLAN.createObject(
-                state.tool,
-                lat,
-                lon,
-                new Date(
-                    state.currentTime
-                ).toISOString()
-            );
-
-
-        const blockEnd =
-            Date.parse(
-                PLAN.planningBlock.end
-            );
-
-
-        if (
-            Date.parse(
-                object.endTime
-            ) >
-            blockEnd
-        ) {
-
-            object.endTime =
-                new Date(
-                    blockEnd
-                ).toISOString();
-        }
-
-
-        PLAN.objects.push(
-            object
-        );
-
-
-        markDirty();
-
-        setTool(
-            "inspect"
-        );
-
-
-        selectObject(
-            object.id
-        );
-
-
-        statusMessage(
-            "Created " +
-            object.name +
-            "."
-        );
-    }
-
-
-    function handleMapPointerMove(event) {
-
-        const point =
-            canvasPointFromEvent(
-                event
-            );
-
-
-        const lon =
-            clamp(
-                xToLon(
-                    point.x
-                ),
-                PLAN.bounds.west,
-                PLAN.bounds.east
-            );
-
-
-        const lat =
-            clamp(
-                yToLat(
-                    point.y
-                ),
-                PLAN.bounds.south,
-                PLAN.bounds.north
-            );
-
-
-        const raster =
-            rasterPixel(
-                lat,
-                lon
-            );
-
-
-        el.mapCoordinates.textContent =
-            lat.toFixed(
-                2
-            ) +
-            "°N, " +
-            (
-                lon >=
-                0
-                    ? lon.toFixed(
-                        2
-                    ) +
-                    "°E"
-                    : Math.abs(
-                        lon
-                    ).toFixed(
-                        2
-                    ) +
-                    "°W"
-            ) +
-            " · " +
-            (
-                raster.land
-                    ? Math.round(
-                        raster.elevationM
-                    ) +
-                    " m"
-                    : "SEA"
-            );
-    }
-
-
-    function setTool(tool) {
-
-        if (
-            state.drawPathActive &&
-            tool !==
-            "drawair"
-        ) {
-
-            state.drawPath =
-                [];
-
-            state.drawPathActive =
-                false;
-
-
-            updateAirPathButtons();
-        }
-
-
-        state.tool =
-            tool;
-
-
-        document
-            .querySelectorAll(
-                "[data-tool]"
-            )
-            .forEach(
-                button => {
-
-                    button.classList.toggle(
-                        "active",
-                        button.dataset.tool ===
-                        tool
-                    );
-                }
-            );
-
-
-        const help = {
-            inspect:
-                "Inspect mode: click anywhere to inspect weather. " +
-                "Click near an active object to edit it.",
-
-            high:
-                "Click to place a high-pressure system.",
-
-            low:
-                "Click to place a low-pressure system.",
-
-            airmass:
-                "Click to place a simple straight-track air mass. " +
-                "Use Draw Air Path for curved/zig-zag movement.",
-
-            coldfront:
-                "Click to place a cold front.",
-
-            warmfront:
-                "Click to place a warm front.",
-
-            precip:
-                "Click to place an explicit precipitation area. " +
-                "Natural precipitation can also occur from moist air and lift."
-        };
-
-
-        if (
-            help[tool]
-        ) {
-
-            el.mapHelp.textContent =
-                help[tool];
-        }
-    }
-
-
-    /* =====================================================================
-       SELECTION / EDITOR
-       ===================================================================== */
-
-    function selectedObject() {
-
-        return (
-            PLAN.objects.find(
-                object =>
-                    object.id ===
-                    state.selectedObjectId
-            ) ||
-            null
-        );
-    }
-
-
-    function selectObject(id) {
-
-        state.selectedObjectId =
-            id;
-
-
-        updateObjectEditor();
-
-        updateObjectList();
-
-        render();
-    }
-
-
-    function updateObjectEditor() {
-
-        const object =
-            selectedObject();
-
-
-        if (!object) {
-
-            el.selectedEmpty
-                .classList
-                .remove(
-                    "hidden"
-                );
-
-
-            el.selectedEditor
-                .classList
-                .add(
-                    "hidden"
-                );
-
-
-            el.deleteSelected.disabled =
-                true;
-
-
-            el.duplicateSelected.disabled =
-                true;
-
-
-            return;
-        }
-
-
-        el.selectedEmpty
-            .classList
-            .add(
-                "hidden"
-            );
-
-
-        el.selectedEditor
-            .classList
-            .remove(
-                "hidden"
-            );
-
-
-        const locked =
-            PLAN.objectTouchesLockedTime(
-                object
-            );
-
-
-        el.lockedObjectNote
-            .classList
-            .toggle(
-                "hidden",
-                !locked
-            );
-
-
-        el.deleteSelected.disabled =
-            locked;
-
-
-        el.duplicateSelected.disabled =
-            false;
-
-
-        el.objName.value =
-            object.name ||
-            "";
-
-
-        el.objType.value =
-            object.type ||
-            "";
-
-
-        el.objStartTime.value =
-            toDateTimeLocalValue(
-                Date.parse(
-                    object.startTime
-                )
-            );
-
-
-        el.objEndTime.value =
-            toDateTimeLocalValue(
-                Date.parse(
-                    object.endTime
-                )
-            );
-
-
-        el.objStartLat.value =
-            Number(
-                object.start.lat
-            ).toFixed(
-                2
-            );
-
-
-        el.objStartLon.value =
-            Number(
-                object.start.lon
-            ).toFixed(
-                2
-            );
-
-
-        el.objEndLat.value =
-            Number(
-                object.end.lat
-            ).toFixed(
-                2
-            );
-
-
-        el.objEndLon.value =
-            Number(
-                object.end.lon
-            ).toFixed(
-                2
-            );
-
-
-        el.objStrength.value =
-            Number(
-                object.type ===
-                "airmass"
-                    ? (
-                        object.temperatureAnomaly ??
-                        object.strength ??
-                        0
-                    )
-                    : (
-                        object.strength ??
-                        0
-                    )
-            );
-
-
-        el.objRadius.value =
-            Number(
-                object.radiusKm ||
-                400
-            );
-
-
-        el.objAirmass.value =
-            object.airmass ||
-            "atlantic";
-
-
-        el.objAngle.value =
-            Number(
-                object.angle ||
-                0
-            );
-
-
-        el.objLength.value =
-            Number(
-                object.lengthKm ||
-                700
-            );
-
-
-        el.objPrecipMode.value =
-            object.precipitationPhase ||
-            "auto";
-
-
-        el.objPrecipRate.value =
-            Number(
-                object.precipitationRate ||
-                0
-            );
-
-
-        el.objCloud.value =
-            Number(
-                object.cloudCover ??
-                100
-            );
-
-
-        el.objNotes.value =
-            object.notes ||
-            "";
-
-
-        const isAirmass =
-            object.type ===
-            "airmass";
-
-
-        const isFront =
-            object.type ===
-            "coldfront" ||
-            object.type ===
-            "warmfront";
-
-
-        const isPrecip =
-            object.type ===
-            "precip";
-
-
-        el.fieldAirmass
-            .classList
-            .toggle(
-                "hidden",
-                !isAirmass
-            );
-
-
-        el.fieldFront
-            .classList
-            .toggle(
-                "hidden",
-                !isFront
-            );
-
-
-        el.fieldPrecip
-            .classList
-            .toggle(
-                "hidden",
-                !(
-                    isFront ||
-                    isPrecip
-                )
-            );
-
-
-        el.selectedEditor
-            .querySelectorAll(
-                "input,select,textarea"
-            )
-            .forEach(
-                control => {
-
-                    if (
-                        control ===
-                        el.objType
-                    ) {
-
-                        control.disabled =
-                            false;
-
-                        control.readOnly =
-                            true;
-                    }
-                    else {
-
-                        control.disabled =
-                            locked;
-                    }
-                }
-            );
-    }
-
-
-    function updateSelectedObjectFromEditor() {
-
-        const object =
-            selectedObject();
-
-
-        if (!object) {
-            return;
-        }
-
-
-        if (
-            PLAN.objectTouchesLockedTime(
-                object
-            )
-        ) {
-
-            updateObjectEditor();
-
-
-            statusMessage(
-                "Locked weather cannot be edited.",
-                "Locked:"
-            );
-
-
-            return;
-        }
-
-
-        const start =
-            parseDateTimeLocalAsUTC(
-                el.objStartTime.value
-            );
-
-
-        const end =
-            parseDateTimeLocalAsUTC(
-                el.objEndTime.value
-            );
-
-
-        if (
-            !Number.isFinite(
-                start
-            ) ||
-            !Number.isFinite(
-                end
-            ) ||
-            end <=
-            start
-        ) {
-
-            updateObjectEditor();
-
-
-            statusMessage(
-                "Object start/end times are invalid."
-            );
-
-
-            return;
-        }
-
-
-        const locked =
-            PLAN.completion
-                .lockedThrough
-                ? Date.parse(
-                    PLAN.completion
-                        .lockedThrough
-                )
-                : null;
-
-
-        if (
-            Number.isFinite(
-                locked
-            ) &&
-            start <=
-            locked
-        ) {
-
-            updateObjectEditor();
-
-
-            statusMessage(
-                "An editable object cannot be moved into locked time.",
-                "Locked:"
-            );
-
-
-            return;
-        }
-
-
-        object.name =
-            el.objName.value.trim() ||
-            object.type;
-
-
-        object.startTime =
-            new Date(
-                start
-            ).toISOString();
-
-
-        object.endTime =
-            new Date(
-                end
-            ).toISOString();
-
-
-        object.start.lat =
-            clamp(
-                el.objStartLat.value,
-                PLAN.bounds.south,
-                PLAN.bounds.north
-            );
-
-
-        object.start.lon =
-            clamp(
-                el.objStartLon.value,
-                PLAN.bounds.west,
-                PLAN.bounds.east
-            );
-
-
-        object.end.lat =
-            clamp(
-                el.objEndLat.value,
-                PLAN.bounds.south,
-                PLAN.bounds.north
-            );
-
-
-        object.end.lon =
-            clamp(
-                el.objEndLon.value,
-                PLAN.bounds.west,
-                PLAN.bounds.east
-            );
-
-
-        object.radiusKm =
-            clamp(
-                el.objRadius.value,
-                20,
-                3000
-            );
-
-
-        object.notes =
-            el.objNotes.value;
-
-
-        /*
-            If this is a curved path, keep its first/last waypoint tied to
-            the editable start/end fields.
-        */
-        if (
-            Array.isArray(
-                object.path
-            ) &&
-            object.path.length >=
-            2
-        ) {
-
-            object.path[0].lat =
-                object.start.lat;
-
-            object.path[0].lon =
-                object.start.lon;
-
-
-            object.path[
-                object.path.length -
-                1
-            ].lat =
-                object.end.lat;
-
-
-            object.path[
-                object.path.length -
-                1
-            ].lon =
-                object.end.lon;
-        }
-
-
-        if (
-            object.type ===
-            "airmass"
-        ) {
-
-            object.airmass =
-                el.objAirmass.value;
-
-
-            object.temperatureAnomaly =
-                clamp(
-                    el.objStrength.value,
-                    -30,
-                    30
-                );
-
-
-            object.strength =
-                object.temperatureAnomaly;
-        }
-        else {
-
-            object.strength =
-                clamp(
-                    el.objStrength.value,
-                    -60,
-                    60
-                );
-        }
-
-
-        if (
-            object.type ===
-            "coldfront" ||
-            object.type ===
-            "warmfront"
-        ) {
-
-            object.angle =
-                normalizeDegrees(
-                    Number(
-                        el.objAngle.value ||
-                        0
-                    )
-                );
-
-
-            object.lengthKm =
-                clamp(
-                    el.objLength.value,
-                    50,
-                    3000
-                );
-
-
-            object.temperatureContrast =
-                Math.abs(
-                    Number(
-                        object.strength ||
-                        4
-                    )
-                );
-
-
-            object.precipitationRate =
-                clamp(
-                    el.objPrecipRate.value,
-                    0,
-                    100
-                );
-
-
-            object.cloudCover =
-                clamp(
-                    el.objCloud.value,
-                    0,
-                    100
-                );
-
-
-            object.precipitationPhase =
-                el.objPrecipMode.value;
-        }
-
-
-        if (
-            object.type ===
-            "precip"
-        ) {
-
-            object.precipitationRate =
-                clamp(
-                    el.objPrecipRate.value,
-                    0,
-                    100
-                );
-
-
-            object.cloudCover =
-                clamp(
-                    el.objCloud.value,
-                    0,
-                    100
-                );
-
-
-            object.precipitationPhase =
-                el.objPrecipMode.value;
-        }
-
-
-        PLAN.metadata.lastModified =
-            new Date().toISOString();
-
-
-        markDirty();
-
-        updateObjectList();
-
-        updateInspection();
-
-        render();
-    }
-
-
-    function deleteSelectedObject() {
-
-        const object =
-            selectedObject();
-
-
-        if (!object) {
-            return;
-        }
-
-
-        if (
-            PLAN.objectTouchesLockedTime(
-                object
-            )
-        ) {
-
-            statusMessage(
-                "Locked weather cannot be deleted.",
-                "Locked:"
-            );
-
-            return;
-        }
-
-
-        const index =
-            PLAN.objects.findIndex(
-                item =>
-                    item.id ===
-                    object.id
-            );
-
-
-        if (
-            index >=
-            0
-        ) {
-
-            PLAN.objects.splice(
-                index,
-                1
-            );
-        }
-
-
-        state.selectedObjectId =
-            null;
-
-
-        markDirty();
-
-        refreshEverything();
-
-
-        statusMessage(
-            "Weather object deleted."
-        );
-    }
-
-
-    function duplicateSelectedObject() {
-
-        const object =
-            selectedObject();
-
-
-        if (!object) {
-            return;
-        }
-
-
-        const clone =
-            PLAN.cloneObject(
-                object
-            );
-
-
-        if (
-            PLAN.objectTouchesLockedTime(
-                object
-            )
-        ) {
-
-            const duration =
-                Math.max(
-                    MS_HOUR,
-                    Date.parse(
-                        object.endTime
-                    ) -
-                    Date.parse(
-                        object.startTime
-                    )
-                );
-
-
-            let start =
-                state.currentTime;
-
-
-            const lock =
-                PLAN.completion
-                    .lockedThrough
-                    ? Date.parse(
-                        PLAN.completion
-                            .lockedThrough
-                    )
-                    : null;
-
-
-            if (
-                Number.isFinite(
-                    lock
-                ) &&
-                start <=
-                lock
-            ) {
-
-                start =
-                    lock +
-                    MS_MINUTE;
-            }
-
-
-            clone.startTime =
-                new Date(
-                    start
-                ).toISOString();
-
-
-            clone.endTime =
-                new Date(
-                    start +
-                    duration
-                ).toISOString();
-        }
-
-
-        PLAN.objects.push(
-            clone
-        );
-
-
-        markDirty();
-
-        selectObject(
-            clone.id
-        );
-
-
-        statusMessage(
-            "Weather object duplicated."
-        );
-    }
-
-
-    function updateObjectList() {
-
-        const active =
-            PLAN.objects.filter(
-                object =>
-                    objectActiveAt(
-                        object,
-                        state.currentTime
-                    )
-            );
-
-
-        el.objectList.innerHTML =
-            "";
-
-
-        if (
-            active.length ===
-            0
-        ) {
-
-            const empty =
-                document.createElement(
-                    "div"
-                );
-
-
-            empty.className =
-                "selected-empty";
-
-
-            empty.textContent =
-                "No weather objects active at this time.";
-
-
-            el.objectList.appendChild(
-                empty
-            );
-
-
-            return;
-        }
-
-
-        for (
-            const object of
-            active
-        ) {
-
-            const button =
-                document.createElement(
-                    "button"
-                );
-
-
-            button.type =
-                "button";
-
-
-            button.className =
-                "object-item" +
-                (
-                    state.selectedObjectId ===
-                    object.id
-                        ? " selected"
-                        : ""
-                );
-
-
-            const name =
-                document.createElement(
-                    "span"
-                );
-
-
-            name.className =
-                "object-name";
-
-
-            name.textContent =
-                object.name;
-
-
-            const type =
-                document.createElement(
-                    "span"
-                );
-
-
-            type.className =
-                "object-type";
-
-
-            type.textContent =
-                object.type;
-
-
-            button.append(
-                name,
-                type
-            );
-
-
-            button.addEventListener(
-                "click",
-                function () {
-
-                    selectObject(
-                        object.id
-                    );
-                }
-            );
-
-
-            el.objectList.appendChild(
-                button
-            );
-        }
-    }
-
-
-    /* =====================================================================
-       INSPECTION
-       ===================================================================== */
-
-    function updateInspection() {
-
-        if (
-            !state.inspectedPoint ||
-            !state.rasterReady
-        ) {
-
-            return;
-        }
-
-
-        const lat =
-            state.inspectedPoint.lat;
-
-
-        const lon =
-            state.inspectedPoint.lon;
-
-
-        const weather =
-            calculateWeather(
-                lat,
-                lon,
-                state.currentTime,
-                true
-            );
-
-
-        el.inspectedLocation.textContent =
-            lat.toFixed(
-                2
-            ) +
-            "°N, " +
-            (
-                lon >=
-                0
-                    ? lon.toFixed(
-                        2
-                    ) +
-                    "°E"
-                    : Math.abs(
-                        lon
-                    ).toFixed(
-                        2
-                    ) +
-                    "°W"
-            ) +
-            " · " +
-            formatDateTimeUTC(
-                state.currentTime
-            ) +
-            " · " +
-            Math.round(
-                weather.elevationM
-            ) +
-            " m";
-
-
-        el.wxTemp.textContent =
-            weather.temperatureC
-                .toFixed(
-                    1
-                ) +
-            " °C (" +
-            (
-                weather.temperatureAnomalyC >=
-                0
-                    ? "+"
-                    : ""
-            ) +
-            weather.temperatureAnomalyC
-                .toFixed(
-                    1
-                ) +
-            "° anomaly)";
-
-
-        el.wxPressure.textContent =
-            Math.round(
-                weather.pressureHpa
-            ) +
-            " hPa";
-
-
-        el.wxWind.textContent =
-            windDirectionName(
-                weather.windDirectionDeg
-            ) +
-            " " +
-            weather.windSpeedMs
-                .toFixed(
-                    1
-                ) +
-            " m/s";
-
-
-        el.wxCloud.textContent =
-            Math.round(
-                weather.cloudCoverPercent
-            ) +
-            "%";
-
-
-        if (
-            weather
-                .precipitationRateMmH <
-            0.05
-        ) {
-
-            el.wxPrecip.textContent =
-                "Dry";
-        }
-        else {
-
-            el.wxPrecip.textContent =
-                phaseLabel(
-                    weather
-                        .precipitationPhase
-                ) +
-                " · " +
-                weather
-                    .precipitationRateMmH
-                    .toFixed(
-                        2
-                    ) +
-                " mm/h";
-        }
-
-
-        el.wxSnow.textContent =
-            weather.snowDepthCm <
-            0.1
-                ? "0 cm"
-                : weather
-                    .snowDepthCm
-                    .toFixed(
-                        1
-                    ) +
-                    " cm";
-
-
-        el.wxSurface.textContent =
-            (
-                weather.land
-                    ? "Land"
-                    : "Sea"
-            ) +
-            " · " +
-            weather.biomeState
-                .replaceAll(
-                    "_",
-                    " "
-                ) +
-            " · moisture " +
-            Math.round(
-                weather.humidityIndex *
-                100
-            ) +
-            "%";
-    }
-
-
-    function phaseLabel(phase) {
-
-        switch (phase) {
-
-            case "rain":
-                return "Rain";
-
-            case "sleet":
-                return "Sleet";
-
-            case "wet_snow":
-                return "Wet snow";
-
-            case "snow":
-                return "Snow";
-
-            default:
-                return "None";
-        }
-    }
-
-
-    function windDirectionName(degrees) {
-
-        const directions = [
-            "N",
-            "NE",
-            "E",
-            "SE",
-            "S",
-            "SW",
-            "W",
-            "NW"
-        ];
-
-
-        return directions[
-            Math.round(
-                normalizeDegrees(
-                    degrees
-                ) /
-                45
-            ) %
-            8
-        ];
-    }
-
-
-    /* =====================================================================
-       TIMELINE
-       ===================================================================== */
-
-    function rebuildTimelineBounds() {
-
-        const blockStart =
-            Date.parse(
-                PLAN.planningBlock.start
-            );
-
-
-        const blockEnd =
-            Date.parse(
-                PLAN.planningBlock.end
-            );
-
-
-        let start =
-            blockStart;
-
-
-        if (
-            PLAN.completion
-                .lockedThrough
-        ) {
-
-            const locked =
-                Date.parse(
-                    PLAN.completion
-                        .lockedThrough
-                );
-
-
-            if (
-                Number.isFinite(
-                    locked
-                ) &&
-                locked <
-                blockStart
-            ) {
-
-                start =
-                    locked -
-                    Number(
-                        PLAN.lockedHistoryHours ||
-                        12
-                    ) *
-                    MS_HOUR;
-            }
-        }
-
-
-        state.displayStart =
-            start;
-
-
-        state.displayEnd =
-            blockEnd;
-
-
-        state.currentTime =
-            clamp(
-                state.currentTime,
-                state.displayStart,
-                state.displayEnd
-            );
-
-
-        el.timelineStart.textContent =
-            formatShortUTC(
-                state.displayStart
-            );
-
-
-        el.timelineEnd.textContent =
-            formatShortUTC(
-                state.displayEnd
-            );
-
-
-        syncTimelineControls();
-    }
-
-
-    function sliderToTime(value) {
-
-        return (
-            state.displayStart +
-            clamp(
-                Number(
-                    value
-                ) /
-                1000,
-                0,
-                1
-            ) *
-            (
-                state.displayEnd -
-                state.displayStart
-            )
-        );
-    }
-
-
-    function timeToSlider(ms) {
-
-        if (
-            state.displayEnd <=
-            state.displayStart
-        ) {
-
-            return 0;
-        }
-
-
-        return (
-            (
-                ms -
-                state.displayStart
-            ) /
-            (
-                state.displayEnd -
-                state.displayStart
-            ) *
-            1000
-        );
-    }
-
-
-    function setCurrentTime(ms) {
-
-        state.currentTime =
-            clamp(
-                ms,
-                state.displayStart,
-                state.displayEnd
-            );
-
-
-        syncTimelineControls();
-
-        updateTopStatus();
-
-        updateObjectList();
-
-        updateObjectEditor();
-
-        updateInspection();
-
-        render();
-    }
-
-
-    function syncTimelineControls() {
-
-        el.timeSlider.value =
-            String(
-                clamp(
-                    timeToSlider(
-                        state.currentTime
-                    ),
-                    0,
-                    1000
-                )
-            );
-
-
-        el.timeInput.value =
-            toDateTimeLocalValue(
-                state.currentTime
-            );
-    }
-
-
-    function moveCurrentTime(hours) {
-
-        setCurrentTime(
-            state.currentTime +
-            hours *
-            MS_HOUR
-        );
-    }
-
-
-    function currentPlanningState() {
-
-        const locked =
-            PLAN.completion
-                .lockedThrough
-                ? Date.parse(
-                    PLAN.completion
-                        .lockedThrough
-                )
-                : null;
-
-
-        const done =
-            PLAN.completion
-                .doneThrough
-                ? Date.parse(
-                    PLAN.completion
-                        .doneThrough
-                )
-                : null;
-
-
-        if (
-            Number.isFinite(
-                locked
-            ) &&
-            state.currentTime <=
-            locked
-        ) {
-
-            return "LOCKED";
-        }
-
-
-        if (
-            Number.isFinite(
-                done
-            ) &&
-            state.currentTime <=
-            done
-        ) {
-
-            return "DONE";
-        }
-
-
-        return "NOT DONE";
-    }
-
-
-    function updateTopStatus() {
-
-        el.currentTime.textContent =
-            formatDateTimeUTC(
-                state.currentTime
-            );
-
-
-        el.planRange.textContent =
-            formatShortUTC(
-                Date.parse(
-                    PLAN.planningBlock.start
-                )
-            ) +
-            " → " +
-            formatShortUTC(
-                Date.parse(
-                    PLAN.planningBlock.end
-                )
-            );
-
-
-        const status =
-            currentPlanningState();
-
-
-        el.lockState.textContent =
-            status;
-
-
-        el.lockState.classList.toggle(
-            "locked",
-            status ===
-            "LOCKED"
-        );
-
-
-        el.lockState.classList.toggle(
-            "good",
-            status ===
-            "DONE"
-        );
-
-
-        if (
-            status ===
-            "LOCKED"
-        ) {
-
-            el.timelineMiddle.textContent =
-                "LOCKED · view only";
-        }
-        else if (
-            status ===
-            "DONE"
-        ) {
-
-            el.timelineMiddle.textContent =
-                "DONE · reviewed but editable";
-        }
-        else {
-
-            el.timelineMiddle.textContent =
-                "NOT DONE · editable";
-        }
-    }
-
-
-    function markDoneThroughCurrent() {
-
-        const lock =
-            PLAN.completion
-                .lockedThrough
-                ? Date.parse(
-                    PLAN.completion
-                        .lockedThrough
-                )
-                : null;
-
-
-        if (
-            Number.isFinite(
-                lock
-            ) &&
-            state.currentTime <
-            lock
-        ) {
-
-            statusMessage(
-                "Done state cannot move behind locked weather.",
-                "Locked:"
-            );
-
-            return;
-        }
-
-
-        PLAN.completion.doneThrough =
-            new Date(
-                state.currentTime
-            ).toISOString();
-
-
-        PLAN.metadata.lastModified =
-            new Date().toISOString();
-
-
-        markDirty();
-
-        updateTopStatus();
-
-
-        statusMessage(
-            "Weather marked Done through " +
-            formatDateTimeUTC(
-                state.currentTime
-            ) +
-            "."
-        );
-    }
-
-
-    function lockThroughCurrent() {
-
-        const done =
-            PLAN.completion
-                .doneThrough
-                ? Date.parse(
-                    PLAN.completion
-                        .doneThrough
-                )
-                : null;
-
-
-        if (
-            !Number.isFinite(
-                done
-            ) ||
-            done <
-            state.currentTime
-        ) {
-
-            statusMessage(
-                "Mark this period Done before locking it.",
-                "Not locked:"
-            );
-
-            return;
-        }
-
-
-        const previous =
-            PLAN.completion
-                .lockedThrough
-                ? Date.parse(
-                    PLAN.completion
-                        .lockedThrough
-                )
-                : null;
-
-
-        if (
-            Number.isFinite(
-                previous
-            ) &&
-            state.currentTime <=
-            previous
-        ) {
-
-            statusMessage(
-                "This time is already locked.",
-                "Locked:"
-            );
-
-            return;
-        }
-
-
-        PLAN.completion.lockedThrough =
-            new Date(
-                state.currentTime
-            ).toISOString();
-
-
-        PLAN.lockSnapshots.push({
-
-            lockedAt:
-                new Date().toISOString(),
-
-            through:
-                PLAN.completion
-                    .lockedThrough,
-
-            objectIds:
-                PLAN.objects
-                    .filter(
-                        object =>
-                            Date.parse(
-                                object.startTime
-                            ) <=
-                            state.currentTime
-                    )
-                    .map(
-                        object =>
-                            object.id
-                    )
-        });
-
-
-        PLAN.metadata.lastModified =
-            new Date().toISOString();
-
-
-        markDirty();
-
-        refreshEverything();
-
-
-        statusMessage(
-            "Weather permanently locked through " +
-            formatDateTimeUTC(
-                state.currentTime
-            ) +
-            ".",
-            "Locked:"
-        );
-    }
-
-
-    /* =====================================================================
-       SAVE / LOAD / EXPORT
-       ===================================================================== */
-
-    function markDirty() {
-
-        state.dirty =
-            true;
-
-
-        PLAN.metadata.lastModified =
-            new Date().toISOString();
-    }
-
-
-    function saveLocal() {
-
-        try {
-
-            localStorage.setItem(
-                STORAGE_KEY,
-                JSON.stringify(
-                    PLAN.toSerializable()
-                )
-            );
-
-
-            state.dirty =
-                false;
-
-
-            statusMessage(
-                "Working weather plan saved in this browser."
-            );
-        }
-        catch (error) {
-
-            console.error(
-                error
-            );
-
-
-            statusMessage(
-                "Could not save the working plan locally."
-            );
-        }
-    }
-
-
-    function loadLocalIfPresent() {
-
-        try {
-
-            const raw =
-                localStorage.getItem(
-                    STORAGE_KEY
-                );
-
-
-            if (!raw) {
-                return false;
-            }
-
-
-            PLAN.loadSerializable(
-                JSON.parse(
-                    raw
-                )
-            );
-
-
-            return true;
-        }
-        catch (error) {
-
-            console.error(
-                error
-            );
-
-
-            return false;
-        }
-    }
-
-
-    function resetLocalWorkingCopy() {
-
-        const confirmed =
-            window.confirm(
-                "Reset the local working copy to europacraft-weather-plan.js?"
-            );
-
-
-        if (!confirmed) {
-            return;
-        }
-
-
-        localStorage.removeItem(
-            STORAGE_KEY
-        );
-
-
-        PLAN.loadSerializable(
-            deepCopy(
-                ORIGINAL_FILE_PLAN
-            )
-        );
-
-
-        state.selectedObjectId =
-            null;
-
-
-        state.currentTime =
-            Date.parse(
-                PLAN.planningBlock.start
-            );
-
-
-        state.dirty =
-            false;
-
-
-        rebuildTimelineBounds();
-
-        refreshEverything();
-
-
-        statusMessage(
-            "Local working copy reset."
-        );
-    }
-
-
-    function downloadJSON(
-        filename,
-        data
-    ) {
-
-        const blob =
-            new Blob(
-                [
-                    JSON.stringify(
-                        data,
-                        null,
-                        2
-                    )
-                ],
-                {
-                    type:
-                        "application/json;charset=utf-8"
-                }
-            );
-
-
-        const url =
-            URL.createObjectURL(
-                blob
-            );
-
-
-        const link =
-            document.createElement(
-                "a"
-            );
-
-
-        link.href =
-            url;
-
-
-        link.download =
-            filename;
-
-
-        document.body.appendChild(
-            link
-        );
-
-
-        link.click();
-
-        link.remove();
-
-
-        window.setTimeout(
-            function () {
-
-                URL.revokeObjectURL(
-                    url
-                );
-            },
-            1000
-        );
-    }
-
-
-    function exportPlannerJSON() {
-
-        const payload =
-            PLAN.toSerializable();
-
-
-        payload.exportedAt =
-            new Date().toISOString();
-
-
-        downloadJSON(
-            "europacraft-weather-plan.json",
-            payload
-        );
-
-
-        statusMessage(
-            "Planner JSON exported."
-        );
-    }
-
-
-    function exportServerWeather() {
-
-        const payload = {
-            format:
-                "EuropaCraftServerWeather",
-
-            formatVersion:
-                2,
-
-            engineVersion:
-                ENGINE_VERSION,
-
-            exportedAt:
-                new Date().toISOString(),
-
-            deterministic:
-                true,
-
-            externalApiRequired:
-                false,
-
-            elevationDataset: {
-                file:
-                    "europacraft-elevation.png",
-
-                bounds:
-                    deepCopy(
-                        PLAN.bounds
-                    ),
-
-                seaPixel:
-                    0,
-
-                maxMetres:
-                    DEM_MAX_METRES
-            },
-
-            planningBlock:
-                deepCopy(
-                    PLAN.planningBlock
-                ),
-
-            completion:
-                deepCopy(
-                    PLAN.completion
-                ),
-
-            authoritativeThrough:
-                PLAN.completion
-                    .lockedThrough,
-
-            objects:
-                deepCopy(
-                    PLAN.objects
-                ),
-
-            overrides:
-                deepCopy(
-                    PLAN.overrides
-                ),
-
-            lockSnapshots:
-                deepCopy(
-                    PLAN.lockSnapshots
-                )
-        };
-
-
-        downloadJSON(
-            "europacraft-server-weather.json",
-            payload
-        );
-
-
-        statusMessage(
-            "Server weather exported."
-        );
-    }
-
-
-    /* =====================================================================
-       EVENTS
-       ===================================================================== */
-
-    function installEventListeners() {
-
-        document
-            .querySelectorAll(
-                "[data-tool]"
-            )
-            .forEach(
-                button => {
-
-                    button.addEventListener(
-                        "click",
-                        function () {
-
-                            setTool(
-                                button.dataset.tool
-                            );
-                        }
-                    );
-                }
-            );
-
-
-        canvas.addEventListener(
-            "click",
-            handleMapClick
-        );
-
-
-        canvas.addEventListener(
-            "pointermove",
-            handleMapPointerMove
-        );
-
-
-        canvas.addEventListener(
-            "pointerleave",
-            function () {
-
-                el.mapCoordinates.textContent =
-                    "—";
-            }
-        );
-
-
-        el.timeSlider.addEventListener(
-            "input",
-            function () {
-
-                setCurrentTime(
-                    sliderToTime(
-                        el.timeSlider.value
-                    )
-                );
-            }
-        );
-
-
-        el.timeInput.addEventListener(
-            "change",
-            function () {
-
-                const value =
-                    parseDateTimeLocalAsUTC(
-                        el.timeInput.value
-                    );
-
-
-                if (
-                    Number.isFinite(
-                        value
-                    )
-                ) {
-
-                    setCurrentTime(
-                        value
-                    );
-                }
-                else {
-
-                    syncTimelineControls();
-                }
-            }
-        );
-
-
-        el.minus6h.addEventListener(
-            "click",
-            function () {
-
-                moveCurrentTime(
-                    -6
-                );
-            }
-        );
-
-
-        el.minus1h.addEventListener(
-            "click",
-            function () {
-
-                moveCurrentTime(
-                    -1
-                );
-            }
-        );
-
-
-        el.plus1h.addEventListener(
-            "click",
-            function () {
-
-                moveCurrentTime(
-                    1
-                );
-            }
-        );
-
-
-        el.plus6h.addEventListener(
-            "click",
-            function () {
-
-                moveCurrentTime(
-                    6
-                );
-            }
-        );
-
-
-        el.deleteSelected.addEventListener(
-            "click",
-            deleteSelectedObject
-        );
-
-
-        el.duplicateSelected.addEventListener(
-            "click",
-            duplicateSelectedObject
-        );
-
-
-        const controls = [
-            el.objName,
-            el.objStartTime,
-            el.objEndTime,
-            el.objStartLat,
-            el.objStartLon,
-            el.objEndLat,
-            el.objEndLon,
-            el.objStrength,
-            el.objRadius,
-            el.objAirmass,
-            el.objAngle,
-            el.objLength,
-            el.objPrecipMode,
-            el.objPrecipRate,
-            el.objCloud,
-            el.objNotes
-        ];
-
-
-        controls.forEach(
-            control => {
-
-                control.addEventListener(
-                    "change",
-                    updateSelectedObjectFromEditor
-                );
-
-
-                if (
-                    control.type ===
-                    "text" ||
-                    control.tagName ===
-                    "TEXTAREA"
-                ) {
-
-                    control.addEventListener(
-                        "blur",
-                        updateSelectedObjectFromEditor
-                    );
-                }
-            }
-        );
-
-
-        el.markDone.addEventListener(
-            "click",
-            markDoneThroughCurrent
-        );
-
-
-        el.lockThrough.addEventListener(
-            "click",
-            lockThroughCurrent
-        );
-
-
-        el.saveLocal.addEventListener(
-            "click",
-            saveLocal
-        );
-
-
-        el.exportPlan.addEventListener(
-            "click",
-            exportPlannerJSON
-        );
-
-
-        el.exportServer.addEventListener(
-            "click",
-            exportServerWeather
-        );
-
-
-        el.resetPlan.addEventListener(
-            "click",
-            resetLocalWorkingCopy
-        );
-
-
-        window.addEventListener(
-            "resize",
-            resizeCanvas
-        );
-
-
-        window.addEventListener(
-            "keydown",
-            function (event) {
-
-                const tag =
-                    document.activeElement &&
-                    document.activeElement
-                        .tagName;
-
-
-                if (
-                    tag ===
-                    "INPUT" ||
-                    tag ===
-                    "TEXTAREA" ||
-                    tag ===
-                    "SELECT"
-                ) {
-
-                    return;
-                }
-
-
-                if (
-                    event.key ===
-                    "Enter" &&
-                    state.drawPathActive
-                ) {
-
-                    event.preventDefault();
-
-                    finishAirPathDrawing();
-                }
-
-
-                if (
-                    event.key ===
-                    "Escape" &&
-                    state.drawPathActive
-                ) {
-
-                    event.preventDefault();
-
-                    cancelAirPathDrawing();
-                }
-            }
-        );
-
-
-        window.addEventListener(
-            "beforeunload",
-            function (event) {
-
-                if (
-                    !state.dirty
-                ) {
-
-                    return;
-                }
-
-
-                event.preventDefault();
-
-                event.returnValue =
-                    "";
-            }
-        );
-    }
-
-
-    /* =====================================================================
-       REFRESH
-       ===================================================================== */
-
-    function refreshEverything() {
-
-        updateTopStatus();
-
-        syncTimelineControls();
-
-        updateObjectList();
-
-        updateObjectEditor();
-
-        updateInspection();
-
-        render();
-    }
-
-
-    /* =====================================================================
-       PUBLIC API
-       ===================================================================== */
-
-    window.EuropaWeather = {
-        version:
-            ENGINE_VERSION,
-
-
-        isLand:
-            function (
-                lat,
-                lon
-            ) {
-
-                return isLand(
-                    Number(
-                        lat
-                    ),
-                    Number(
-                        lon
-                    )
-                );
-            },
-
-
-        getElevation:
-            function (
-                lat,
-                lon
-            ) {
-
-                return elevationM(
-                    Number(
-                        lat
-                    ),
-                    Number(
-                        lon
-                    )
-                );
-            },
-
-
-        getBaselineTemperature:
-            function (
-                lat,
-                lon,
-                time
-            ) {
-
-                return baselineTemperature(
-                    Number(
-                        lat
-                    ),
-                    Number(
-                        lon
-                    ),
-                    typeof time ===
-                    "number"
-                        ? time
-                        : Date.parse(
-                            time
-                        )
-                );
-            },
-
-
-        getWeatherFast:
-            function (
-                lat,
-                lon,
-                time
-            ) {
-
-                return calculateWeatherCore(
-                    Number(
-                        lat
-                    ),
-                    Number(
-                        lon
-                    ),
-                    typeof time ===
-                    "number"
-                        ? time
-                        : Date.parse(
-                            time
-                        )
-                );
-            },
-
-
-        getWeather:
-            function (
-                lat,
-                lon,
-                time
-            ) {
-
-                return calculateWeather(
-                    Number(
-                        lat
-                    ),
-                    Number(
-                        lon
-                    ),
-                    typeof time ===
-                    "number"
-                        ? time
-                        : Date.parse(
-                            time
-                        ),
-                    true
-                );
-            },
-
-
-        setTime:
-            function (time) {
-
-                setCurrentTime(
-                    typeof time ===
-                    "number"
-                        ? time
-                        : Date.parse(
-                            time
-                        )
-                );
-            },
-
-
-        render:
-            render,
-
-
-        exportServerWeather:
-            exportServerWeather
     };
 
 
-    /* =====================================================================
-       INITIALISE
-       ===================================================================== */
+    if (
+      !labels[
+        state.layer
+      ]
+    ) {
 
-    function initialise() {
+      return;
 
-        const validation =
-            PLAN.validate();
-
-
-        if (
-            !validation.valid
-        ) {
-
-            console.error(
-                validation.errors
-            );
-
-
-            statusMessage(
-                validation.errors.join(
-                    " | "
-                ),
-                "Plan error:"
-            );
-
-
-            return;
-        }
-
-
-        loadLocalIfPresent();
-
-
-        installExtraToolbar();
-
-
-        state.currentTime =
-            Date.parse(
-                PLAN.planningBlock.start
-            );
-
-
-        installEventListeners();
-
-        rebuildTimelineBounds();
-
-        resizeCanvas();
-
-        refreshEverything();
-
-        loadElevationDataset();
-
-
-        console.info(
-            "EuropaCraft Weather Planner ready",
-            {
-                version:
-                    ENGINE_VERSION,
-
-                objects:
-                    PLAN.objects.length
-            }
-        );
-
-
-        statusMessage(
-            "Planner ready. Loading europacraft-elevation.png…"
-        );
     }
 
 
-    initialise();
+    ctx.save();
+
+
+    ctx.fillStyle =
+      "rgba(7,12,16,.76)";
+
+
+    ctx.fillRect(
+      10,
+      10,
+      190,
+      38
+    );
+
+
+    ctx.fillStyle =
+      "#eef3f6";
+
+
+    ctx.font =
+      "bold 11px system-ui";
+
+
+    ctx.fillText(
+      labels[
+        state.layer
+      ],
+      18,
+      25
+    );
+
+
+    ctx.font =
+      "10px system-ui";
+
+
+    ctx.fillStyle =
+      "#b8c7d1";
+
+
+    ctx.fillText(
+      state.layer ===
+      "precip"
+        ? "natural output — not painted"
+        : "derived field",
+      18,
+      40
+    );
+
+
+    ctx.restore();
+
+  }
+
+
+  function drawGrid() {
+
+    ctx.save();
+
+
+    ctx.strokeStyle =
+      "rgba(230,238,243,.13)";
+
+
+    ctx.fillStyle =
+      "rgba(235,241,245,.62)";
+
+
+    ctx.lineWidth =
+      1;
+
+
+    ctx.font =
+      "10px system-ui";
+
+
+    for (
+      let lon = -20;
+      lon <=
+      50;
+      lon +=
+      10
+    ) {
+
+      const x =
+        lonToX(
+          lon
+        );
+
+
+      ctx.beginPath();
+
+      ctx.moveTo(
+        x,
+        0
+      );
+
+      ctx.lineTo(
+        x,
+        state.height
+      );
+
+      ctx.stroke();
+
+
+      ctx.fillText(
+        lon >=
+        0
+          ? lon +
+            "°E"
+          : Math.abs(
+              lon
+            ) +
+            "°W",
+        x +
+        3,
+        12
+      );
+
+    }
+
+
+    for (
+      let lat = 30;
+      lat <=
+      70;
+      lat +=
+      10
+    ) {
+
+      const y =
+        latToY(
+          lat
+        );
+
+
+      ctx.beginPath();
+
+      ctx.moveTo(
+        0,
+        y
+      );
+
+      ctx.lineTo(
+        state.width,
+        y
+      );
+
+      ctx.stroke();
+
+
+      ctx.fillText(
+        lat +
+        "°N",
+        3,
+        y -
+        3
+      );
+
+    }
+
+
+    ctx.restore();
+
+  }
+
+
+  function drawArrowHead(
+    x1,
+    y1,
+    x2,
+    y2,
+    color
+  ) {
+
+    const dx =
+      x2 -
+      x1;
+
+
+    const dy =
+      y2 -
+      y1;
+
+
+    const len =
+      Math.hypot(
+        dx,
+        dy
+      ) ||
+      1;
+
+
+    const ux =
+      dx /
+      len;
+
+
+    const uy =
+      dy /
+      len;
+
+
+    const px =
+      -uy;
+
+
+    const py =
+      ux;
+
+
+    ctx.fillStyle =
+      color;
+
+
+    ctx.beginPath();
+
+
+    ctx.moveTo(
+      x2,
+      y2
+    );
+
+
+    ctx.lineTo(
+      x2 -
+      ux *
+      11 +
+      px *
+      5,
+
+      y2 -
+      uy *
+      11 +
+      py *
+      5
+    );
+
+
+    ctx.lineTo(
+      x2 -
+      ux *
+      11 -
+      px *
+      5,
+
+      y2 -
+      uy *
+      11 -
+      py *
+      5
+    );
+
+
+    ctx.closePath();
+
+    ctx.fill();
+
+  }
+
+
+  function airColor(
+    type
+  ) {
+
+    if (
+      type ===
+      "arctic"
+    ) {
+
+      return "#a8e3ff";
+
+    }
+
+
+    if (
+      type ===
+      "polar_maritime"
+    ) {
+
+      return "#8acbf2";
+
+    }
+
+
+    if (
+      type ===
+      "atlantic"
+    ) {
+
+      return "#7eb8da";
+
+    }
+
+
+    if (
+      type ===
+      "continental"
+    ) {
+
+      return "#e0d39a";
+
+    }
+
+
+    if (
+      type ===
+      "mediterranean"
+    ) {
+
+      return "#efb66f";
+
+    }
+
+
+    return "#ef8f55";
+
+  }
+
+
+  function airLabel(
+    type
+  ) {
+
+    return (
+      {
+        arctic:
+          "ARCTIC",
+
+        polar_maritime:
+          "POLAR MARITIME",
+
+        atlantic:
+          "ATLANTIC",
+
+        continental:
+          "CONTINENTAL",
+
+        mediterranean:
+          "MEDITERRANEAN",
+
+        tropical:
+          "TROPICAL"
+      }[type] ||
+      "AIR"
+    );
+
+  }
+
+
+  function drawAirObject(
+    obj
+  ) {
+
+    const color =
+      airColor(
+        obj.airType
+      );
+
+
+    const samples =
+      Math.max(
+        36,
+        obj.path.length *
+        16
+      );
+
+
+    ctx.save();
+
+
+    ctx.strokeStyle =
+      color;
+
+
+    ctx.lineWidth =
+      state.selectedId ===
+      obj.id
+        ? 4
+        : 2.2;
+
+
+    ctx.globalAlpha =
+      active(
+        obj,
+        state.now
+      )
+        ? 0.95
+        : 0.25;
+
+
+    ctx.beginPath();
+
+
+    let prev =
+      null;
+
+
+    for (
+      let i = 0;
+      i <=
+      samples;
+      i++
+    ) {
+
+      const p =
+        pathPosition(
+          obj.path,
+          i /
+          samples
+        );
+
+
+      const x =
+        lonToX(
+          p.lon
+        );
+
+
+      const y =
+        latToY(
+          p.lat
+        );
+
+
+      if (
+        i ===
+        0
+      ) {
+
+        ctx.moveTo(
+          x,
+          y
+        );
+
+      }
+      else {
+
+        ctx.lineTo(
+          x,
+          y
+        );
+
+      }
+
+
+      if (
+        i >
+        0 &&
+        i %
+        Math.max(
+          8,
+          Math.floor(
+            samples /
+            5
+          )
+        ) ===
+        0 &&
+        prev
+      ) {
+
+        drawArrowHead(
+          prev.x,
+          prev.y,
+          x,
+          y,
+          color
+        );
+
+      }
+
+
+      prev = {
+        x:
+          x,
+
+        y:
+          y
+      };
+
+    }
+
+
+    ctx.stroke();
+
+
+    /*
+        Current head / active air mass.
+    */
+
+    if (
+      active(
+        obj,
+        state.now
+      )
+    ) {
+
+      const pr =
+        progress(
+          obj,
+          state.now
+        );
+
+
+      const head =
+        pathPosition(
+          obj.path,
+          pr
+        );
+
+
+      const x =
+        lonToX(
+          head.lon
+        );
+
+
+      const y =
+        latToY(
+          head.lat
+        );
+
+
+      const moisture =
+        moistureAlongPath(
+          obj,
+          pr
+        );
+
+
+      const anom =
+        airBaseAnomaly(
+          obj.airType,
+          state.now
+        ) *
+        intensityMultiplier(
+          obj.intensity
+        );
+
+
+      const rx =
+        Math.abs(
+          lonToX(
+            head.lon +
+            obj.widthKm /
+            kmPerLonDeg(
+              head.lat
+            )
+          ) -
+          x
+        );
+
+
+      const ry =
+        Math.abs(
+          latToY(
+            head.lat +
+            obj.widthKm /
+            KM_PER_DEG
+          ) -
+          y
+        );
+
+
+      ctx.fillStyle =
+        color;
+
+
+      ctx.globalAlpha =
+        0.12;
+
+
+      ctx.beginPath();
+
+
+      ctx.ellipse(
+        x,
+        y,
+        Math.max(
+          10,
+          rx
+        ),
+        Math.max(
+          10,
+          ry
+        ),
+        0,
+        0,
+        Math.PI *
+        2
+      );
+
+
+      ctx.fill();
+
+
+      ctx.globalAlpha =
+        1;
+
+
+      ctx.fillStyle =
+        "rgba(8,13,18,.82)";
+
+
+      ctx.fillRect(
+        x -
+        73,
+        y -
+        30,
+        146,
+        42
+      );
+
+
+      ctx.fillStyle =
+        color;
+
+
+      ctx.font =
+        "bold 11px system-ui";
+
+
+      ctx.textAlign =
+        "center";
+
+
+      ctx.fillText(
+        airLabel(
+          obj.airType
+        ) +
+        " " +
+        (
+          anom >=
+          0
+            ? "+"
+            : ""
+        ) +
+        anom.toFixed(
+          1
+        ) +
+        "°",
+        x,
+        y -
+        14
+      );
+
+
+      ctx.fillStyle =
+        "#e7eef2";
+
+
+      ctx.font =
+        "10px system-ui";
+
+
+      ctx.fillText(
+        "moisture " +
+        Math.round(
+          moisture *
+          100
+        ) +
+        "%",
+        x,
+        y +
+        1
+      );
+
+    }
+
+
+    ctx.restore();
+
+  }
+
+
+  function drawPressure(
+    obj
+  ) {
+
+    if (
+      !active(
+        obj,
+        state.now
+      )
+    ) {
+
+      return;
+
+    }
+
+
+    const x =
+      lonToX(
+        obj.lon
+      );
+
+
+    const y =
+      latToY(
+        obj.lat
+      );
+
+
+    const high =
+      obj.kind ===
+      "high";
+
+
+    ctx.save();
+
+
+    ctx.fillStyle =
+      "rgba(8,13,18,.82)";
+
+
+    ctx.strokeStyle =
+      high
+        ? "#9edcf5"
+        : "#f39d9d";
+
+
+    ctx.lineWidth =
+      state.selectedId ===
+      obj.id
+        ? 3.5
+        : 2;
+
+
+    ctx.beginPath();
+
+
+    ctx.arc(
+      x,
+      y,
+      22,
+      0,
+      Math.PI *
+      2
+    );
+
+
+    ctx.fill();
+
+    ctx.stroke();
+
+
+    ctx.fillStyle =
+      ctx.strokeStyle;
+
+
+    ctx.font =
+      "bold 22px system-ui";
+
+
+    ctx.textAlign =
+      "center";
+
+
+    ctx.textBaseline =
+      "middle";
+
+
+    ctx.fillText(
+      high
+        ? "H"
+        : "L",
+      x,
+      y -
+      2
+    );
+
+
+    ctx.fillStyle =
+      "#eef3f6";
+
+
+    ctx.font =
+      "10px system-ui";
+
+
+    const p =
+      1014 +
+      pressureStrength(
+        obj.strength
+      ) *
+      (
+        high
+          ? 1
+          : -1
+      );
+
+
+    ctx.fillText(
+      Math.round(
+        p
+      ) +
+      " hPa",
+      x,
+      y +
+      31
+    );
+
+
+    ctx.restore();
+
+  }
+
+
+  function drawObjects() {
+
+    for (
+      const obj of
+      plan.objects
+    ) {
+
+      if (
+        obj.kind ===
+        "air"
+      ) {
+
+        drawAirObject(
+          obj
+        );
+
+      }
+
+    }
+
+
+    for (
+      const obj of
+      plan.objects
+    ) {
+
+      if (
+        obj.kind ===
+        "high" ||
+        obj.kind ===
+        "low"
+      ) {
+
+        drawPressure(
+          obj
+        );
+
+      }
+
+    }
+
+  }
+
+
+  function drawDraft() {
+
+    if (
+      !state.drawActive ||
+      state.drawPath.length ===
+      0
+    ) {
+
+      return;
+
+    }
+
+
+    ctx.save();
+
+
+    ctx.strokeStyle =
+      "#ffe07a";
+
+
+    ctx.fillStyle =
+      "#ffe07a";
+
+
+    ctx.lineWidth =
+      2.5;
+
+
+    ctx.setLineDash(
+      [
+        7,
+        5
+      ]
+    );
+
+
+    ctx.beginPath();
+
+
+    state.drawPath.forEach(
+      (
+        p,
+        i
+      ) => {
+
+        const x =
+          lonToX(
+            p.lon
+          );
+
+
+        const y =
+          latToY(
+            p.lat
+          );
+
+
+        if (
+          i ===
+          0
+        ) {
+
+          ctx.moveTo(
+            x,
+            y
+          );
+
+        }
+        else {
+
+          ctx.lineTo(
+            x,
+            y
+          );
+
+        }
+
+      }
+    );
+
+
+    ctx.stroke();
+
+
+    ctx.setLineDash(
+      []
+    );
+
+
+    for (
+      const p of
+      state.drawPath
+    ) {
+
+      ctx.beginPath();
+
+
+      ctx.arc(
+        lonToX(
+          p.lon
+        ),
+        latToY(
+          p.lat
+        ),
+        4,
+        0,
+        Math.PI *
+        2
+      );
+
+
+      ctx.fill();
+
+    }
+
+
+    ctx.restore();
+
+  }
+
+
+  function drawInspectMarker() {
+
+    const p =
+      state.inspect;
+
+
+    if (!p) {
+
+      return;
+
+    }
+
+
+    const x =
+      lonToX(
+        p.lon
+      );
+
+
+    const y =
+      latToY(
+        p.lat
+      );
+
+
+    ctx.save();
+
+
+    ctx.strokeStyle =
+      "#ffe168";
+
+
+    ctx.lineWidth =
+      1.5;
+
+
+    ctx.beginPath();
+
+
+    ctx.arc(
+      x,
+      y,
+      6,
+      0,
+      Math.PI *
+      2
+    );
+
+
+    ctx.stroke();
+
+
+    ctx.beginPath();
+
+
+    ctx.moveTo(
+      x -
+      10,
+      y
+    );
+
+
+    ctx.lineTo(
+      x +
+      10,
+      y
+    );
+
+
+    ctx.moveTo(
+      x,
+      y -
+      10
+    );
+
+
+    ctx.lineTo(
+      x,
+      y +
+      10
+    );
+
+
+    ctx.stroke();
+
+
+    ctx.restore();
+
+  }
+
+
+  function render() {
+
+    drawBase();
+
+
+    if (
+      state.layer !==
+      "elevation"
+    ) {
+
+      drawOverlay();
+
+    }
+
+
+    drawGrid();
+
+    drawObjects();
+
+    drawDraft();
+
+    drawInspectMarker();
+
+  }
+
+
+  function resize() {
+
+    const r =
+      canvas.getBoundingClientRect();
+
+
+    state.width =
+      Math.max(
+        320,
+        Math.round(
+          r.width
+        )
+      );
+
+
+    state.height =
+      Math.max(
+        360,
+        Math.round(
+          r.height
+        )
+      );
+
+
+    state.dpr =
+      Math.max(
+        1,
+        Math.min(
+          2,
+          window.devicePixelRatio ||
+          1
+        )
+      );
+
+
+    canvas.width =
+      Math.round(
+        state.width *
+        state.dpr
+      );
+
+
+    canvas.height =
+      Math.round(
+        state.height *
+        state.dpr
+      );
+
+
+    ctx.setTransform(
+      state.dpr,
+      0,
+      0,
+      state.dpr,
+      0,
+      0
+    );
+
+
+    render();
+
+  }
+
+
+  /*
+      ==========================================================
+      TOOL SELECTION
+      ==========================================================
+  */
+
+
+  function setTool(
+    tool
+  ) {
+
+    if (
+      state.drawActive &&
+      tool !==
+      "air"
+    ) {
+
+      cancelAir();
+
+    }
+
+
+    state.tool =
+      tool;
+
+
+    document
+      .querySelectorAll(
+        "[data-tool]"
+      )
+      .forEach(
+        button => {
+
+          button.classList.toggle(
+            "active",
+            button.dataset.tool ===
+            tool
+          );
+
+        }
+      );
+
+
+    if (
+      tool ===
+      "inspect"
+    ) {
+
+      ui.mapHint.textContent =
+        "Inspect: click anywhere for local weather. Click an H/L or use the active-system list to select it.";
+
+    }
+
+
+    if (
+      tool ===
+      "air"
+    ) {
+
+      startAir();
+
+    }
+
+
+    if (
+      tool ===
+      "high"
+    ) {
+
+      ui.mapHint.textContent =
+        "High: click where you want the high-pressure centre.";
+
+    }
+
+
+    if (
+      tool ===
+      "low"
+    ) {
+
+      ui.mapHint.textContent =
+        "Low: click where you want the low-pressure centre.";
+
+    }
+
+  }
+
+
+  /*
+      ==========================================================
+      DRAW AIR
+      ==========================================================
+  */
+
+
+  function startAir() {
+
+    if (
+      isLocked(
+        state.now
+      )
+    ) {
+
+      msg(
+        "You cannot start a new air stream inside locked time.",
+        "LOCKED:"
+      );
+
+
+      state.tool =
+        "inspect";
+
+
+      document
+        .querySelectorAll(
+          "[data-tool]"
+        )
+        .forEach(
+          button => {
+
+            button.classList.toggle(
+              "active",
+              button.dataset.tool ===
+              "inspect"
+            );
+
+          }
+        );
+
+
+      return;
+
+    }
+
+
+    state.drawActive =
+      true;
+
+
+    state.drawPath =
+      [];
+
+
+    ui.finishAir.classList.remove(
+      "hidden"
+    );
+
+
+    ui.cancelAir.classList.remove(
+      "hidden"
+    );
+
+
+    ui.finishAir.disabled =
+      true;
+
+
+    ui.mapHint.textContent =
+      "Draw Air: click a source, then as many bends/zig-zags as you want. Finish Air or press Enter.";
+
+  }
+
+
+  function cancelAir() {
+
+    state.drawActive =
+      false;
+
+
+    state.drawPath =
+      [];
+
+
+    ui.finishAir.classList.add(
+      "hidden"
+    );
+
+
+    ui.cancelAir.classList.add(
+      "hidden"
+    );
+
+
+    state.tool =
+      "inspect";
+
+
+    document
+      .querySelectorAll(
+        "[data-tool]"
+      )
+      .forEach(
+        button => {
+
+          button.classList.toggle(
+            "active",
+            button.dataset.tool ===
+            "inspect"
+          );
+
+        }
+      );
+
+
+    ui.mapHint.textContent =
+      "Inspect: click anywhere for local weather.";
+
+
+    render();
+
+  }
+
+
+  function finishAir() {
+
+    if (
+      !state.drawActive ||
+      state.drawPath.length <
+      2
+    ) {
+
+      msg(
+        "Add at least two points to the air path."
+      );
+
+
+      return;
+
+    }
+
+
+    const duration =
+      Number(
+        ui.airDuration.value
+      ) *
+      MS_HOUR;
+
+
+    const obj = {
+
+      id:
+        uid(
+          "air"
+        ),
+
+      kind:
+        "air",
+
+      airType:
+        ui.airType.value,
+
+      intensity:
+        ui.airIntensity.value,
+
+      widthKm:
+        Number(
+          ui.airWidth.value
+        ),
+
+      startTime:
+        new Date(
+          state.now
+        ).toISOString(),
+
+      endTime:
+        new Date(
+          Math.min(
+            Date.parse(
+              plan.blockEnd
+            ),
+            state.now +
+            duration
+          )
+        ).toISOString(),
+
+      path:
+        state.drawPath.map(
+          p => ({
+            lat:
+              p.lat,
+
+            lon:
+              p.lon
+          })
+        )
+
+    };
+
+
+    plan.objects.push(
+      obj
+    );
+
+
+    state.selectedId =
+      obj.id;
+
+
+    state.drawActive =
+      false;
+
+
+    state.drawPath =
+      [];
+
+
+    ui.finishAir.classList.add(
+      "hidden"
+    );
+
+
+    ui.cancelAir.classList.add(
+      "hidden"
+    );
+
+
+    state.tool =
+      "inspect";
+
+
+    document
+      .querySelectorAll(
+        "[data-tool]"
+      )
+      .forEach(
+        button => {
+
+          button.classList.toggle(
+            "active",
+            button.dataset.tool ===
+            "inspect"
+          );
+
+        }
+      );
+
+
+    ui.mapHint.textContent =
+      "Air stream created. Scrub time and switch to Temperature, Anomaly or Precipitation to inspect the result.";
+
+
+    savePlanSilently();
+
+    updateObjects();
+
+    render();
+
+
+    msg(
+      "Air stream created. Precipitation remains a calculated output; you never paint it."
+    );
+
+  }
+
+
+  /*
+      ==========================================================
+      PRESSURE SYSTEMS
+      ==========================================================
+  */
+
+
+  function addPressure(
+    kind,
+    lat,
+    lon
+  ) {
+
+    if (
+      isLocked(
+        state.now
+      )
+    ) {
+
+      msg(
+        "You cannot place pressure systems inside locked time.",
+        "LOCKED:"
+      );
+
+
+      return;
+
+    }
+
+
+    const duration =
+      Number(
+        ui.pressureDuration.value
+      ) *
+      MS_HOUR;
+
+
+    const obj = {
+
+      id:
+        uid(
+          kind
+        ),
+
+      kind:
+        kind,
+
+      lat:
+        lat,
+
+      lon:
+        lon,
+
+      strength:
+        ui.pressureStrength.value,
+
+      radiusKm:
+        kind ===
+        "low"
+          ? 850
+          : 1000,
+
+      startTime:
+        new Date(
+          state.now
+        ).toISOString(),
+
+      endTime:
+        new Date(
+          Math.min(
+            Date.parse(
+              plan.blockEnd
+            ),
+            state.now +
+            duration
+          )
+        ).toISOString()
+
+    };
+
+
+    plan.objects.push(
+      obj
+    );
+
+
+    state.selectedId =
+      obj.id;
+
+
+    savePlanSilently();
+
+    updateObjects();
+
+    render();
+
+
+    setTool(
+      "inspect"
+    );
+
+
+    msg(
+      (
+        kind ===
+        "high"
+          ? "High"
+          : "Low"
+      ) +
+      " placed."
+    );
+
+  }
+
+
+  /*
+      ==========================================================
+      MAP INTERACTION
+      ==========================================================
+  */
+
+
+  function nearestPressure(
+    x,
+    y
+  ) {
+
+    let best =
+      null;
+
+
+    let bestD =
+      25;
+
+
+    for (
+      const obj of
+      plan.objects
+    ) {
+
+      if (
+        (
+          obj.kind !==
+          "high" &&
+          obj.kind !==
+          "low"
+        ) ||
+        !active(
+          obj,
+          state.now
+        )
+      ) {
+
+        continue;
+
+      }
+
+
+      const d =
+        Math.hypot(
+          lonToX(
+            obj.lon
+          ) -
+          x,
+
+          latToY(
+            obj.lat
+          ) -
+          y
+        );
+
+
+      if (
+        d <
+        bestD
+      ) {
+
+        bestD =
+          d;
+
+
+        best =
+          obj;
+
+      }
+
+    }
+
+
+    return best;
+
+  }
+
+
+  function onMapClick(
+    evt
+  ) {
+
+    if (
+      !state.geoReady
+    ) {
+
+      return;
+
+    }
+
+
+    const p =
+      canvasPoint(
+        evt
+      );
+
+
+    const lat =
+      clamp(
+        yToLat(
+          p.y
+        ),
+        BOUNDS.south,
+        BOUNDS.north
+      );
+
+
+    const lon =
+      clamp(
+        xToLon(
+          p.x
+        ),
+        BOUNDS.west,
+        BOUNDS.east
+      );
+
+
+    /*
+        Air-path drawing.
+    */
+
+    if (
+      state.drawActive
+    ) {
+
+      state.drawPath.push({
+
+        lat:
+          lat,
+
+        lon:
+          lon
+
+      });
+
+
+      ui.finishAir.disabled =
+        state.drawPath.length <
+        2;
+
+
+      render();
+
+
+      msg(
+        state.drawPath.length +
+        " path point" +
+        (
+          state.drawPath.length ===
+          1
+            ? ""
+            : "s"
+        ) +
+        ". Keep clicking bends or Finish Air."
+      );
+
+
+      return;
+
+    }
+
+
+    /*
+        Pressure placement.
+    */
+
+    if (
+      state.tool ===
+      "high" ||
+      state.tool ===
+      "low"
+    ) {
+
+      addPressure(
+        state.tool,
+        lat,
+        lon
+      );
+
+
+      return;
+
+    }
+
+
+    /*
+        Pressure selection.
+    */
+
+    const near =
+      nearestPressure(
+        p.x,
+        p.y
+      );
+
+
+    if (
+      near
+    ) {
+
+      state.selectedId =
+        near.id;
+
+
+      updateObjects();
+
+      render();
+
+
+      return;
+
+    }
+
+
+    /*
+        Ordinary inspection.
+    */
+
+    state.inspect = {
+
+      lat:
+        lat,
+
+      lon:
+        lon
+
+    };
+
+
+    state.selectedId =
+      null;
+
+
+    updateObjects();
+
+    updateInspect();
+
+    render();
+
+  }
+
+
+  function onPointerMove(
+    evt
+  ) {
+
+    if (
+      !state.geoReady
+    ) {
+
+      return;
+
+    }
+
+
+    const p =
+      canvasPoint(
+        evt
+      );
+
+
+    const lat =
+      clamp(
+        yToLat(
+          p.y
+        ),
+        BOUNDS.south,
+        BOUNDS.north
+      );
+
+
+    const lon =
+      clamp(
+        xToLon(
+          p.x
+        ),
+        BOUNDS.west,
+        BOUNDS.east
+      );
+
+
+    const land =
+      isLand(
+        lat,
+        lon
+      );
+
+
+    const elev =
+      land
+        ? Math.round(
+            elevationAt(
+              lat,
+              lon
+            )
+          )
+        : 0;
+
+
+    ui.coords.textContent =
+      lat.toFixed(
+        2
+      ) +
+      "°N, " +
+      (
+        lon >=
+        0
+          ? lon.toFixed(
+              2
+            ) +
+            "°E"
+          : Math.abs(
+              lon
+            ).toFixed(
+              2
+            ) +
+            "°W"
+      ) +
+      " · " +
+      (
+        land
+          ? elev +
+            " m"
+          : "SEA"
+      );
+
+  }
+
+
+  /*
+      ==========================================================
+      INSPECTION
+      ==========================================================
+  */
+
+
+  function updateInspect() {
+
+    if (
+      !state.geoReady ||
+      !state.inspect
+    ) {
+
+      return;
+
+    }
+
+
+    const wx =
+      weatherAt(
+        state.inspect.lat,
+        state.inspect.lon,
+        state.now,
+        true
+      );
+
+
+    const p =
+      state.inspect;
+
+
+    ui.where.textContent =
+      p.lat.toFixed(
+        2
+      ) +
+      "°N, " +
+      (
+        p.lon >=
+        0
+          ? p.lon.toFixed(
+              2
+            ) +
+            "°E"
+          : Math.abs(
+              p.lon
+            ).toFixed(
+              2
+            ) +
+            "°W"
+      ) +
+      " · " +
+      formatUTC(
+        state.now
+      );
+
+
+    ui.wxTemp.textContent =
+      wx.temperatureC.toFixed(
+        1
+      ) +
+      " °C";
+
+
+    ui.wxAnom.textContent =
+      (
+        wx.anomalyC >=
+        0
+          ? "+"
+          : ""
+      ) +
+      wx.anomalyC.toFixed(
+        1
+      ) +
+      " °C";
+
+
+    ui.wxPressure.textContent =
+      Math.round(
+        wx.pressureHpa
+      ) +
+      " hPa";
+
+
+    const toward =
+      normDeg(
+        radToDeg(
+          Math.atan2(
+            wx.uWind,
+            wx.vWind
+          )
+        )
+      );
+
+
+    const from =
+      normDeg(
+        toward +
+        180
+      );
+
+
+    ui.wxWind.textContent =
+      windName(
+        from
+      ) +
+      " " +
+      wx.windSpeed.toFixed(
+        1
+      ) +
+      " m/s";
+
+
+    ui.wxCloud.textContent =
+      Math.round(
+        wx.cloud
+      ) +
+      "%";
+
+
+    ui.wxMoisture.textContent =
+      Math.round(
+        wx.moisture *
+        100
+      ) +
+      "%";
+
+
+    ui.wxPrecip.textContent =
+      wx.rate >
+      0
+
+        ? titleCase(
+            wx.phase
+          ) +
+          " · " +
+          wx.rate.toFixed(
+            2
+          ) +
+          " mm/h"
+
+        : "Dry";
+
+
+    ui.wxSnow.textContent =
+      wx.snowDepthCm <
+      0.1
+
+        ? "0 cm"
+
+        : wx.snowDepthCm.toFixed(
+            1
+          ) +
+          " cm";
+
+
+    ui.wxElevation.textContent =
+      wx.land
+        ? Math.round(
+            wx.elevationM
+          ) +
+          " m"
+        : "Sea";
+
+  }
+
+
+  function titleCase(
+    s
+  ) {
+
+    return s.replace(
+      /\b\w/g,
+      c =>
+        c.toUpperCase()
+    );
+
+  }
+
+
+  function windName(
+    deg
+  ) {
+
+    const dirs = [
+      "N",
+      "NE",
+      "E",
+      "SE",
+      "S",
+      "SW",
+      "W",
+      "NW"
+    ];
+
+
+    return dirs[
+      Math.round(
+        normDeg(
+          deg
+        ) /
+        45
+      ) %
+      8
+    ];
+
+  }
+
+
+  /*
+      ==========================================================
+      ACTIVE SYSTEM LIST
+      ==========================================================
+  */
+
+
+  function objectName(
+    obj
+  ) {
+
+    if (
+      obj.kind ===
+      "air"
+    ) {
+
+      return (
+        airLabel(
+          obj.airType
+        ) +
+        " air"
+      );
+
+    }
+
+
+    return (
+      obj.kind ===
+      "high"
+        ? "High pressure"
+        : "Low pressure"
+    );
+
+  }
+
+
+  function updateObjects() {
+
+    ui.objects.innerHTML =
+      "";
+
+
+    const activeObjects =
+      plan.objects.filter(
+        obj =>
+          active(
+            obj,
+            state.now
+          )
+      );
+
+
+    if (
+      activeObjects.length ===
+      0
+    ) {
+
+      const d =
+        document.createElement(
+          "div"
+        );
+
+
+      d.className =
+        "small";
+
+
+      d.textContent =
+        "None active at this time.";
+
+
+      ui.objects.appendChild(
+        d
+      );
+
+    }
+
+
+    for (
+      const obj of
+      activeObjects
+    ) {
+
+      const b =
+        document.createElement(
+          "button"
+        );
+
+
+      b.className =
+        "obj" +
+        (
+          state.selectedId ===
+          obj.id
+            ? " selected"
+            : ""
+        );
+
+
+      b.type =
+        "button";
+
+
+      const left =
+        document.createElement(
+          "span"
+        );
+
+
+      left.textContent =
+        objectName(
+          obj
+        );
+
+
+      const right =
+        document.createElement(
+          "small"
+        );
+
+
+      right.textContent =
+        obj.kind ===
+        "air"
+          ? obj.intensity
+          : obj.strength;
+
+
+      b.append(
+        left,
+        right
+      );
+
+
+      b.addEventListener(
+        "click",
+        () => {
+
+          state.selectedId =
+            obj.id;
+
+
+          updateObjects();
+
+          render();
+
+        }
+      );
+
+
+      ui.objects.appendChild(
+        b
+      );
+
+    }
+
+
+    const selected =
+      plan.objects.find(
+        obj =>
+          obj.id ===
+          state.selectedId
+      );
+
+
+    ui.deleteSelected.disabled =
+      !selected ||
+      objectFrozen(
+        selected
+      );
+
+  }
+
+
+  function deleteSelected() {
+
+    const obj =
+      plan.objects.find(
+        item =>
+          item.id ===
+          state.selectedId
+      );
+
+
+    if (!obj) {
+
+      return;
+
+    }
+
+
+    if (
+      objectFrozen(
+        obj
+      )
+    ) {
+
+      msg(
+        "That system touches locked weather and cannot be deleted.",
+        "LOCKED:"
+      );
+
+
+      return;
+
+    }
+
+
+    plan.objects =
+      plan.objects.filter(
+        item =>
+          item.id !==
+          obj.id
+      );
+
+
+    state.selectedId =
+      null;
+
+
+    savePlanSilently();
+
+    updateObjects();
+
+    updateInspect();
+
+    render();
+
+
+    msg(
+      "Selected system deleted."
+    );
+
+  }
+
+
+  /*
+      ==========================================================
+      DONE / LOCK
+      ==========================================================
+  */
+
+
+  function markDone() {
+
+    if (
+      plan.lockedThrough &&
+      state.now <
+      Date.parse(
+        plan.lockedThrough
+      )
+    ) {
+
+      msg(
+        "Done state cannot move behind the locked boundary.",
+        "LOCKED:"
+      );
+
+
+      return;
+
+    }
+
+
+    plan.doneThrough =
+      new Date(
+        state.now
+      ).toISOString();
+
+
+    savePlanSilently();
+
+    updateTop();
+
+
+    msg(
+      "Weather marked Done through " +
+      formatUTC(
+        state.now
+      ) +
+      "."
+    );
+
+  }
+
+
+  function lockThrough() {
+
+    if (
+      !plan.doneThrough ||
+      Date.parse(
+        plan.doneThrough
+      ) <
+      state.now
+    ) {
+
+      msg(
+        "Mark this time Done before locking it."
+      );
+
+
+      return;
+
+    }
+
+
+    if (
+      plan.lockedThrough &&
+      state.now <=
+      Date.parse(
+        plan.lockedThrough
+      )
+    ) {
+
+      msg(
+        "This time is already locked."
+      );
+
+
+      return;
+
+    }
+
+
+    plan.lockedThrough =
+      new Date(
+        state.now
+      ).toISOString();
+
+
+    savePlanSilently();
+
+    updateTop();
+
+    updateObjects();
+
+
+    msg(
+      "Locked permanently through " +
+      formatUTC(
+        state.now
+      ) +
+      "."
+    );
+
+  }
+
+
+  /*
+      ==========================================================
+      NEXT 3-MONTH BLOCK
+      ==========================================================
+  */
+
+
+  function nextThreeMonthBlock() {
+
+    if (
+      !plan.lockedThrough ||
+      Date.parse(
+        plan.lockedThrough
+      ) <
+      Date.parse(
+        plan.blockEnd
+      ) -
+      60000
+    ) {
+
+      const ok =
+        confirm(
+          "The current block is not locked through its end. Start the next 3-month block anyway?"
+        );
+
+
+      if (!ok) {
+
+        return;
+
+      }
+
+    }
+
+
+    const d =
+      new Date(
+        Date.parse(
+          plan.blockEnd
+        ) +
+        1000
+      );
+
+
+    const start =
+      Date.UTC(
+        d.getUTCFullYear(),
+        d.getUTCMonth(),
+        1,
+        0,
+        0,
+        0
+      );
+
+
+    const endDate =
+      new Date(
+        start
+      );
+
+
+    endDate.setUTCMonth(
+      endDate.getUTCMonth() +
+      3
+    );
+
+
+    const end =
+      endDate.getTime() -
+      1000;
+
+
+    plan.blockStart =
+      new Date(
+        start
+      ).toISOString();
+
+
+    plan.blockEnd =
+      new Date(
+        end
+      ).toISOString();
+
+
+    state.now =
+      start;
+
+
+    state.selectedId =
+      null;
+
+
+    savePlanSilently();
+
+    rebuildTimeline();
+
+    updateTop();
+
+    updateObjects();
+
+    updateInspect();
+
+    render();
+
+
+    msg(
+      "Started the next 3-month block. The final 12 locked hours remain available before it."
+    );
+
+  }
+
+
+  /*
+      ==========================================================
+      EXPORT
+      ==========================================================
+  */
+
+
+  function exportPlan() {
+
+    const payload = {
+
+      format:
+        "EuropaCraftWeatherPlan",
+
+      formatVersion:
+        1,
+
+      exportedAt:
+        new Date()
+          .toISOString(),
+
+      deterministic:
+        true,
+
+      weatherApi:
+        false,
+
+      geography: {
+
+        land:
+          "Natural Earth 1:50m land",
+
+        elevation:
+          "AWS Open Data Terrain Tiles / Terrarium",
+
+        bounds:
+          BOUNDS,
+
+        terrainZoom:
+          TERRAIN_ZOOM
+
+      },
+
+      engine: {
+
+        precipitation:
+          "derived from moisture, convergence, pressure lift, orography and convection",
+
+        precipitationIsAuthored:
+          false,
+
+        temperatureAnomalyIsPainted:
+          false
+
+      },
+
+      plan:
+        plan
+
+    };
+
+
+    const blob =
+      new Blob(
+        [
+          JSON.stringify(
+            payload,
+            null,
+            2
+          )
+        ],
+        {
+          type:
+            "application/json"
+        }
+      );
+
+
+    const url =
+      URL.createObjectURL(
+        blob
+      );
+
+
+    const a =
+      document.createElement(
+        "a"
+      );
+
+
+    a.href =
+      url;
+
+
+    a.download =
+      "europacraft-weather-plan.json";
+
+
+    document.body.appendChild(
+      a
+    );
+
+
+    a.click();
+
+    a.remove();
+
+
+    setTimeout(
+      () =>
+        URL.revokeObjectURL(
+          url
+        ),
+      1000
+    );
+
+
+    msg(
+      "Weather plan exported."
+    );
+
+  }
+
+
+  /*
+      ==========================================================
+      RESET
+      ==========================================================
+  */
+
+
+  function resetPlan() {
+
+    if (
+      !confirm(
+        "Delete the local weather plan and start again?"
+      )
+    ) {
+
+      return;
+
+    }
+
+
+    localStorage.removeItem(
+      STORAGE_KEY
+    );
+
+
+    plan =
+      structuredCloneSafe(
+        DEFAULT_PLAN
+      );
+
+
+    state.now =
+      Date.parse(
+        plan.blockStart
+      );
+
+
+    state.selectedId =
+      null;
+
+
+    state.drawActive =
+      false;
+
+
+    state.drawPath =
+      [];
+
+
+    rebuildTimeline();
+
+    updateTop();
+
+    updateObjects();
+
+    updateInspect();
+
+    render();
+
+
+    msg(
+      "Local weather plan reset."
+    );
+
+  }
+
+
+  /*
+      ==========================================================
+      EVENTS
+      ==========================================================
+  */
+
+
+  function installEvents() {
+
+    document
+      .querySelectorAll(
+        "[data-tool]"
+      )
+      .forEach(
+        button =>
+          button.addEventListener(
+            "click",
+            () =>
+              setTool(
+                button.dataset.tool
+              )
+          )
+      );
+
+
+    ui.finishAir.addEventListener(
+      "click",
+      finishAir
+    );
+
+
+    ui.cancelAir.addEventListener(
+      "click",
+      cancelAir
+    );
+
+
+    ui.layer.addEventListener(
+      "change",
+      () => {
+
+        state.layer =
+          ui.layer.value;
+
+
+        render();
+
+      }
+    );
+
+
+    canvas.addEventListener(
+      "click",
+      onMapClick
+    );
+
+
+    canvas.addEventListener(
+      "pointermove",
+      onPointerMove
+    );
+
+
+    canvas.addEventListener(
+      "pointerleave",
+      () => {
+
+        ui.coords.textContent =
+          "—";
+
+      }
+    );
+
+
+    canvas.addEventListener(
+      "dblclick",
+      evt => {
+
+        if (
+          state.drawActive &&
+          state.drawPath.length >=
+          2
+        ) {
+
+          evt.preventDefault();
+
+          finishAir();
+
+        }
+
+      }
+    );
+
+
+    ui.timeSlider.addEventListener(
+      "input",
+      () => {
+
+        const f =
+          Number(
+            ui.timeSlider.value
+          ) /
+          2000;
+
+
+        setTime(
+          state.displayStart +
+          f *
+          (
+            state.displayEnd -
+            state.displayStart
+          )
+        );
+
+      }
+    );
+
+
+    ui.timeInput.addEventListener(
+      "change",
+      () => {
+
+        const t =
+          parseLocalInputAsUTC(
+            ui.timeInput.value
+          );
+
+
+        if (
+          Number.isFinite(
+            t
+          )
+        ) {
+
+          setTime(
+            t
+          );
+
+        }
+        else {
+
+          syncTimeControls();
+
+        }
+
+      }
+    );
+
+
+    ui.m6.addEventListener(
+      "click",
+      () =>
+        setTime(
+          state.now -
+          6 *
+          MS_HOUR
+        )
+    );
+
+
+    ui.m1.addEventListener(
+      "click",
+      () =>
+        setTime(
+          state.now -
+          MS_HOUR
+        )
+    );
+
+
+    ui.p1.addEventListener(
+      "click",
+      () =>
+        setTime(
+          state.now +
+          MS_HOUR
+        )
+    );
+
+
+    ui.p6.addEventListener(
+      "click",
+      () =>
+        setTime(
+          state.now +
+          6 *
+          MS_HOUR
+        )
+    );
+
+
+    ui.deleteSelected.addEventListener(
+      "click",
+      deleteSelected
+    );
+
+
+    ui.markDone.addEventListener(
+      "click",
+      markDone
+    );
+
+
+    ui.lockThrough.addEventListener(
+      "click",
+      lockThrough
+    );
+
+
+    ui.nextBlock.addEventListener(
+      "click",
+      nextThreeMonthBlock
+    );
+
+
+    ui.save.addEventListener(
+      "click",
+      savePlan
+    );
+
+
+    ui.export.addEventListener(
+      "click",
+      exportPlan
+    );
+
+
+    ui.reset.addEventListener(
+      "click",
+      resetPlan
+    );
+
+
+    window.addEventListener(
+      "resize",
+      resize
+    );
+
+
+    window.addEventListener(
+      "keydown",
+      evt => {
+
+        const tag =
+          document.activeElement &&
+          document.activeElement.tagName;
+
+
+        if (
+          tag ===
+          "INPUT" ||
+          tag ===
+          "SELECT"
+        ) {
+
+          return;
+
+        }
+
+
+        if (
+          evt.key ===
+          "Enter" &&
+          state.drawActive
+        ) {
+
+          evt.preventDefault();
+
+          finishAir();
+
+        }
+
+
+        if (
+          evt.key ===
+          "Escape" &&
+          state.drawActive
+        ) {
+
+          evt.preventDefault();
+
+          cancelAir();
+
+        }
+
+      }
+    );
+
+  }
+
+
+  /*
+      ==========================================================
+      START
+      ==========================================================
+  */
+
+
+  function initialise() {
+
+    installEvents();
+
+    rebuildTimeline();
+
+    updateTop();
+
+    updateObjects();
+
+    resize();
+
+    loadGeography();
+
+  }
+
+
+  initialise();
 
 })();
