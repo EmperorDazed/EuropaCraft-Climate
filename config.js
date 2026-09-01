@@ -9,10 +9,14 @@
 (function (global) {
     "use strict";
 
+
     const CONFIG = {
 
-        version: "10.0.0",
-        engineName: "EuropaCraft Atmosphere V10",
+        version:
+            "10.0.0",
+
+        engineName:
+            "EuropaCraft Atmosphere V10",
 
 
         /* ==========================================================
@@ -20,10 +24,18 @@
         ========================================================== */
 
         bounds: {
-            west: -26,
-            east: 52,
-            south: 30,
-            north: 74
+
+            west:
+                -26,
+
+            east:
+                52,
+
+            south:
+                30,
+
+            north:
+                74
         },
 
 
@@ -32,19 +44,35 @@
         ========================================================== */
 
         grid: {
-            nx: 195,
-            ny: 110
+
+            nx:
+                195,
+
+            ny:
+                110
         },
 
+
         time: {
-            physicsStepMinutes: 4,
 
             /*
-             * Fast simulation executes multiple real physics steps.
-             * Physics must never be skipped or replaced with oversized
-             * timesteps simply to make playback faster.
+             * Fundamental physical integration timestep.
+             *
+             * Accelerated playback MUST execute repeated four-minute
+             * physics steps rather than increasing this number.
              */
-            maxStepsPerFrame: 150
+
+            physicsStepMinutes:
+                4,
+
+
+            /*
+             * Absolute protection against one browser frame attempting
+             * effectively unlimited queued simulation work.
+             */
+
+            maxStepsPerFrame:
+                150
         },
 
 
@@ -53,22 +81,42 @@
         ========================================================== */
 
         limits: {
-            temperatureMinC: -65,
-            temperatureMaxC: 55,
 
-            pressureMinHpa: 925,
-            pressureMaxHpa: 1070,
+            temperatureMinC:
+                -65,
 
-            windMaxMs: 70,
+            temperatureMaxC:
+                55,
 
-            specificHumidityMaxKgKg: 0.055,
 
-            cloudWaterMaxKgKg: 0.008,
-            cloudIceMaxKgKg: 0.006,
+            pressureMinHpa:
+                925,
 
-            precipitationMaxMmHr: 100,
+            pressureMaxHpa:
+                1070,
 
-            verticalVelocityMaxMs: 4.0
+
+            windMaxMs:
+                70,
+
+
+            specificHumidityMaxKgKg:
+                0.055,
+
+
+            cloudWaterMaxKgKg:
+                0.008,
+
+            cloudIceMaxKgKg:
+                0.006,
+
+
+            precipitationMaxMmHr:
+                100,
+
+
+            verticalVelocityMaxMs:
+                4.0
         },
 
 
@@ -79,58 +127,95 @@
         vertical: {
 
             /*
-             * V10 carries four atmospheric levels.
+             * Four persistent atmospheric levels.
              *
              * Surface:
-             * locally experienced weather.
+             * experienced weather and boundary layer.
              *
              * 925 hPa:
-             * low-level air mass and boundary-layer structure.
+             * low-level air mass and convergence.
              *
              * 850 hPa:
-             * principal air-mass temperature and frontal layer.
+             * principal frontal / air-mass level.
              *
              * 700 hPa:
-             * lower-middle troposphere and precipitation/cloud depth.
+             * lower-middle troposphere and cloud-depth information.
              */
 
             levels: [
+
                 {
-                    key: "surface",
-                    pressureHpa: null,
-                    approximateHeightM: 2
+
+                    key:
+                        "surface",
+
+                    pressureHpa:
+                        null,
+
+                    approximateHeightM:
+                        2
                 },
 
                 {
-                    key: "925",
-                    pressureHpa: 925,
-                    approximateHeightM: 750
+
+                    key:
+                        "925",
+
+                    pressureHpa:
+                        925,
+
+                    approximateHeightM:
+                        750
                 },
 
                 {
-                    key: "850",
-                    pressureHpa: 850,
-                    approximateHeightM: 1500
+
+                    key:
+                        "850",
+
+                    pressureHpa:
+                        850,
+
+                    approximateHeightM:
+                        1500
                 },
 
                 {
-                    key: "700",
-                    pressureHpa: 700,
-                    approximateHeightM: 3000
+
+                    key:
+                        "700",
+
+                    pressureHpa:
+                        700,
+
+                    approximateHeightM:
+                        3000
                 }
             ],
 
-            environmentalLapseRateCPerKm: 6.2,
 
-            dryAdiabaticLapseRateCPerKm: 9.8,
+            environmentalLapseRateCPerKm:
+                6.2,
 
-            moistAdiabaticLapseRateCPerKm: 5.8,
 
-            backgroundMixingPerHour: 0.025,
+            dryAdiabaticLapseRateCPerKm:
+                9.8,
 
-            frontalMixingPerHour: 0.08,
 
-            convectiveMixingPerHour: 0.18
+            moistAdiabaticLapseRateCPerKm:
+                5.8,
+
+
+            backgroundMixingPerHour:
+                0.025,
+
+
+            frontalMixingPerHour:
+                0.08,
+
+
+            convectiveMixingPerHour:
+                0.18
         },
 
 
@@ -140,76 +225,146 @@
 
         advection: {
 
-            scheme: "semi-lagrangian",
+            scheme:
+                "semi-lagrangian",
+
 
             /*
-             * Keep fronts and injected air masses recognisable.
+             * Keep fronts and deliberately injected air masses coherent
+             * for long enough to behave as recognisable weather systems.
              */
-            temperatureDiffusionPerHour: 0.004,
 
-            moistureDiffusionPerHour: 0.005,
+            temperatureDiffusionPerHour:
+                0.004,
 
-            momentumDiffusionPerHour: 0.008,
 
-            cloudDiffusionPerHour: 0.004,
+            moistureDiffusionPerHour:
+                0.005,
 
-            tracerDiffusionPerHour: 0.0025,
 
-            boundaryRelaxationPerHour: 0.015
+            momentumDiffusionPerHour:
+                0.008,
+
+
+            cloudDiffusionPerHour:
+                0.004,
+
+
+            tracerDiffusionPerHour:
+                0.0025,
+
+
+            /*
+             * Very weak relaxation along the outer domain boundary.
+             */
+
+            boundaryRelaxationPerHour:
+                0.015
         },
 
 
         /* ==========================================================
-           AIR MASS SYSTEM
+           AIR-MASS SYSTEM
         ========================================================== */
 
         airMasses: {
 
-            enabled: true,
+            enabled:
+                true,
+
 
             tracerTypes: [
+
                 "Atlantic",
+
                 "Polar Maritime",
+
                 "Arctic Maritime",
+
                 "Greenland Ice-Sheet",
+
                 "North Sea",
+
                 "Baltic Maritime",
+
                 "Mediterranean",
+
                 "Black Sea",
+
                 "Caspian Maritime",
+
                 "North African",
+
                 "Eurasian Continental",
+
                 "British Landmass",
+
                 "Iberian Interior",
+
                 "West-Central European",
+
                 "Central / Eastern European",
+
                 "Scandinavian Interior",
+
                 "Balkan Modified",
+
                 "Anatolian Interior"
             ],
 
-            maxInjectedMasses: 20,
 
-            defaultRadiusKm: 650,
+            maxInjectedMasses:
+                20,
 
-            minimumRadiusKm: 100,
 
-            maximumRadiusKm: 2200,
+            defaultRadiusKm:
+                650,
 
-            defaultStrength: 0.90,
+
+            minimumRadiusKm:
+                100,
+
+
+            maximumRadiusKm:
+                2200,
+
+
+            defaultStrength:
+                0.90,
+
+
+            /*
+             * FIXED IN THIS VERSION.
+             *
+             * This value is required by europacraft-airmasses.js.
+             *
+             * It is the minimum lifetime of the source RECORD, not the
+             * lifetime of the injected air itself. Injected atmospheric
+             * state persists through the atmosphere and its tracers.
+             */
+
+            minimumLifetimeHours:
+                18,
+
 
             /*
              * Source identity should survive transport for days.
-             * Modification occurs gradually through mixing and surface
-             * interaction instead of disappearing within a few steps.
              */
-            tracerDecayPerDay: 0.018,
 
-            environmentalModificationPerHour: 0.012,
+            tracerDecayPerDay:
+                0.018,
 
-            minimumDominantTracer: 0.08,
 
-            collisionContrastThreshold: 0.20
+            environmentalModificationPerHour:
+                0.012,
+
+
+            minimumDominantTracer:
+                0.08,
+
+
+            collisionContrastThreshold:
+                0.20
         },
 
 
@@ -219,35 +374,56 @@
 
         dynamics: {
 
-            pressureGradientAcceleration: 1.0,
+            pressureGradientAcceleration:
+                1.0,
 
-            coriolisStrength: 1.0,
 
-            surfaceDragLand: 0.11,
+            coriolisStrength:
+                1.0,
 
-            surfaceDragSea: 0.055,
 
-            upperAirDrag: 0.012,
+            surfaceDragLand:
+                0.11,
+
+
+            surfaceDragSea:
+                0.055,
+
+
+            upperAirDrag:
+                0.012,
+
 
             /*
-             * Pressure is prognostic.
-             *
-             * Convergence/ascent and warm-column structure can lower
-             * pressure; subsidence and cold dense structure can build it.
+             * Pressure is a prognostic atmospheric field.
              */
-            pressureRelaxationPerHour: 0.012,
 
-            thermalPressureResponse: 0.038,
+            pressureRelaxationPerHour:
+                0.012,
 
-            convergencePressureResponse: 0.18,
 
-            ascentPressureResponse: 0.14,
+            thermalPressureResponse:
+                0.038,
 
-            latentHeatingPressureResponse: 0.045,
 
-            divergencePressureResponse: 0.10,
+            convergencePressureResponse:
+                0.18,
 
-            maxPressureChangeHpaPerHour: 3.5
+
+            ascentPressureResponse:
+                0.14,
+
+
+            latentHeatingPressureResponse:
+                0.045,
+
+
+            divergencePressureResponse:
+                0.10,
+
+
+            maxPressureChangeHpaPerHour:
+                3.5
         },
 
 
@@ -257,41 +433,71 @@
 
         fronts: {
 
-            temperatureGradientThresholdCPer100Km: 1.0,
+            temperatureGradientThresholdCPer100Km:
+                1.0,
 
-            humidityGradientThresholdPer100Km: 0.03,
 
-            tracerContrastThreshold: 0.16,
+            humidityGradientThresholdPer100Km:
+                0.03,
 
-            convergenceThreshold: 0.018,
 
-            frontogenesisPerHour: 0.30,
+            tracerContrastThreshold:
+                0.16,
 
-            decayPerHour: 0.035,
 
-            temperatureGradientWeight: 1.00,
+            convergenceThreshold:
+                0.018,
 
-            humidityGradientWeight: 0.45,
 
-            tracerContrastWeight: 0.90,
+            frontogenesisPerHour:
+                0.30,
 
-            convergenceWeight: 1.30,
+
+            decayPerHour:
+                0.035,
+
+
+            temperatureGradientWeight:
+                1.00,
+
+
+            humidityGradientWeight:
+                0.45,
+
+
+            tracerContrastWeight:
+                0.90,
+
+
+            convergenceWeight:
+                1.30,
+
 
             /*
-             * Deliberately stronger than V8.
+             * Deliberately substantial frontal ascent.
              *
-             * V8's principal failure was insufficient vertical forcing
-             * when contrasting air actually met.
+             * V10 should not allow a strong moist air-mass collision to
+             * remain meteorologically inert.
              */
-            frontalLiftMultiplier: 2.8,
 
-            coldFrontLiftMultiplier: 1.45,
+            frontalLiftMultiplier:
+                2.8,
 
-            warmFrontLiftMultiplier: 1.15,
 
-            occlusionLiftMultiplier: 1.30,
+            coldFrontLiftMultiplier:
+                1.45,
 
-            maximumFrontStrength: 3.0
+
+            warmFrontLiftMultiplier:
+                1.15,
+
+
+            occlusionLiftMultiplier:
+                1.30,
+
+
+            maximumFrontStrength:
+                3.0
         },
 
 
@@ -301,23 +507,32 @@
 
         verticalMotion: {
 
-            convergenceMultiplier: 3.0,
+            convergenceMultiplier:
+                3.0,
 
-            frontalMultiplier: 2.4,
 
-            orographicMultiplier: 1.8,
+            frontalMultiplier:
+                2.4,
 
-            convectiveMultiplier: 1.4,
 
-            pressureTendencyMultiplier: 0.35,
+            orographicMultiplier:
+                1.8,
 
-            dampingPerHour: 0.10,
 
-            /*
-             * Very weak ascent should not produce unrealistic continuous
-             * precipitation.
-             */
-            meaningfulAscentThreshold: 0.04
+            convectiveMultiplier:
+                1.4,
+
+
+            pressureTendencyMultiplier:
+                0.35,
+
+
+            dampingPerHour:
+                0.10,
+
+
+            meaningfulAscentThreshold:
+                0.04
         },
 
 
@@ -327,21 +542,36 @@
 
         terrain: {
 
-            mountainBlockingEnabled: true,
+            mountainBlockingEnabled:
+                true,
 
-            blockingStartM: 650,
 
-            strongBlockingM: 1200,
+            blockingStartM:
+                650,
 
-            blockingStrength: 0.55,
 
-            upslopeLiftStrength: 1.70,
+            strongBlockingM:
+                1200,
 
-            saturatedUpslopeBoost: 1.45,
 
-            rainShadowStrength: 0.42,
+            blockingStrength:
+                0.55,
 
-            surfaceLapseRateCPerKm: 6.2
+
+            upslopeLiftStrength:
+                1.70,
+
+
+            saturatedUpslopeBoost:
+                1.45,
+
+
+            rainShadowStrength:
+                0.42,
+
+
+            surfaceLapseRateCPerKm:
+                6.2
         },
 
 
@@ -351,27 +581,45 @@
 
         ocean: {
 
-            minSstC: -2.0,
+            minSstC:
+                -2.0,
 
-            maxSstC: 32.0,
 
-            seasonalRelaxationPerHour: 0.0008,
+            maxSstC:
+                32.0,
 
-            airSeaHeatExchangePerHour: 0.035,
 
-            windHeatExchangeBoost: 0.055,
+            seasonalRelaxationPerHour:
+                0.0008,
 
-            evaporationBasePerHour: 0.012,
 
-            windEvaporationBoost: 0.065,
+            airSeaHeatExchangePerHour:
+                0.035,
 
-            humidityDeficitBoost: 1.0,
+
+            windHeatExchangeBoost:
+                0.055,
+
+
+            evaporationBasePerHour:
+                0.012,
+
+
+            windEvaporationBoost:
+                0.065,
+
+
+            humidityDeficitBoost:
+                1.0,
+
 
             /*
-             * Cold air moving across relatively warm water needs enough
-             * heat/moisture supply to form genuine maritime showers.
+             * Makes cold maritime outbreaks capable of developing
+             * convincing instability and shower activity.
              */
-            coldAirInstabilityBoost: 0.75
+
+            coldAirInstabilityBoost:
+                0.75
         },
 
 
@@ -381,17 +629,28 @@
 
         ground: {
 
-            temperatureMemory: 0.985,
+            temperatureMemory:
+                0.985,
 
-            airGroundExchangePerHour: 0.060,
 
-            moistureMemory: 0.995,
+            airGroundExchangePerHour:
+                0.060,
 
-            rainWettingPerMm: 0.04,
 
-            dryingPerHour: 0.005,
+            moistureMemory:
+                0.995,
 
-            snowInsulationStrength: 0.45
+
+            rainWettingPerMm:
+                0.04,
+
+
+            dryingPerHour:
+                0.005,
+
+
+            snowInsulationStrength:
+                0.45
         },
 
 
@@ -401,66 +660,110 @@
 
         radiation: {
 
-            landSolarHeating: 0.085,
+            landSolarHeating:
+                0.085,
 
-            oceanSolarHeating: 0.012,
 
-            clearNightCooling: 0.065,
+            oceanSolarHeating:
+                0.012,
 
-            cloudShortwaveSuppression: 0.72,
 
-            lowCloudLongwaveRetention: 0.75,
+            clearNightCooling:
+                0.065,
 
-            highCloudLongwaveRetention: 0.50,
 
-            snowAlbedoCooling: 0.60
+            cloudShortwaveSuppression:
+                0.72,
+
+
+            lowCloudLongwaveRetention:
+                0.75,
+
+
+            highCloudLongwaveRetention:
+                0.50,
+
+
+            snowAlbedoCooling:
+                0.60
         },
 
 
         /* ==========================================================
-           SATURATION AND CLOUD
+           SATURATION AND CLOUD FORMATION
         ========================================================== */
 
         moisture: {
 
-            /*
-             * Condensation is driven primarily by actual saturation.
-             */
-            saturationRH: 1.0,
+            saturationRH:
+                1.0,
 
-            nearSaturationRH: 0.90,
 
-            cloudFormationRH: 0.92,
+            nearSaturationRH:
+                0.90,
 
-            condensationEfficiency: 0.82,
 
-            forcedLiftCondensationEfficiency: 0.40,
+            cloudFormationRH:
+                0.92,
 
-            evaporationEfficiency: 0.20,
 
-            sublimationEfficiency: 0.10,
+            condensationEfficiency:
+                0.82,
 
-            latentHeatStrength: 1.0
+
+            forcedLiftCondensationEfficiency:
+                0.40,
+
+
+            evaporationEfficiency:
+                0.20,
+
+
+            sublimationEfficiency:
+                0.10,
+
+
+            latentHeatStrength:
+                1.0
         },
 
 
+        /* ==========================================================
+           CLOUD MICROPHYSICS
+        ========================================================== */
+
         cloud: {
 
-            liquidAutoconversionKgKg: 0.00012,
+            liquidAutoconversionKgKg:
+                0.00012,
 
-            iceAutoconversionKgKg: 0.00009,
 
-            liquidAutoconversionRate: 0.30,
+            iceAutoconversionKgKg:
+                0.00009,
 
-            iceAutoconversionRate: 0.25,
 
-            accretionRate: 0.20,
+            liquidAutoconversionRate:
+                0.30,
 
-            frontalPersistence: 0.97,
 
-            stratiformPersistence: 0.94,
+            iceAutoconversionRate:
+                0.25,
 
-            convectivePersistence: 0.82
+
+            accretionRate:
+                0.20,
+
+
+            frontalPersistence:
+                0.97,
+
+
+            stratiformPersistence:
+                0.94,
+
+
+            convectivePersistence:
+                0.82
         },
 
 
@@ -470,45 +773,78 @@
 
         precipitation: {
 
-            frontalEfficiency: 1.25,
+            frontalEfficiency:
+                1.25,
 
-            orographicEfficiency: 1.15,
 
-            convectiveEfficiency: 1.10,
+            orographicEfficiency:
+                1.15,
 
-            belowCloudEvaporation: 0.18,
 
-            maximumMmHr: 100,
+            convectiveEfficiency:
+                1.10,
 
-            drizzleMmHr: 0.05,
 
-            lightMmHr: 0.5,
+            belowCloudEvaporation:
+                0.18,
 
-            moderateMmHr: 2.5,
 
-            heavyMmHr: 7.5,
+            maximumMmHr:
+                100,
 
-            extremeMmHr: 25,
+
+            drizzleMmHr:
+                0.05,
+
+
+            lightMmHr:
+                0.5,
+
+
+            moderateMmHr:
+                2.5,
+
+
+            heavyMmHr:
+                7.5,
+
+
+            extremeMmHr:
+                25,
+
 
             /*
-             * V10 precipitation sanity protection.
+             * This is not spontaneous/artificial rain.
              *
-             * This is NOT artificial random rain.
+             * It only acts where:
              *
-             * It only activates when the model contains physically
-             * contradictory state: near-saturation, cloud condensate and
-             * meaningful ascent but effectively zero precipitation.
+             *   - strong ascent exists
+             *   - near saturation exists
+             *   - actual cloud condensate exists
+             *   - numerical precipitation production has nevertheless
+             *     remained implausibly close to zero
              */
+
             sanityFloor: {
-                enabled: true,
 
-                minimumRH: 0.965,
+                enabled:
+                    true,
 
-                minimumVerticalMotion: 0.12,
 
-                minimumCondensateKgKg: 0.00008,
+                minimumRH:
+                    0.965,
 
-                minimumRateMmHr: 0.08
+
+                minimumVerticalMotion:
+                    0.12,
+
+
+                minimumCondensateKgKg:
+                    0.00008,
+
+
+                minimumRateMmHr:
+                    0.08
             }
         },
 
@@ -520,30 +856,49 @@
         precipitationPhase: {
 
             /*
-             * Surface temperature alone is NOT sufficient.
-             *
-             * V10 uses wet-bulb plus the 925/850/700 hPa column.
+             * The V10 microphysics engine uses wet-bulb temperatures and
+             * vertical thermal structure instead of a single fixed
+             * surface-temperature snow boundary.
              */
 
-            definiteSnowWetBulbC: 0.4,
+            definiteSnowWetBulbC:
+                0.4,
 
-            wetSnowUpperWetBulbC: 1.2,
 
-            mixedUpperWetBulbC: 2.2,
+            wetSnowUpperWetBulbC:
+                1.2,
 
-            definiteRainWetBulbC: 3.0,
 
-            warmNoseMinimumC: 0.5,
+            mixedUpperWetBulbC:
+                2.2,
 
-            strongWarmNoseC: 2.0,
 
-            refreezeLayerC: -1.0,
+            definiteRainWetBulbC:
+                3.0,
 
-            evaporativeCoolingStrength: 0.70,
 
-            dynamicCoolingStrength: 0.60,
+            warmNoseMinimumC:
+                0.5,
 
-            precipitationCoolingStrength: 0.45
+
+            strongWarmNoseC:
+                2.0,
+
+
+            refreezeLayerC:
+                -1.0,
+
+
+            evaporativeCoolingStrength:
+                0.70,
+
+
+            dynamicCoolingStrength:
+                0.60,
+
+
+            precipitationCoolingStrength:
+                0.45
         },
 
 
@@ -553,19 +908,32 @@
 
         convection: {
 
-            enabled: true,
+            enabled:
+                true,
 
-            minimumInstabilityC: 2.5,
 
-            strongInstabilityC: 7.0,
+            minimumInstabilityC:
+                2.5,
 
-            minimumRH: 0.72,
 
-            minimumTriggerLift: 0.10,
+            strongInstabilityC:
+                7.0,
 
-            oceanColdAirBoost: 0.85,
 
-            maximumLiftBoost: 2.2
+            minimumRH:
+                0.72,
+
+
+            minimumTriggerLift:
+                0.10,
+
+
+            oceanColdAirBoost:
+                0.85,
+
+
+            maximumLiftBoost:
+                2.2
         },
 
 
@@ -575,21 +943,36 @@
 
         snow: {
 
-            minimumAccumulatingRateMmHr: 0.10,
+            minimumAccumulatingRateMmHr:
+                0.10,
 
-            wetSnowRatioCmPerMm: 0.55,
 
-            normalSnowRatioCmPerMm: 1.0,
+            wetSnowRatioCmPerMm:
+                0.55,
 
-            drySnowRatioCmPerMm: 1.45,
 
-            settlingPerHour: 0.008,
+            normalSnowRatioCmPerMm:
+                1.0,
 
-            airTemperatureMeltPerHour: 0.035,
 
-            rainMeltPerMm: 0.018,
+            drySnowRatioCmPerMm:
+                1.45,
 
-            solarMeltPerHour: 0.025
+
+            settlingPerHour:
+                0.008,
+
+
+            airTemperatureMeltPerHour:
+                0.035,
+
+
+            rainMeltPerMm:
+                0.018,
+
+
+            solarMeltPerHour:
+                0.025
         },
 
 
@@ -599,13 +982,30 @@
 
         history: {
 
-            snapshotEveryMinutes: 60,
+            snapshotEveryMinutes:
+                60,
 
-            maxSnapshots: 24 * 35,
 
-            stationSampleEveryMinutes: 4,
+            /*
+             * This remains the theoretical history window.
+             *
+             * europacraft-history.js also enforces a browser memory budget
+             * for full rewind snapshots.
+             */
 
-            maxStationSamples: 24 * 15 * 90
+            maxSnapshots:
+                24 *
+                35,
+
+
+            stationSampleEveryMinutes:
+                4,
+
+
+            maxStationSamples:
+                24 *
+                15 *
+                90
         },
 
 
@@ -615,19 +1015,32 @@
 
         forcing: {
 
-            maxSteeringArrows: 10,
+            maxSteeringArrows:
+                10,
 
-            arrowDefaultWidthKm: 800,
 
-            arrowDefaultSpeedKmh: 45,
+            arrowDefaultWidthKm:
+                800,
 
-            arrowDefaultStrength: 0.65,
 
-            arrowMaximumSpeedKmh: 160,
+            arrowDefaultSpeedKmh:
+                45,
 
-            airMassDefaultRadiusKm: 650,
 
-            airMassDefaultStrength: 0.90
+            arrowDefaultStrength:
+                0.65,
+
+
+            arrowMaximumSpeedKmh:
+                160,
+
+
+            airMassDefaultRadiusKm:
+                650,
+
+
+            airMassDefaultStrength:
+                0.90
         },
 
 
@@ -637,41 +1050,76 @@
 
         diagnostics: {
 
-            enabled: true,
+            enabled:
+                true,
 
-            storeRH: true,
 
-            storeWetBulb: true,
+            storeRH:
+                true,
 
-            storeConvergence: true,
 
-            storeTemperatureGradient: true,
+            storeWetBulb:
+                true,
 
-            storeTracerContrast: true,
 
-            storeFrontStrength: true,
+            storeConvergence:
+                true,
 
-            storeVerticalVelocity: true,
 
-            storeOrographicLift: true,
+            storeTemperatureGradient:
+                true,
 
-            storeConvectiveLift: true,
 
-            storeCondensation: true,
+            storeTracerContrast:
+                true,
 
-            storeCloudLiquid: true,
 
-            storeCloudIce: true,
+            storeFrontStrength:
+                true,
 
-            storePrecipProduction: true,
 
-            storePrecipEvaporation: true,
+            storeVerticalVelocity:
+                true,
 
-            storeSaturationDeficit: true,
 
-            storeDominantAirMass: true,
+            storeOrographicLift:
+                true,
 
-            storePrecipitationReason: true
+
+            storeConvectiveLift:
+                true,
+
+
+            storeCondensation:
+                true,
+
+
+            storeCloudLiquid:
+                true,
+
+
+            storeCloudIce:
+                true,
+
+
+            storePrecipProduction:
+                true,
+
+
+            storePrecipEvaporation:
+                true,
+
+
+            storeSaturationDeficit:
+                true,
+
+
+            storeDominantAirMass:
+                true,
+
+
+            storePrecipitationReason:
+                true
         },
 
 
@@ -682,61 +1130,94 @@
         acceptance: {
 
             /*
-             * During development, deliberately create two contrasting
-             * air masses and force them together.
+             * Development target:
              *
-             * At accelerated playback V10 should visibly develop:
-             *
-             * temperature boundary
-             * pressure response
-             * convergence
-             * frontal ascent
-             * cloud
-             * precipitation
-             *
-             * within a practical testing period.
+             * create two contrasting air masses,
+             * move them together,
+             * and at accelerated playback observe recognisable evolving
+             * consequences within a practical real-time test.
              */
 
-            collisionTestTargetRealSeconds: 10,
+            collisionTestTargetRealSeconds:
+                10,
 
-            requirePersistentAirMasses: true,
 
-            requireDynamicPressure: true,
+            requirePersistentAirMasses:
+                true,
 
-            requireFrontogenesis: true,
 
-            requireVerticalAtmosphere: true,
+            requireDynamicPressure:
+                true,
 
-            requirePhysicalCloudFormation: true,
 
-            requirePhysicalPrecipitation: true
+            requireFrontogenesis:
+                true,
+
+
+            requireVerticalAtmosphere:
+                true,
+
+
+            requirePhysicalCloudFormation:
+                true,
+
+
+            requirePhysicalPrecipitation:
+                true
         }
     };
 
 
-    function deepFreeze(value) {
+    /* ================================================================
+       DEEP FREEZE
+    ================================================================ */
+
+    function deepFreeze(
+        value
+    ) {
 
         if (
-            value === null ||
-            typeof value !== "object" ||
-            Object.isFrozen(value)
+            value ===
+                null ||
+            typeof value !==
+                "object" ||
+            Object.isFrozen(
+                value
+            )
         ) {
+
             return value;
         }
 
-        Object.freeze(value);
+
+        Object.freeze(
+            value
+        );
+
 
         for (
-            const child of Object.values(value)
+            const child of Object.values(
+                value
+            )
         ) {
-            deepFreeze(child);
+
+            deepFreeze(
+                child
+            );
         }
+
 
         return value;
     }
 
 
+    /* ================================================================
+       EXPORT
+    ================================================================ */
+
     global.EuropaConfig =
-        deepFreeze(CONFIG);
+        deepFreeze(
+            CONFIG
+        );
 
 })(window);
