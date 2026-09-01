@@ -1,1869 +1,4738 @@
-<!doctype html><!doctype html>
+<!doctype html>
 <html lang="en">
 
 <head>
-  <meta charset="utf-8">
 
-  <meta
+<meta charset="utf-8">
+
+<meta
     name="viewport"
-    content="width=device-width,initial-scale=1"
-  >
+    content="width=device-width, initial-scale=1">
 
-  <title>
-    EuropaCraft Weather Rework 8
-  </title>
+<title>
+    EuropaCraft Atmosphere V10
+</title>
 
-  <style>
-    :root {
-      color-scheme: dark;
 
-      --bg: #0b1017;
-      --panel: #111923;
-      --line: #263342;
-      --text: #e9eef4;
-      --muted: #95a4b4;
-      --accent: #6cb5ff;
-    }
+<style>
 
-    * {
-      box-sizing: border-box;
-    }
+:root {
 
-    html,
-    body {
-      margin: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
+    color-scheme:
+        dark;
 
-      background: var(--bg);
-      color: var(--text);
-
-      font:
-        13px/1.35
+    font-family:
+        Inter,
         system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
         "Segoe UI",
         sans-serif;
-    }
 
-    button,
-    input,
-    select {
-      font: inherit;
-      color: inherit;
+    background:
+        #080d13;
 
-      background: #172230;
+    color:
+        #e9eef5;
+}
 
-      border:
-        1px solid
-        #314155;
 
-      border-radius: 6px;
+* {
 
-      padding:
-        6px
-        8px;
-    }
+    box-sizing:
+        border-box;
+}
 
-    button {
-      cursor: pointer;
-    }
 
-    button.active {
-      background: #254a70;
-      border-color: #5ba9f2;
-    }
+html,
+body {
 
-    .app {
-      height: 100%;
-
-      display: grid;
-
-      grid-template-columns:
-        260px
-        1fr;
-
-      grid-template-rows:
-        1fr
-        106px;
-    }
-
-    .sidebar {
-      grid-row:
-        1 /
-        3;
-
-      background:
-        var(--panel);
-
-      border-right:
-        1px solid
-        var(--line);
-
-      padding: 12px;
-
-      overflow-y: auto;
-      overflow-x: hidden;
-    }
-
-    .brand {
-      font-size: 16px;
-      font-weight: 700;
-
-      margin-bottom: 2px;
-    }
-
-    .sub {
-      color: var(--muted);
-      font-size: 11px;
-
-      margin-bottom: 12px;
-    }
-
-    .group {
-      border-top:
-        1px solid
-        var(--line);
-
-      padding-top: 10px;
-      margin-top: 10px;
-    }
-
-    .group h3 {
-      font-size: 12px;
-
-      margin:
-        0
-        0
-        8px;
-    }
-
-    .row {
-      display: flex;
-
-      gap: 6px;
-
-      align-items: center;
-
-      margin:
-        6px
+    margin:
         0;
-    }
 
-    .row > * {
-      min-width: 0;
-    }
+    min-height:
+        100%;
 
-    .row label {
-      width: 76px;
+    background:
+        #080d13;
+}
 
-      flex: none;
 
-      color: var(--muted);
+body {
 
-      font-size: 11px;
-    }
+    overflow:
+        hidden;
+}
 
-    .row input,
-    .row select {
-      flex: 1;
-    }
 
-    .full {
-      width: 100%;
-    }
+button,
+select,
+input {
 
-    .mapwrap {
-      position: relative;
+    font:
+        inherit;
+}
 
-      display: flex;
 
-      align-items: center;
-      justify-content: center;
+button,
+select,
+input[type="number"],
+input[type="text"] {
 
-      overflow: hidden;
+    background:
+        #172130;
 
-      background: #071019;
-    }
+    color:
+        #eef3f8;
 
-    .mapstage {
-      position: relative;
+    border:
+        1px solid #334258;
 
-      width:
-        min(
-          100%,
-          calc(
-            (
-              100vh -
-              106px
-            ) *
-            780 /
-            440
-          )
-        );
+    border-radius:
+        7px;
 
-      aspect-ratio:
-        780 /
-        440;
+    padding:
+        7px 9px;
+}
 
-      box-shadow:
-        0 0 0 1px
-        #243243;
-    }
 
-    .mapstage canvas {
-      position: absolute;
+button {
 
-      inset: 0;
+    cursor:
+        pointer;
+}
 
-      width: 100%;
-      height: 100%;
-    }
 
-    #field {
-      background: #142435;
-    }
+button:hover {
 
-    #particleCanvas,
-    #overlay {
-      pointer-events: none;
-    }
+    background:
+        #202d40;
+}
 
-    #hit {
-      position: absolute;
 
-      inset: 0;
+button.active {
 
-      cursor: crosshair;
-    }
+    outline:
+        2px solid #8eb7ff;
 
-    .hud {
-      position: absolute;
+    background:
+        #223451;
+}
 
-      left: 10px;
-      top: 10px;
 
-      background:
-        rgba(
-          5,
-          10,
-          16,
-          0.78
-        );
+button.danger {
 
-      border:
-        1px solid
-        rgba(
-          255,
-          255,
-          255,
-          0.14
-        );
+    border-color:
+        #74404b;
 
-      padding:
-        7px
+    color:
+        #ffc7ce;
+}
+
+
+input[type="range"] {
+
+    width:
+        100%;
+}
+
+
+label {
+
+    font-size:
+        12px;
+
+    color:
+        #aab6c5;
+}
+
+
+.app {
+
+    display:
+        grid;
+
+    grid-template-columns:
+        minmax(0, 1fr)
+        390px;
+
+    height:
+        100vh;
+}
+
+
+.main {
+
+    min-width:
+        0;
+
+    display:
+        flex;
+
+    flex-direction:
+        column;
+
+    padding:
+        12px;
+
+    gap:
         9px;
 
-      border-radius: 6px;
+    overflow:
+        hidden;
+}
 
-      pointer-events: none;
-    }
 
-    .hud .time {
-      font-weight: 700;
-    }
+.sidebar {
 
-    .hud .status {
-      font-size: 11px;
-      color: #b5c2cf;
-    }
+    background:
+        #101720;
 
-    .probe {
-      position: absolute;
+    border-left:
+        1px solid #273342;
 
-      right: 10px;
-      top: 10px;
+    overflow-y:
+        auto;
 
-      width: 190px;
+    padding:
+        12px;
+}
 
-      background:
-        rgba(
-          5,
-          10,
-          16,
-          0.84
-        );
 
-      border:
-        1px solid
-        rgba(
-          255,
-          255,
-          255,
-          0.14
-        );
+.topbar {
 
-      padding: 8px;
+    display:
+        flex;
 
-      border-radius: 6px;
+    align-items:
+        center;
 
-      display: none;
-
-      pointer-events: none;
-    }
-
-    .timeline {
-      grid-column: 2;
-
-      background: #0f1721;
-
-      border-top:
-        1px solid
-        var(--line);
-
-      padding:
-        10px
-        14px;
-    }
-
-    .timeline-top {
-      display: flex;
-
-      justify-content:
+    justify-content:
         space-between;
 
-      align-items: center;
+    gap:
+        10px;
 
-      gap: 12px;
-    }
+    flex-wrap:
+        wrap;
+}
 
-    .timeline-range {
-      display: flex;
 
-      align-items: center;
+.title {
 
-      gap: 8px;
+    font-weight:
+        750;
 
-      flex: 1;
-    }
+    font-size:
+        17px;
 
-    .timeline input[type="range"] {
-      width: 100%;
-      padding: 0;
-    }
+    letter-spacing:
+        0.1px;
+}
 
-    .timeline-bottom {
-      display: grid;
 
-      grid-template-columns:
+.engineStatus {
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    gap:
+        7px;
+
+    font-size:
+        12px;
+
+    color:
+        #aeb9c8;
+}
+
+
+.statusDot {
+
+    width:
+        9px;
+
+    height:
+        9px;
+
+    border-radius:
+        50%;
+
+    background:
+        #79818c;
+}
+
+
+.statusDot.ready {
+
+    background:
+        #58be78;
+}
+
+
+.statusDot.busy {
+
+    background:
+        #e4ba51;
+}
+
+
+.statusDot.error {
+
+    background:
+        #e25f67;
+}
+
+
+.toolbar {
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    gap:
+        7px;
+
+    flex-wrap:
+        wrap;
+}
+
+
+.clock {
+
+    font-weight:
+        700;
+
+    color:
+        #f2f6fa;
+
+    margin-left:
+        auto;
+}
+
+
+.layerbar {
+
+    display:
+        flex;
+
+    gap:
+        5px;
+
+    overflow-x:
+        auto;
+
+    padding-bottom:
+        3px;
+}
+
+
+.layerbar button {
+
+    flex:
+        0 0 auto;
+
+    padding:
+        6px 9px;
+
+    font-size:
+        12px;
+}
+
+
+.mapWrap {
+
+    position:
+        relative;
+
+    flex:
+        1;
+
+    min-height:
+        280px;
+
+    background:
+        #05080c;
+
+    border:
+        1px solid #293545;
+
+    overflow:
+        hidden;
+}
+
+
+#map {
+
+    display:
+        block;
+
+    width:
+        100%;
+
+    height:
+        100%;
+
+    cursor:
+        crosshair;
+}
+
+
+.mapMessage {
+
+    position:
+        absolute;
+
+    left:
+        12px;
+
+    bottom:
+        12px;
+
+    padding:
+        7px 9px;
+
+    border-radius:
+        6px;
+
+    background:
+        rgba(8, 12, 18, 0.78);
+
+    font-size:
+        11px;
+
+    color:
+        #d8e0e9;
+
+    pointer-events:
+        none;
+}
+
+
+.timelineBox {
+
+    border:
+        1px solid #273342;
+
+    border-radius:
+        8px;
+
+    background:
+        #0d141d;
+
+    padding:
+        8px 10px;
+}
+
+
+.timelineTop {
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        space-between;
+
+    gap:
+        10px;
+
+    font-size:
+        12px;
+}
+
+
+h2 {
+
+    margin:
+        3px 0 10px;
+
+    font-size:
+        18px;
+}
+
+
+h3 {
+
+    margin:
+        15px 0 7px;
+
+    font-size:
+        13px;
+
+    color:
+        #c5cfdb;
+
+    text-transform:
+        uppercase;
+
+    letter-spacing:
+        0.45px;
+}
+
+
+.card {
+
+    border:
+        1px solid #293543;
+
+    border-radius:
+        9px;
+
+    padding:
+        10px;
+
+    background:
+        #0d141d;
+
+    margin-bottom:
+        9px;
+}
+
+
+.cardTitle {
+
+    font-weight:
+        700;
+
+    margin-bottom:
+        7px;
+}
+
+
+.big {
+
+    font-size:
+        23px;
+
+    font-weight:
+        750;
+}
+
+
+.muted {
+
+    color:
+        #94a1b2;
+
+    font-size:
+        11px;
+
+    line-height:
+        1.45;
+}
+
+
+.kv {
+
+    display:
+        grid;
+
+    grid-template-columns:
+        minmax(0, 1fr)
+        auto;
+
+    gap:
+        5px 10px;
+
+    margin-top:
+        9px;
+
+    font-size:
+        12px;
+}
+
+
+.kv span {
+
+    color:
+        #aab5c3;
+}
+
+
+.kv strong {
+
+    text-align:
+        right;
+
+    font-weight:
+        650;
+}
+
+
+.formGrid {
+
+    display:
+        grid;
+
+    grid-template-columns:
         1fr
-        auto
         1fr;
 
-      gap: 10px;
+    gap:
+        7px;
+}
 
-      margin-top: 7px;
 
-      color: var(--muted);
+.field {
 
-      font-size: 11px;
-    }
+    display:
+        flex;
 
-    .timeline-bottom span:nth-child(2) {
-      color: var(--text);
-      font-weight: 600;
-    }
+    flex-direction:
+        column;
 
-    .warning {
-      background: #4a3514;
+    gap:
+        3px;
+}
 
-      border:
-        1px solid
-        #79591e;
 
-      padding: 7px;
+.field.full {
 
-      border-radius: 6px;
+    grid-column:
+        1 /
+        -1;
+}
 
-      color: #f0d99d;
 
-      display: none;
+.row {
 
-      margin-top: 7px;
-    }
+    display:
+        flex;
 
-    .statusline {
-      min-height: 17px;
+    gap:
+        6px;
 
-      color: #a7c8e8;
+    align-items:
+        center;
 
-      font-size: 11px;
-    }
+    flex-wrap:
+        wrap;
+}
 
-    .station-list {
-      max-height: 170px;
 
-      overflow-y: auto;
-    }
+.row button {
 
-    .station-card {
-      border:
-        1px solid
-        #2b3a4b;
+    flex:
+        1;
+}
 
-      border-radius: 6px;
 
-      padding: 7px;
+.list {
 
-      margin:
-        5px
+    margin-top:
+        8px;
+
+    display:
+        flex;
+
+    flex-direction:
+        column;
+
+    gap:
+        5px;
+
+    font-size:
+        11px;
+}
+
+
+.listItem {
+
+    display:
+        flex;
+
+    justify-content:
+        space-between;
+
+    align-items:
+        center;
+
+    gap:
+        7px;
+
+    padding:
+        6px;
+
+    background:
+        #121c28;
+
+    border-radius:
+        6px;
+}
+
+
+.listItemText {
+
+    min-width:
         0;
 
-      background: #0e1620;
+    overflow:
+        hidden;
+
+    text-overflow:
+        ellipsis;
+
+    white-space:
+        nowrap;
+}
+
+
+.listItem button {
+
+    padding:
+        3px 7px;
+
+    flex:
+        0 0 auto;
+}
+
+
+.toggleRow {
+
+    display:
+        grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap:
+        5px;
+}
+
+
+.toggleRow label {
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    gap:
+        5px;
+
+    background:
+        #121b27;
+
+    border-radius:
+        6px;
+
+    padding:
+        5px 7px;
+}
+
+
+#stationGraph {
+
+    width:
+        100%;
+
+    height:
+        170px;
+
+    background:
+        #0d141d;
+
+    border:
+        1px solid #293543;
+
+    border-radius:
+        8px;
+}
+
+
+.errorBox {
+
+    display:
+        none;
+
+    white-space:
+        pre-wrap;
+
+    background:
+        #36151a;
+
+    color:
+        #ffd6da;
+
+    border:
+        1px solid #833942;
+
+    border-radius:
+        8px;
+
+    padding:
+        10px;
+
+    font:
+        12px/1.45
+        ui-monospace,
+        SFMono-Regular,
+        Consolas,
+        monospace;
+
+    margin-bottom:
+        10px;
+}
+
+
+.warning {
+
+    color:
+        #ffd586;
+}
+
+
+.good {
+
+    color:
+        #80d89a;
+}
+
+
+@media (
+    max-width:
+        950px
+) {
+
+    body {
+
+        overflow:
+            auto;
     }
 
-    .tiny {
-      font-size: 10px;
 
-      color: var(--muted);
+    .app {
+
+        grid-template-columns:
+            1fr;
+
+        height:
+            auto;
     }
-  </style>
+
+
+    .main {
+
+        height:
+            72vh;
+    }
+
+
+    .sidebar {
+
+        border-left:
+            none;
+
+        border-top:
+            1px solid #273342;
+    }
+}
+
+</style>
+
 </head>
+
 
 <body>
 
+
 <div class="app">
 
-  <aside class="sidebar">
 
-    <div class="brand">
-      EuropaCraft Weather
-    </div>
+    <main class="main">
 
-    <div class="sub">
-      Rework 8 · persistent European atmosphere
-    </div>
 
-    <div
-      id="bootStatus"
-      class="statusline"
-    >
-      Loading real geography…
-    </div>
+        <div class="topbar">
 
-    <section class="group">
 
-      <h3>
-        Weather layer
-      </h3>
+            <div>
 
-      <select
-        id="layer"
-        class="full"
-      >
+                <div class="title">
+                    EuropaCraft Atmosphere V10
+                </div>
 
-        <option value="temperature">
-          Temperature
-        </option>
+                <div class="engineStatus">
 
-        <option value="anomaly">
-          Temperature anomaly
-        </option>
+                    <span
+                        id="statusDot"
+                        class="statusDot">
+                    </span>
 
-        <option value="pressure">
-          Pressure
-        </option>
+                    <span id="statusText">
+                        Loading V10...
+                    </span>
 
-        <option value="wind">
-          Wind speed
-        </option>
+                </div>
 
-        <option value="humidity">
-          Relative humidity
-        </option>
+            </div>
 
-        <option value="dewpoint">
-          Dew point
-        </option>
 
-        <option value="cloud">
-          Cloud cover
-        </option>
+            <div
+                id="clock"
+                class="clock">
+                —
+            </div>
 
-        <option value="precip">
-          Precipitation
-        </option>
 
-        <option value="snow">
-          Snow depth
-        </option>
-
-        <option value="ground">
-          Ground temperature
-        </option>
-
-        <option value="sst">
-          Sea-surface temperature
-        </option>
-
-        <option value="seaice">
-          Sea ice
-        </option>
-
-      </select>
-
-      <div class="row">
-
-        <button
-          id="isobars"
-          class="active"
-        >
-          Isobars
-        </button>
-
-        <button
-          id="particlesToggle"
-          class="active"
-        >
-          Wind
-        </button>
-
-        <button id="fronts">
-          Fronts
-        </button>
-
-      </div>
-
-    </section>
-
-    <section class="group">
-
-      <h3>
-        Simulation
-      </h3>
-
-      <div class="row">
-
-        <button
-          id="play"
-          class="full"
-        >
-          ▶ Play
-        </button>
-
-      </div>
-
-      <div class="row">
-
-        <label>
-          Speed
-        </label>
-
-        <select id="speed">
-
-          <option value="1">
-            Real time
-          </option>
-
-          <option value="60">
-            1 sec = 1 min
-          </option>
-
-          <option
-            value="600"
-            selected
-          >
-            1 sec = 10 min
-          </option>
-
-          <option value="3600">
-            1 sec = 1 hour
-          </option>
-
-          <option value="21600">
-            1 sec = 6 hours
-          </option>
-
-          <option value="86400">
-            1 sec = 1 day
-          </option>
-
-        </select>
-
-      </div>
-
-      <div class="row">
-
-        <label>
-          Go to
-        </label>
-
-        <input
-          id="gotoTime"
-          type="datetime-local"
-        >
-
-      </div>
-
-      <button
-        id="goButton"
-        class="full"
-      >
-        Go to time
-      </button>
-
-      <div
-        id="seekStatus"
-        class="statusline"
-      ></div>
-
-    </section>
-
-    <section class="group">
-
-      <h3>
-        Simulation range
-      </h3>
-
-      <div class="row">
-
-        <label>
-          Start
-        </label>
-
-        <input
-          id="rangeStart"
-          type="datetime-local"
-        >
-
-      </div>
-
-      <div class="row">
-
-        <label>
-          End
-        </label>
-
-        <input
-          id="rangeEnd"
-          type="datetime-local"
-        >
-
-      </div>
-
-      <button
-        id="applyRange"
-        class="full"
-      >
-        Apply range
-      </button>
-
-      <div
-        id="rangeWarning"
-        class="warning"
-      ></div>
-
-    </section>
-
-    <section class="group">
-
-      <h3>
-        Map tool
-      </h3>
-
-      <div class="row">
-
-        <button
-          data-mode="inspect"
-          class="mode active"
-        >
-          Inspect
-        </button>
-
-        <button
-          data-mode="station"
-          class="mode"
-        >
-          Station
-        </button>
-
-      </div>
-
-      <div class="row">
-
-        <button
-          data-mode="steering"
-          class="mode"
-        >
-          Steering path
-        </button>
-
-        <button
-          data-mode="pressure"
-          class="mode"
-        >
-          High / low
-        </button>
-
-      </div>
-
-    </section>
-
-    <section class="group">
-
-      <h3>
-        Steering path
-      </h3>
-
-      <div class="row">
-
-        <label>
-          Speed km/h
-        </label>
-
-        <input
-          id="steerSpeed"
-          type="number"
-          value="40"
-          min="0"
-          max="180"
-        >
-
-      </div>
-
-      <div class="row">
-
-        <label>
-          Width km
-        </label>
-
-        <input
-          id="steerWidth"
-          type="number"
-          value="500"
-          min="50"
-          max="2000"
-        >
-
-      </div>
-
-      <div class="row">
-
-        <label>
-          Strength
-        </label>
-
-        <input
-          id="steerStrength"
-          type="number"
-          value="0.7"
-          min="0"
-          max="1"
-          step="0.05"
-        >
-
-      </div>
-
-      <div class="row">
-
-        <label>
-          Duration h
-        </label>
-
-        <input
-          id="steerDuration"
-          type="number"
-          value="72"
-          min="1"
-          max="1000"
-        >
-
-      </div>
-
-      <button
-        id="clearPaths"
-        class="full"
-      >
-        Clear steering paths
-      </button>
-
-      <div class="tiny">
-        Draw a freehand path directly on the map.
-        It steers airflow rather than painting temperature.
-      </div>
-
-    </section>
-
-    <section class="group">
-
-      <h3>
-        Pressure-system tool
-      </h3>
-
-      <div class="row">
-
-        <label>
-          Centre hPa
-        </label>
-
-        <input
-          id="pressureTarget"
-          type="number"
-          value="990"
-          min="930"
-          max="1070"
-        >
-
-      </div>
-
-      <div class="row">
-
-        <label>
-          Radius km
-        </label>
-
-        <input
-          id="pressureRadius"
-          type="number"
-          value="650"
-          min="100"
-          max="2000"
-        >
-
-      </div>
-
-      <div class="row">
-
-        <label>
-          Strength
-        </label>
-
-        <input
-          id="pressureStrength"
-          type="number"
-          value="0.65"
-          min="0"
-          max="1"
-          step="0.05"
-        >
-
-      </div>
-
-      <div class="row">
-
-        <label>
-          Duration h
-        </label>
-
-        <input
-          id="pressureDuration"
-          type="number"
-          value="48"
-          min="1"
-          max="1000"
-        >
-
-      </div>
-
-      <button
-        id="clearPressure"
-        class="full"
-      >
-        Clear pressure systems
-      </button>
-
-    </section>
-
-    <section class="group">
-
-      <h3>
-        Stations
-      </h3>
-
-      <div
-        id="stationList"
-        class="station-list"
-      >
-
-        <div class="tiny">
-          Choose Station and click the map.
         </div>
 
-      </div>
 
-    </section>
+        <div class="toolbar">
 
-  </aside>
 
-  <main class="mapwrap">
+            <button id="playButton">
+                Play
+            </button>
 
-    <div
-      class="mapstage"
-      id="mapstage"
-    >
 
-      <canvas
-        id="field"
-        width="780"
-        height="440"
-      ></canvas>
+            <button id="plus1">
+                +1 h
+            </button>
 
-      <canvas
-        id="particleCanvas"
-        width="780"
-        height="440"
-      ></canvas>
 
-      <canvas
-        id="overlay"
-        width="780"
-        height="440"
-      ></canvas>
+            <button id="plus6">
+                +6 h
+            </button>
 
-      <div id="hit"></div>
 
-      <div class="hud">
+            <button id="plus12">
+                +12 h
+            </button>
+
+
+            <button id="plus24">
+                +24 h
+            </button>
+
+
+            <button id="minus6">
+                −6 h
+            </button>
+
+
+            <label>
+
+                Speed
+
+                <select id="speedSelect">
+
+                    <option value="4">
+                        4 sim min/s
+                    </option>
+
+                    <option value="60">
+                        1 sim h/s
+                    </option>
+
+                    <option
+                        value="180"
+                        selected>
+                        3 sim h/s
+                    </option>
+
+                    <option value="360">
+                        6 sim h/s
+                    </option>
+
+                    <option value="720">
+                        12 sim h/s
+                    </option>
+
+                </select>
+
+            </label>
+
+
+            <span
+                id="queueStatus"
+                class="muted">
+            </span>
+
+
+        </div>
+
 
         <div
-          class="time"
-          id="hudTime"
-        >
-          --
+            id="layerBar"
+            class="layerbar">
+
+
+            <button
+                data-layer="temperature"
+                class="active">
+                Temperature
+            </button>
+
+
+            <button data-layer="anomaly">
+                Anomaly
+            </button>
+
+
+            <button data-layer="pressure">
+                Pressure
+            </button>
+
+
+            <button data-layer="cloud">
+                Cloud
+            </button>
+
+
+            <button data-layer="precipitation">
+                Precipitation
+            </button>
+
+
+            <button data-layer="precipitation-phase">
+                Phase
+            </button>
+
+
+            <button data-layer="air-mass">
+                Air Mass
+            </button>
+
+
+            <button data-layer="front">
+                Front
+            </button>
+
+
+            <button data-layer="lift">
+                Lift
+            </button>
+
+
+            <button data-layer="convergence">
+                Convergence
+            </button>
+
+
+            <button data-layer="humidity">
+                Humidity
+            </button>
+
+
+            <button data-layer="snow">
+                Snow
+            </button>
+
+
+            <button data-layer="sst">
+                SST
+            </button>
+
+
+            <button data-layer="terrain">
+                Terrain
+            </button>
+
+
         </div>
+
+
+        <div class="mapWrap">
+
+            <canvas
+                id="map"
+                width="1170"
+                height="660">
+            </canvas>
+
+
+            <div
+                id="mapMessage"
+                class="mapMessage">
+                Click anywhere to inspect the atmosphere.
+            </div>
+
+        </div>
+
+
+        <div class="timelineBox">
+
+
+            <div class="timelineTop">
+
+                <strong>
+                    Rewind snapshots
+                </strong>
+
+                <span
+                    id="timelineText"
+                    class="muted">
+                    Initial snapshot
+                </span>
+
+            </div>
+
+
+            <input
+                id="timeline"
+                type="range"
+                min="0"
+                max="0"
+                step="1"
+                value="0">
+
+
+        </div>
+
+
+    </main>
+
+
+    <aside class="sidebar">
+
 
         <div
-          class="status"
-          id="hudStatus"
-        >
-          195×110 physics · 4-minute step
+            id="errorBox"
+            class="errorBox">
         </div>
 
-      </div>
 
-      <div
-        id="probe"
-        class="probe"
-      ></div>
+        <h2>
+            Atmosphere Inspector
+        </h2>
 
-    </div>
 
-  </main>
+        <div class="card">
 
-  <footer class="timeline">
 
-    <div class="timeline-top">
+            <div
+                id="selectedTemperature"
+                class="big">
+                Click the map
+            </div>
 
-      <button id="timelinePlay">
-        ▶
-      </button>
 
-      <div class="timeline-range">
+            <div
+                id="selectedCoordinates"
+                class="muted">
+                Select a location for detailed atmospheric diagnostics.
+            </div>
 
-        <input
-          id="timelineSlider"
-          type="range"
-          min="0"
-          max="100000"
-          value="0"
-        >
 
-      </div>
+            <div
+                id="basicReadout"
+                class="kv">
+            </div>
 
-      <span id="timelineClock">
-        --
-      </span>
 
-    </div>
+        </div>
 
-    <div class="timeline-bottom">
 
-      <span id="timelineStartLabel">
-        --
-      </span>
+        <h3>
+            Atmospheric diagnostics
+        </h3>
 
-      <span>
-        Continuous UTC timeline
-      </span>
 
-      <span
-        id="timelineEndLabel"
-        style="text-align:right"
-      >
-        --
-      </span>
+        <div class="card">
 
-    </div>
 
-  </footer>
+            <div
+                id="diagnosticReadout"
+                class="kv">
+            </div>
+
+
+            <div
+                id="dryDiagnosis"
+                class="muted"
+                style="margin-top:9px;">
+                Select a location.
+            </div>
+
+
+        </div>
+
+
+        <h3>
+            Air Mass Laboratory
+        </h3>
+
+
+        <div class="card">
+
+
+            <div class="muted">
+                Select a point on the map, define the source air and inject it.
+                Temperature, moisture, pressure, wind and source tracers are
+                inserted into the atmosphere. Precipitation itself is never painted.
+            </div>
+
+
+            <div
+                class="formGrid"
+                style="margin-top:9px;">
+
+
+                <div class="field full">
+
+                    <label>
+                        Source type
+                    </label>
+
+                    <select id="airMassType">
+                    </select>
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        Temperature °C
+                    </label>
+
+                    <input
+                        id="airMassTemperature"
+                        type="number"
+                        step="0.5"
+                        placeholder="Preset">
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        Relative humidity %
+                    </label>
+
+                    <input
+                        id="airMassHumidity"
+                        type="number"
+                        min="1"
+                        max="100"
+                        step="1"
+                        value="90">
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        Pressure hPa
+                    </label>
+
+                    <input
+                        id="airMassPressure"
+                        type="number"
+                        min="925"
+                        max="1070"
+                        step="1"
+                        placeholder="Source default">
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        Radius km
+                    </label>
+
+                    <input
+                        id="airMassRadius"
+                        type="number"
+                        min="100"
+                        max="2200"
+                        value="750">
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        Strength
+                    </label>
+
+                    <input
+                        id="airMassStrength"
+                        type="number"
+                        min="0.05"
+                        max="1"
+                        step="0.05"
+                        value="0.95">
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        Depth
+                    </label>
+
+                    <select id="airMassDepth">
+
+                        <option value="1">
+                            Surface
+                        </option>
+
+                        <option value="2">
+                            Shallow
+                        </option>
+
+                        <option
+                            value="3"
+                            selected>
+                            Medium
+                        </option>
+
+                        <option value="4">
+                            Deep
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        Stability
+                    </label>
+
+                    <select id="airMassStability">
+
+                        <option value="-0.7">
+                            Unstable
+                        </option>
+
+                        <option
+                            value="0"
+                            selected>
+                            Neutral
+                        </option>
+
+                        <option value="0.7">
+                            Stable
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        Movement bearing °
+                    </label>
+
+                    <input
+                        id="airMassBearing"
+                        type="number"
+                        min="0"
+                        max="360"
+                        value="90">
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        Speed km/h
+                    </label>
+
+                    <input
+                        id="airMassSpeed"
+                        type="number"
+                        min="0"
+                        max="250"
+                        value="55">
+
+                </div>
+
+
+            </div>
+
+
+            <div
+                class="row"
+                style="margin-top:9px;">
+
+
+                <button id="createAirMass">
+                    Inject at selected point
+                </button>
+
+
+            </div>
+
+
+            <div
+                class="row"
+                style="margin-top:6px;">
+
+
+                <button id="collisionTest">
+                    Create collision test
+                </button>
+
+
+                <button id="developCollision">
+                    Develop +12 h
+                </button>
+
+
+            </div>
+
+
+            <div
+                id="airMassList"
+                class="list">
+            </div>
+
+
+        </div>
+
+
+        <h3>
+            Pressure Systems
+        </h3>
+
+
+        <div class="card">
+
+
+            <div class="formGrid">
+
+
+                <div class="field">
+
+                    <label>
+                        Low pressure
+                    </label>
+
+                    <input
+                        id="lowPressure"
+                        type="number"
+                        min="930"
+                        max="1015"
+                        value="985">
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        High pressure
+                    </label>
+
+                    <input
+                        id="highPressure"
+                        type="number"
+                        min="1015"
+                        max="1060"
+                        value="1030">
+
+                </div>
+
+
+                <div class="field full">
+
+                    <label>
+                        Radius km
+                    </label>
+
+                    <input
+                        id="pressureRadius"
+                        type="number"
+                        min="250"
+                        max="3000"
+                        value="1000">
+
+                </div>
+
+
+            </div>
+
+
+            <div
+                class="row"
+                style="margin-top:8px;">
+
+
+                <button id="createLow">
+                    Add Low
+                </button>
+
+
+                <button id="createHigh">
+                    Add High
+                </button>
+
+
+            </div>
+
+
+            <div id="pressureList" class="list">
+            </div>
+
+
+        </div>
+
+
+        <h3>
+            Steering Flow
+        </h3>
+
+
+        <div class="card">
+
+
+            <div class="muted">
+                Start an arrow, click its source, then click its destination.
+                The arrow modifies atmospheric momentum.
+            </div>
+
+
+            <div
+                class="formGrid"
+                style="margin-top:8px;">
+
+
+                <div class="field">
+
+                    <label>
+                        Speed km/h
+                    </label>
+
+                    <input
+                        id="arrowSpeed"
+                        type="number"
+                        min="0"
+                        max="160"
+                        value="45">
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        Width km
+                    </label>
+
+                    <input
+                        id="arrowWidth"
+                        type="number"
+                        min="75"
+                        max="3000"
+                        value="800">
+
+                </div>
+
+
+                <div class="field full">
+
+                    <label>
+                        Strength
+                    </label>
+
+                    <input
+                        id="arrowStrength"
+                        type="number"
+                        min="0.05"
+                        max="1"
+                        step="0.05"
+                        value="0.65">
+
+                </div>
+
+
+            </div>
+
+
+            <div
+                class="row"
+                style="margin-top:8px;">
+
+
+                <button id="arrowButton">
+                    Start arrow
+                </button>
+
+
+                <button id="clearArrows">
+                    Clear arrows
+                </button>
+
+
+            </div>
+
+
+            <div
+                id="arrowList"
+                class="list">
+            </div>
+
+
+        </div>
+
+
+        <h3>
+            Display Overlays
+        </h3>
+
+
+        <div class="card">
+
+
+            <div class="toggleRow">
+
+
+                <label>
+                    <input
+                        id="toggleWind"
+                        type="checkbox"
+                        checked>
+                    Wind
+                </label>
+
+
+                <label>
+                    <input
+                        id="toggleSystems"
+                        type="checkbox"
+                        checked>
+                    Pressure systems
+                </label>
+
+
+                <label>
+                    <input
+                        id="toggleAirMasses"
+                        type="checkbox"
+                        checked>
+                    Air-mass sources
+                </label>
+
+
+                <label>
+                    <input
+                        id="toggleArrows"
+                        type="checkbox"
+                        checked>
+                    Steering
+                </label>
+
+
+            </div>
+
+
+            <div
+                class="field"
+                style="margin-top:8px;">
+
+
+                <label>
+                    Wind level
+                </label>
+
+
+                <select id="windLevel">
+
+                    <option value="surface">
+                        Surface
+                    </option>
+
+                    <option value="925">
+                        925 hPa
+                    </option>
+
+                    <option value="850">
+                        850 hPa
+                    </option>
+
+                    <option value="700">
+                        700 hPa
+                    </option>
+
+                </select>
+
+
+            </div>
+
+
+        </div>
+
+
+        <h3>
+            Weather Stations
+        </h3>
+
+
+        <div class="card">
+
+
+            <div class="field">
+
+                <label>
+                    Station name
+                </label>
+
+                <input
+                    id="stationName"
+                    type="text"
+                    placeholder="Weather Station">
+
+            </div>
+
+
+            <div
+                class="row"
+                style="margin-top:8px;">
+
+
+                <button id="createStation">
+                    Create at selected point
+                </button>
+
+
+            </div>
+
+
+            <div
+                class="field"
+                style="margin-top:8px;">
+
+
+                <label>
+                    Station
+                </label>
+
+                <select id="stationSelect">
+
+                    <option value="">
+                        None
+                    </option>
+
+                </select>
+
+
+            </div>
+
+
+            <div
+                class="field"
+                style="margin-top:7px;">
+
+
+                <label>
+                    Graph
+                </label>
+
+                <select id="stationField">
+
+                    <option value="tempC">
+                        Temperature
+                    </option>
+
+                    <option value="pressureHpa">
+                        Pressure
+                    </option>
+
+                    <option value="humidityPct">
+                        Humidity
+                    </option>
+
+                    <option value="precipMmHr">
+                        Precipitation
+                    </option>
+
+                    <option value="snowDepthCm">
+                        Snow depth
+                    </option>
+
+                    <option value="frontStrength">
+                        Front strength
+                    </option>
+
+                </select>
+
+
+            </div>
+
+
+            <canvas
+                id="stationGraph"
+                width="640"
+                height="260"
+                style="margin-top:8px;">
+            </canvas>
+
+
+        </div>
+
+
+        <h3>
+            Engine
+        </h3>
+
+
+        <div class="card">
+
+
+            <div
+                id="engineReadout"
+                class="kv">
+            </div>
+
+
+        </div>
+
+
+    </aside>
+
 
 </div>
 
+
+<!-- ================================================================
+     V10 SCRIPT ORDER
+================================================================ -->
+
+
 <script src="config.js"></script>
+
 <script src="europacraft-utils.js"></script>
-<script src="europacraft-terrain.js"></script>
+
 <script src="europacraft-climate-v3.js"></script>
+
+<script src="europacraft-terrain.js"></script>
+
 <script src="europacraft-ocean.js"></script>
-<script src="europacraft-synoptic.js"></script>
+
 <script src="europacraft-atmosphere.js"></script>
+
+<script src="europacraft-airmasses.js"></script>
+
+<script src="europacraft-synoptic.js"></script>
+
+<script src="europacraft-microphysics.js"></script>
+
 <script src="europacraft-physics.js"></script>
+
 <script src="europacraft-history.js"></script>
-<script src="europacraft-renderer.js"></script>
+
 <script src="europacraft-weather.js"></script>
 
-<!-- null1.js intentionally unused -->
+<script src="europacraft-renderer.js"></script>
+
 
 <script>
-(() => {
-  'use strict';
 
-  const $ =
-    id =>
-      document.getElementById(id);
+(function () {
 
-  const U =
-    EuropaUtils;
+    "use strict";
 
-  const C =
-    EuropaConfig;
 
-  const world =
-    new EuropaWeather
-      .WeatherWorld();
+    /* ================================================================
+       DOM
+    ================================================================ */
 
-  window.weatherWorld =
-    world;
+    const $ =
+        id =>
+            document.getElementById(
+                id
+            );
 
-  let sliderDragging =
-    false;
 
-  let drawing =
-    false;
+    const map =
+        $("map");
 
-  let drawPoints =
-    [];
 
-  const format =
-    date =>
-      U.formatUtcMinute(date);
+    const stationGraph =
+        $("stationGraph");
 
-  function mapPoint(event) {
-    const rect =
-      $('hit')
-        .getBoundingClientRect();
 
-    const x =
-      (
-        event.clientX -
-        rect.left
-      ) /
-      rect.width *
-      C.display.width;
+    const errorBox =
+        $("errorBox");
 
-    const y =
-      (
-        event.clientY -
-        rect.top
-      ) /
-      rect.height *
-      C.display.height;
 
-    return {
-      x,
-      y,
+    const statusDot =
+        $("statusDot");
 
-      lon:
-        U.xToLon(
-          x,
-          C.display.width
-        ),
 
-      lat:
-        U.yToLat(
-          y,
-          C.display.height
-        )
-    };
-  }
+    const statusText =
+        $("statusText");
 
-  function setMode(mode) {
-    world.mode =
-      mode;
 
-    document
-      .querySelectorAll(
-        '.mode'
-      )
-      .forEach(
-        button =>
-          button.classList
-            .toggle(
-              'active',
-              button.dataset.mode ===
-              mode
-            )
-      );
-  }
+    /* ================================================================
+       ERROR DISPLAY
+    ================================================================ */
 
-  function updatePlay() {
-    $('play').textContent =
-      world.playing
-        ?
-          '⏸ Pause'
-        :
-          '▶ Play';
-
-    $('timelinePlay')
-      .textContent =
-      world.playing
-        ?
-          '⏸'
-        :
-          '▶';
-  }
-
-  function updateRangeLabels() {
-    $('timelineStartLabel')
-      .textContent =
-      format(
-        world.rangeStart
-      );
-
-    $('timelineEndLabel')
-      .textContent =
-      format(
-        world.rangeEnd
-      );
-  }
-
-  function updateStationList() {
-    const host =
-      $('stationList');
-
-    if (
-      !world.stations.length
+    function showError(
+        error
     ) {
-      host.innerHTML =
-        '<div class="tiny">Choose Station and click the map.</div>';
 
-      return;
+        const text =
+            error &&
+            error.stack
+                ? error.stack
+                : String(
+                    error
+                );
+
+
+        console.error(
+            error
+        );
+
+
+        errorBox.style.display =
+            "block";
+
+
+        errorBox.textContent =
+            text;
+
+
+        statusDot.className =
+            "statusDot error";
+
+
+        statusText.textContent =
+            "V10 error";
     }
 
-    host.innerHTML =
-      '';
+
+    window.addEventListener(
+        "error",
+        event => {
+
+            showError(
+                event.error ||
+                event.message
+            );
+        }
+    );
+
+
+    window.addEventListener(
+        "unhandledrejection",
+        event => {
+
+            showError(
+                event.reason
+            );
+        }
+    );
+
+
+    function guard(
+        callback
+    ) {
+
+        return function (...args) {
+
+            try {
+
+                return callback.apply(
+                    this,
+                    args
+                );
+            }
+            catch (error) {
+
+                showError(
+                    error
+                );
+
+                return null;
+            }
+        };
+    }
+
+
+    /* ================================================================
+       DEPENDENCY PREFLIGHT
+    ================================================================ */
+
+    const requiredGlobals = [
+
+        "EuropaConfig",
+
+        "EuropaUtils",
+
+        "EuropaClimate",
+
+        "EuropaTerrain",
+
+        "EuropaOcean",
+
+        "EuropaAtmosphere",
+
+        "EuropaAirMasses",
+
+        "EuropaSynoptic",
+
+        "EuropaMicrophysics",
+
+        "EuropaPhysics",
+
+        "EuropaHistory",
+
+        "EuropaWeather",
+
+        "EuropaRenderer"
+    ];
+
+
+    const missingGlobals =
+        requiredGlobals.filter(
+            name =>
+                !window[name]
+        );
+
+
+    if (
+        missingGlobals.length >
+        0
+    ) {
+
+        throw new Error(
+            "EuropaCraft V10 boot failed. Missing modules: " +
+            missingGlobals.join(
+                ", "
+            )
+        );
+    }
+
+
+    if (
+        typeof EuropaClimate.getClimate !==
+            "function" ||
+        typeof EuropaClimate.getBaselineTemperature !==
+            "function"
+    ) {
+
+        throw new Error(
+            "europacraft-climate-v3.js is not the required V3 climate module. " +
+            "EuropaClimate.getClimate and EuropaClimate.getBaselineTemperature are required."
+        );
+    }
+
+
+    /* ================================================================
+       ENGINE
+    ================================================================ */
+
+    statusText.textContent =
+        "Initialising atmosphere...";
+
+
+    const weather =
+        new EuropaWeather.Weather({
+
+            date:
+                new Date(),
+
+            paused:
+                true,
+
+            seedDefaultSystems:
+                true,
+
+            autoSynoptic:
+                false
+        });
+
+
+    const renderer =
+        new EuropaRenderer.Renderer(
+
+            map,
+
+            weather,
+
+            {
+
+                layer:
+                    EuropaRenderer
+                        .LAYERS
+                        .TEMPERATURE,
+
+                wind:
+                    true,
+
+                pressureSystems:
+                    true,
+
+                steeringArrows:
+                    true,
+
+                airMassSources:
+                    true,
+
+                stations:
+                    true
+            }
+        );
+
+
+    /*
+     * Expose the engines deliberately for browser-console diagnostics.
+     */
+
+    window.europaWeather =
+        weather;
+
+
+    window.europaRenderer =
+        renderer;
+
+
+    statusDot.className =
+        "statusDot ready";
+
+
+    statusText.textContent =
+        "V10 ready";
+
+
+    /* ================================================================
+       STATE
+    ================================================================ */
+
+    let selected =
+        null;
+
+
+    let playing =
+        false;
+
+
+    let arrowStage =
+        0;
+
+
+    let arrowStart =
+        null;
+
+
+    let lastFrameTime =
+        performance.now();
+
+
+    let simulationAccumulator =
+        0;
+
+
+    let dirty =
+        true;
+
+
+    let lastRenderTime =
+        0;
+
+
+    let lastStatsTime =
+        0;
+
+
+    /* ================================================================
+       FORMATTERS
+    ================================================================ */
+
+    function fmt(
+        value,
+        digits = 1
+    ) {
+
+        const number =
+            Number(value);
+
+
+        if (
+            !Number.isFinite(
+                number
+            )
+        ) {
+            return "—";
+        }
+
+
+        return number.toFixed(
+            digits
+        );
+    }
+
+
+    function signed(
+        value,
+        digits = 1
+    ) {
+
+        const number =
+            Number(value);
+
+
+        if (
+            !Number.isFinite(
+                number
+            )
+        ) {
+            return "—";
+        }
+
+
+        return (
+            number >=
+            0
+                ? "+"
+                : ""
+        ) +
+            number.toFixed(
+                digits
+            );
+    }
+
+
+    function emptyToNull(
+        element
+    ) {
+
+        if (
+            element.value.trim() ===
+            ""
+        ) {
+            return null;
+        }
+
+
+        const number =
+            Number(
+                element.value
+            );
+
+
+        return (
+            Number.isFinite(
+                number
+            )
+                ? number
+                : null
+        );
+    }
+
+
+    function kvHTML(
+        rows
+    ) {
+
+        return rows
+            .map(
+                row =>
+                    "<span>" +
+                    row[0] +
+                    "</span>" +
+                    "<strong>" +
+                    row[1] +
+                    "</strong>"
+            )
+            .join(
+                ""
+            );
+    }
+
+
+    /* ================================================================
+       AIR-MASS SELECT
+    ================================================================ */
 
     for (
-      const station
-      of world.stations
+        const source of
+            EuropaAirMasses.sourceTypes
     ) {
-      const observation =
-        world.sample(
-          station.lat,
-          station.lon
-        );
 
-      const card =
-        document
-          .createElement(
-            'div'
-          );
-
-      card.className =
-        'station-card';
-
-      card.innerHTML = `
-        <b>${station.name}</b>
-
-        <div class="tiny">
-          ${station.lat.toFixed(2)}°,
-          ${station.lon.toFixed(2)}°
-        </div>
-
-        <div>
-          ${observation.tempC.toFixed(1)}°C
-          · RH ${observation.rh.toFixed(0)}%
-          · ${observation.pressureHpa.toFixed(0)} hPa
-        </div>
-
-        <div class="tiny">
-          Wind ${observation.windMs.toFixed(1)} m/s
-          · precip ${observation.precipRateMmHr.toFixed(1)} mm/h
-          · snow ${observation.snowDepthCm.toFixed(1)} cm
-        </div>
-      `;
-
-      host.appendChild(
-        card
-      );
-    }
-  }
-
-  function sliderTime() {
-    const fraction =
-      Number(
-        $('timelineSlider').value
-      ) /
-      100000;
-
-    return new Date(
-      world.rangeStart
-        .getTime() +
-      fraction *
-      (
-        world.rangeEnd -
-        world.rangeStart
-      )
-    );
-  }
-
-  function updateSliderFromWorld() {
-    if (
-      sliderDragging
-    ) {
-      return;
-    }
-
-    const time =
-      world
-        .displayTime()
-        .getTime();
-
-    const fraction =
-      (
-        time -
-        world.rangeStart
-      ) /
-      (
-        world.rangeEnd -
-        world.rangeStart ||
-        1
-      );
-
-    $('timelineSlider').value =
-      String(
-        Math.round(
-          U.clamp(
-            fraction,
-            0,
-            1
-          ) *
-          100000
-        )
-      );
-  }
-
-  world.addEventListener(
-    'render',
-    event => {
-      $('hudTime').textContent =
-        format(
-          event.detail.time
-        );
-
-      $('timelineClock')
-        .textContent =
-        format(
-          event.detail.time
-        );
-
-      updateSliderFromWorld();
-    }
-  );
-
-  world.addEventListener(
-    'playstate',
-    updatePlay
-  );
-
-  world.addEventListener(
-    'step',
-    () => {
-      if (
-        world.stations.length
-      ) {
-        updateStationList();
-      }
-    }
-  );
-
-  world.addEventListener(
-    'stations',
-    updateStationList
-  );
-
-  $('layer')
-    .addEventListener(
-      'change',
-      event =>
-        world.setLayer(
-          event.target.value
-        )
-    );
-
-  $('isobars').onclick =
-    () => {
-      world.renderer
-        .showIsobars =
-        !world.renderer
-          .showIsobars;
-
-      $('isobars')
-        .classList
-        .toggle(
-          'active',
-          world.renderer
-            .showIsobars
-        );
-    };
-
-  $('particlesToggle').onclick =
-    () => {
-      world.renderer
-        .showParticles =
-        !world.renderer
-          .showParticles;
-
-      $('particlesToggle')
-        .classList
-        .toggle(
-          'active',
-          world.renderer
-            .showParticles
-        );
-    };
-
-  $('fronts').onclick =
-    () => {
-      world.renderer
-        .showFronts =
-        !world.renderer
-          .showFronts;
-
-      $('fronts')
-        .classList
-        .toggle(
-          'active',
-          world.renderer
-            .showFronts
-        );
-    };
-
-  $('play').onclick =
-    () =>
-      world.togglePlaying();
-
-  $('timelinePlay').onclick =
-    () =>
-      world.togglePlaying();
-
-  $('speed').onchange =
-    event =>
-      world.setSpeed(
-        Number(
-          event.target.value
-        )
-      );
-
-  document
-    .querySelectorAll(
-      '.mode'
-    )
-    .forEach(
-      button => {
-        button.onclick =
-          () =>
-            setMode(
-              button.dataset.mode
+        const option =
+            document.createElement(
+                "option"
             );
-      }
-    );
 
-  $('clearPaths').onclick =
-    () =>
-      world.synoptic
-        .clearSteeringPaths();
 
-  $('clearPressure').onclick =
-    () =>
-      world.synoptic
-        .clearPressureSystems();
+        option.value =
+            source;
 
-  $('applyRange').onclick =
-    () => {
-      const start =
-        U.fromDatetimeLocalAsUtc(
-          $('rangeStart').value
-        );
 
-      const end =
-        U.fromDatetimeLocalAsUtc(
-          $('rangeEnd').value
-        );
+        option.textContent =
+            source;
 
-      if (
-        !(start < end)
-      ) {
-        alert(
-          'End must be after start.'
-        );
 
-        return;
-      }
-
-      world.setRange(
-        start,
-        end
-      );
-
-      updateRangeLabels();
-
-      const days =
-        (
-          end -
-          start
-        ) /
-        86400000;
-
-      if (
-        days >
-        C.safety
-          .longSeekWarningDays
-      ) {
-        $('rangeWarning')
-          .style.display =
-          'block';
-
-        $('rangeWarning')
-          .textContent =
-          `This range is ${days.toFixed(1)} days. It is allowed, but calculating unsimulated periods may take time.`;
-      } else {
-        $('rangeWarning')
-          .style.display =
-          'none';
-      }
-    };
-
-  $('goButton').onclick =
-    async () => {
-      const target =
-        U.fromDatetimeLocalAsUtc(
-          $('gotoTime').value
-        );
-
-      if (
-        Number.isNaN(
-          target.getTime()
-        )
-      ) {
-        return;
-      }
-
-      if (
-        target <
-        world.simTime &&
-        !world.history
-          .nearestSnapshotAtOrBefore(
-            target.getTime()
-          )
-      ) {
-        const reset =
-          confirm(
-            'This time is older than retained checkpoints. Start a new scenario at this time?'
-          );
-
-        if (reset) {
-          world
-            .resetToNewScenario(
-              target
+        $("airMassType")
+            .appendChild(
+                option
             );
-        }
+    }
 
-        return;
-      }
 
-      $('seekStatus')
-        .textContent =
-        'Calculating…';
+    $("airMassType").value =
+        "Atlantic";
 
-      try {
-        await world.seek(
-          target,
-          progress => {
-            $('seekStatus')
-              .textContent =
-              `Calculating… ${(progress * 100).toFixed(0)}%`;
-          }
-        );
 
-        $('seekStatus')
-          .textContent =
-          'Ready.';
-      } catch (error) {
-        $('seekStatus')
-          .textContent =
-          error.message;
-      }
-    };
+    /* ================================================================
+       CLOCK
+    ================================================================ */
 
-  $('timelineSlider')
-    .addEventListener(
-      'pointerdown',
-      () => {
-        sliderDragging =
-          true;
+    function updateClock() {
 
-        world.setPlaying(
-          false
-        );
-      }
-    );
+        $("clock").textContent =
+            weather.currentDate
+                .toISOString()
+                .replace(
+                    "T",
+                    " "
+                )
+                .slice(
+                    0,
+                    16
+                ) +
+            " UTC";
 
-  $('timelineSlider')
-    .addEventListener(
-      'input',
-      () => {
-        $('timelineClock')
-          .textContent =
-          format(
-            sliderTime()
-          );
-      }
-    );
-
-  $('timelineSlider')
-    .addEventListener(
-      'change',
-      async () => {
-        const target =
-          sliderTime();
-
-        sliderDragging =
-          false;
-
-        $('seekStatus')
-          .textContent =
-          'Seeking…';
-
-        try {
-          await world.seek(
-            target,
-            progress => {
-              $('seekStatus')
-                .textContent =
-                `Seeking… ${(progress * 100).toFixed(0)}%`;
-            }
-          );
-
-          $('seekStatus')
-            .textContent =
-            'Ready.';
-        } catch (error) {
-          $('seekStatus')
-            .textContent =
-            error.message;
-        }
-      }
-    );
-
-  $('hit')
-    .addEventListener(
-      'pointerdown',
-      event => {
-        const point =
-          mapPoint(event);
 
         if (
-          world.mode ===
-          'steering'
+            weather.queuedMinutes >
+            0
         ) {
-          drawing =
-            true;
 
-          drawPoints = [{
-            lat:
-              point.lat,
+            $("queueStatus").textContent =
+                "Queued " +
+                fmt(
+                    weather.queuedMinutes /
+                    60,
+                    1
+                ) +
+                " h";
 
-            lon:
-              point.lon
-          }];
 
-          $('hit')
-            .setPointerCapture(
-              event.pointerId
-            );
+            statusDot.className =
+                "statusDot busy";
+
+
+            statusText.textContent =
+                "Calculating physics";
         }
-      }
-    );
+        else {
 
-  $('hit')
-    .addEventListener(
-      'pointermove',
-      event => {
-        const point =
-          mapPoint(event);
+            $("queueStatus").textContent =
+                "";
 
-        if (drawing) {
-          const previous =
-            drawPoints[
-              drawPoints.length -
-              1
+
+            if (
+                !errorBox.textContent
+            ) {
+
+                statusDot.className =
+                    "statusDot ready";
+
+
+                statusText.textContent =
+                    playing
+                        ? "V10 running"
+                        : "V10 ready";
+            }
+        }
+    }
+
+
+    /* ================================================================
+       SELECTED LOCATION
+    ================================================================ */
+
+    function updateSelectedReadout() {
+
+        if (
+            !selected
+        ) {
+
+            $("selectedTemperature").textContent =
+                "Click the map";
+
+
+            $("selectedCoordinates").textContent =
+                "Select a location for detailed atmospheric diagnostics.";
+
+
+            $("basicReadout").innerHTML =
+                "";
+
+
+            $("diagnosticReadout").innerHTML =
+                "";
+
+
+            $("dryDiagnosis").textContent =
+                "Select a location.";
+
+
+            return;
+        }
+
+
+        const terrain =
+            weather.terrain;
+
+
+        const atmosphere =
+            weather.atmosphere;
+
+
+        const cell =
+            terrain.nearestIndex(
+                selected.lat,
+                selected.lon
+            );
+
+
+        const surface =
+            atmosphere.surface;
+
+
+        const level925 =
+            atmosphere.level925;
+
+
+        const level850 =
+            atmosphere.level850;
+
+
+        const level700 =
+            atmosphere.level700;
+
+
+        const temperature =
+            surface.tempC[
+                cell
             ];
 
-          if (
-            U.haversineKm(
-              previous.lat,
-              previous.lon,
-              point.lat,
-              point.lon
-            ) >
-            25
-          ) {
-            drawPoints.push({
-              lat:
-                point.lat,
 
-              lon:
-                point.lon
-            });
-          }
-
-          return;
-        }
-
-        if (
-          world.mode ===
-          'inspect'
-        ) {
-          const observation =
-            world.sample(
-              point.lat,
-              point.lon
+        const climatology =
+            atmosphere.climatologyAtIndex(
+                cell,
+                weather.currentDate
             );
 
-          $('probe')
-            .style.display =
-            'block';
 
-          $('probe')
-            .innerHTML = `
-              <b>
-                ${point.lat.toFixed(2)}°,
-                ${point.lon.toFixed(2)}°
-              </b>
+        const anomaly =
+            temperature -
+            climatology;
 
-              <br>
 
-              ${observation.tempC.toFixed(1)}°C
+        const humidity =
+            surface.relativeHumidity[
+                cell
+            ] *
+            100;
 
-              · dew
-              ${observation.dewPointC.toFixed(1)}°C
 
-              <br>
+        const wetBulb =
+            surface.wetBulbC[
+                cell
+            ];
 
-              RH
-              ${observation.rh.toFixed(0)}%
 
-              ·
-              ${observation.pressureHpa.toFixed(0)} hPa
+        const windSpeed =
+            Math.hypot(
+                surface.u[
+                    cell
+                ],
+                surface.v[
+                    cell
+                ]
+            );
 
-              <br>
 
-              Wind
-              ${observation.windMs.toFixed(1)} m/s
+        const windBearing =
+            U.bearingFromVector(
+                surface.u[
+                    cell
+                ],
+                surface.v[
+                    cell
+                ]
+            );
 
-              <br>
 
-              Precip
-              ${observation.precipRateMmHr.toFixed(1)} mm/h
+        const dominantIndex =
+            level850.dominantTracer[
+                cell
+            ];
 
-              <br>
 
-              Snow
-              ${observation.snowDepthCm.toFixed(1)} cm
-            `;
+        const dominantName =
+            EuropaAtmosphere
+                .TRACER_NAMES[
+                    dominantIndex
+                ] ||
+            "Unknown";
+
+
+        const dominantFraction =
+            level850.tracers[
+                cell *
+                EuropaAtmosphere
+                    .TRACER_NAMES
+                    .length +
+                dominantIndex
+            ];
+
+
+        const phase =
+            EuropaAtmosphere
+                .PRECIPITATION_PHASE_NAMES[
+                    atmosphere.precipitationPhase[
+                        cell
+                    ]
+                ] ||
+            "dry";
+
+
+        const reason =
+            EuropaAtmosphere
+                .PRECIPITATION_REASON_NAMES[
+                    atmosphere.precipitationReason[
+                        cell
+                    ]
+                ] ||
+            "none";
+
+
+        const cloudFraction =
+            U.clamp01(
+
+                surface.cloudFraction[
+                    cell
+                ] *
+                    0.20 +
+
+                level925.cloudFraction[
+                    cell
+                ] *
+                    0.35 +
+
+                level850.cloudFraction[
+                    cell
+                ] *
+                    0.30 +
+
+                level700.cloudFraction[
+                    cell
+                ] *
+                    0.15
+            );
+
+
+        let sstText =
+            "Land";
+
+
+        if (
+            terrain.land[
+                cell
+            ] <
+            0.55
+        ) {
+
+            sstText =
+                fmt(
+                    weather.ocean.sst[
+                        cell
+                    ],
+                    1
+                ) +
+                " °C";
         }
-      }
-    );
 
-  $('hit')
-    .addEventListener(
-      'pointerleave',
-      () => {
-        if (!drawing) {
-          $('probe')
-            .style.display =
-            'none';
+
+        $("selectedTemperature").textContent =
+            fmt(
+                temperature,
+                1
+            ) +
+            " °C";
+
+
+        $("selectedCoordinates").textContent =
+            Math.abs(
+                selected.lat
+            ).toFixed(
+                2
+            ) +
+            "°" +
+            (
+                selected.lat >=
+                0
+                    ? "N"
+                    : "S"
+            ) +
+            ", " +
+            Math.abs(
+                selected.lon
+            ).toFixed(
+                2
+            ) +
+            "°" +
+            (
+                selected.lon >=
+                0
+                    ? "E"
+                    : "W"
+            );
+
+
+        $("basicReadout").innerHTML =
+            kvHTML([
+
+                [
+                    "Climatology",
+                    fmt(
+                        climatology,
+                        1
+                    ) +
+                    " °C"
+                ],
+
+                [
+                    "Anomaly",
+                    signed(
+                        anomaly,
+                        1
+                    ) +
+                    " °C"
+                ],
+
+                [
+                    "Wet bulb",
+                    fmt(
+                        wetBulb,
+                        1
+                    ) +
+                    " °C"
+                ],
+
+                [
+                    "Humidity",
+                    fmt(
+                        humidity,
+                        0
+                    ) +
+                    "%"
+                ],
+
+                [
+                    "Pressure",
+                    fmt(
+                        atmosphere.pressureHpa[
+                            cell
+                        ],
+                        1
+                    ) +
+                    " hPa"
+                ],
+
+                [
+                    "Wind",
+                    fmt(
+                        windSpeed,
+                        1
+                    ) +
+                    " m/s → " +
+                    fmt(
+                        windBearing,
+                        0
+                    ) +
+                    "°"
+                ],
+
+                [
+                    "Cloud",
+                    fmt(
+                        cloudFraction *
+                        100,
+                        0
+                    ) +
+                    "%"
+                ],
+
+                [
+                    "Precipitation",
+                    fmt(
+                        atmosphere.precipMmHr[
+                            cell
+                        ],
+                        2
+                    ) +
+                    " mm/h"
+                ],
+
+                [
+                    "Phase",
+                    phase
+                ],
+
+                [
+                    "Snow depth",
+                    fmt(
+                        atmosphere.snowDepthCm[
+                            cell
+                        ],
+                        1
+                    ) +
+                    " cm"
+                ],
+
+                [
+                    "850 hPa air mass",
+                    dominantName +
+                    " " +
+                    fmt(
+                        dominantFraction *
+                        100,
+                        0
+                    ) +
+                    "%"
+                ],
+
+                [
+                    "SST",
+                    sstText
+                ]
+            ]);
+
+
+        const cloudCondensate =
+            (
+                surface.cloudLiquid[
+                    cell
+                ] +
+                surface.cloudIce[
+                    cell
+                ] +
+                level925.cloudLiquid[
+                    cell
+                ] +
+                level925.cloudIce[
+                    cell
+                ] +
+                level850.cloudLiquid[
+                    cell
+                ] +
+                level850.cloudIce[
+                    cell
+                ] +
+                level700.cloudLiquid[
+                    cell
+                ] +
+                level700.cloudIce[
+                    cell
+                ]
+            );
+
+
+        $("diagnosticReadout").innerHTML =
+            kvHTML([
+
+                [
+                    "925 temperature",
+                    fmt(
+                        level925.tempC[
+                            cell
+                        ],
+                        1
+                    ) +
+                    " °C"
+                ],
+
+                [
+                    "850 temperature",
+                    fmt(
+                        level850.tempC[
+                            cell
+                        ],
+                        1
+                    ) +
+                    " °C"
+                ],
+
+                [
+                    "700 temperature",
+                    fmt(
+                        level700.tempC[
+                            cell
+                        ],
+                        1
+                    ) +
+                    " °C"
+                ],
+
+                [
+                    "Front strength",
+                    fmt(
+                        atmosphere.frontStrength[
+                            cell
+                        ],
+                        3
+                    )
+                ],
+
+                [
+                    "Tracer contrast",
+                    fmt(
+                        atmosphere.tracerContrast[
+                            cell
+                        ],
+                        3
+                    )
+                ],
+
+                [
+                    "Temperature gradient",
+                    fmt(
+                        atmosphere.temperatureGradient[
+                            cell
+                        ],
+                        2
+                    ) +
+                    " °C/100 km"
+                ],
+
+                [
+                    "Convergence",
+                    fmt(
+                        atmosphere.convergence[
+                            cell
+                        ],
+                        4
+                    )
+                ],
+
+                [
+                    "Frontal lift",
+                    fmt(
+                        atmosphere.frontalLift[
+                            cell
+                        ],
+                        3
+                    )
+                ],
+
+                [
+                    "Orographic lift",
+                    fmt(
+                        atmosphere.orographicLift[
+                            cell
+                        ],
+                        3
+                    )
+                ],
+
+                [
+                    "Convective lift",
+                    fmt(
+                        atmosphere.convectiveLift[
+                            cell
+                        ],
+                        3
+                    )
+                ],
+
+                [
+                    "Total lift",
+                    fmt(
+                        atmosphere.totalLift[
+                            cell
+                        ],
+                        3
+                    )
+                ],
+
+                [
+                    "Cloud condensate",
+                    fmt(
+                        cloudCondensate *
+                        1000,
+                        3
+                    ) +
+                    " g/kg"
+                ],
+
+                [
+                    "Condensation",
+                    fmt(
+                        atmosphere.condensationRate[
+                            cell
+                        ] *
+                        1000,
+                        3
+                    ) +
+                    " g/kg/h"
+                ],
+
+                [
+                    "Precip production",
+                    fmt(
+                        atmosphere.precipProduction[
+                            cell
+                        ],
+                        2
+                    ) +
+                    " mm/h"
+                ],
+
+                [
+                    "Evaporation below cloud",
+                    fmt(
+                        atmosphere.precipEvaporation[
+                            cell
+                        ],
+                        2
+                    ) +
+                    " mm/h"
+                ],
+
+                [
+                    "Reason",
+                    reason
+                ]
+            ]);
+
+
+        const diagnosis =
+            weather.precipitationDiagnosisAt(
+                selected.lat,
+                selected.lon
+            );
+
+
+        $("dryDiagnosis").textContent =
+            diagnosis &&
+            diagnosis.diagnosis
+                ? diagnosis.diagnosis
+                : "No diagnostic statement.";
+    }
+
+
+    /* ================================================================
+       LISTS
+    ================================================================ */
+
+    function updateAirMassList() {
+
+        const masses =
+            weather.listAirMasses();
+
+
+        $("airMassList").innerHTML =
+            masses.length
+                ? masses
+                    .map(
+                        mass =>
+
+                            '<div class="listItem">' +
+
+                                '<span class="listItemText">' +
+
+                                    mass.sourceType +
+
+                                    " · " +
+
+                                    fmt(
+                                        mass.radiusKm,
+                                        0
+                                    ) +
+
+                                    " km · " +
+
+                                    fmt(
+                                        mass.speedKmh,
+                                        0
+                                    ) +
+
+                                    " km/h" +
+
+                                "</span>" +
+
+                                '<button data-airmass-remove="' +
+                                    mass.id +
+                                '">×</button>' +
+
+                            "</div>"
+                    )
+                    .join(
+                        ""
+                    )
+                : '<div class="muted">No injected air-mass records.</div>';
+    }
+
+
+    function updatePressureList() {
+
+        const systems =
+            weather.listPressureSystems();
+
+
+        $("pressureList").innerHTML =
+            systems.length
+                ? systems
+                    .map(
+                        system =>
+
+                            '<div class="listItem">' +
+
+                                '<span class="listItemText">' +
+
+                                    (
+                                        system.kind ===
+                                        "low"
+                                            ? "L "
+                                            : "H "
+                                    ) +
+
+                                    system.name +
+
+                                    " · " +
+
+                                    fmt(
+                                        system.centralPressureHpa,
+                                        0
+                                    ) +
+
+                                    " hPa" +
+
+                                "</span>" +
+
+                                '<button data-system-remove="' +
+                                    system.id +
+                                '">×</button>' +
+
+                            "</div>"
+                    )
+                    .join(
+                        ""
+                    )
+                : '<div class="muted">No pressure systems.</div>';
+    }
+
+
+    function updateArrowList() {
+
+        const arrows =
+            weather.listSteeringArrows();
+
+
+        $("arrowList").innerHTML =
+            arrows.length
+                ? arrows
+                    .map(
+                        arrow =>
+
+                            '<div class="listItem">' +
+
+                                '<span class="listItemText">' +
+
+                                    fmt(
+                                        arrow.speedKmh,
+                                        0
+                                    ) +
+
+                                    " km/h · " +
+
+                                    fmt(
+                                        arrow.widthKm,
+                                        0
+                                    ) +
+
+                                    " km · " +
+
+                                    fmt(
+                                        arrow.strength *
+                                        100,
+                                        0
+                                    ) +
+
+                                    "%" +
+
+                                "</span>" +
+
+                                '<button data-arrow-remove="' +
+                                    arrow.id +
+                                '">×</button>' +
+
+                            "</div>"
+                    )
+                    .join(
+                        ""
+                    )
+                : '<div class="muted">No steering arrows.</div>';
+    }
+
+
+    /* ================================================================
+       STATIONS
+    ================================================================ */
+
+    function updateStationSelect() {
+
+        const previous =
+            $("stationSelect").value;
+
+
+        const stations =
+            weather.listStations();
+
+
+        $("stationSelect").innerHTML =
+            '<option value="">None</option>';
+
+
+        for (
+            const station of stations
+        ) {
+
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+
+            option.value =
+                station.id;
+
+
+            option.textContent =
+                station.name;
+
+
+            $("stationSelect")
+                .appendChild(
+                    option
+                );
         }
-      }
-    );
 
-  $('hit')
-    .addEventListener(
-      'pointerup',
-      event => {
-        const point =
-          mapPoint(event);
 
-        if (drawing) {
-          drawing =
+        if (
+            stations.some(
+                station =>
+                    station.id ===
+                    previous
+            )
+        ) {
+
+            $("stationSelect").value =
+                previous;
+        }
+    }
+
+
+    function updateStationGraph() {
+
+        const stationId =
+            $("stationSelect").value;
+
+
+        const context =
+            stationGraph.getContext(
+                "2d"
+            );
+
+
+        if (
+            !stationId
+        ) {
+
+            const rect =
+                stationGraph
+                    .getBoundingClientRect();
+
+
+            const width =
+                Math.max(
+                    1,
+                    Math.round(
+                        rect.width ||
+                        350
+                    )
+                );
+
+
+            const height =
+                Math.max(
+                    1,
+                    Math.round(
+                        rect.height ||
+                        170
+                    )
+                );
+
+
+            stationGraph.width =
+                width;
+
+
+            stationGraph.height =
+                height;
+
+
+            context.fillStyle =
+                "#0d141d";
+
+
+            context.fillRect(
+                0,
+                0,
+                width,
+                height
+            );
+
+
+            context.fillStyle =
+                "#94a1b2";
+
+
+            context.font =
+                "12px system-ui";
+
+
+            context.fillText(
+                "Select a weather station.",
+                12,
+                22
+            );
+
+
+            return;
+        }
+
+
+        renderer.renderStationChart(
+
+            stationGraph,
+
+            stationId,
+
+            {
+
+                field:
+                    $("stationField").value,
+
+                lastHours:
+                    72
+            }
+        );
+    }
+
+
+    /* ================================================================
+       TIMELINE
+    ================================================================ */
+
+    function updateTimeline() {
+
+        const snapshots =
+            weather.history.snapshots;
+
+
+        const slider =
+            $("timeline");
+
+
+        slider.max =
+            Math.max(
+                0,
+                snapshots.length -
+                1
+            );
+
+
+        if (
+            document.activeElement !==
+            slider
+        ) {
+
+            slider.value =
+                Math.max(
+                    0,
+                    snapshots.length -
+                    1
+                );
+        }
+
+
+        const index =
+            Number(
+                slider.value
+            );
+
+
+        const snapshot =
+            snapshots[
+                index
+            ];
+
+
+        if (
+            snapshot
+        ) {
+
+            $("timelineText").textContent =
+                new Date(
+                    snapshot.timeMs
+                )
+                    .toISOString()
+                    .replace(
+                        "T",
+                        " "
+                    )
+                    .slice(
+                        0,
+                        16
+                    ) +
+                " UTC · " +
+                snapshots.length +
+                " full snapshots";
+        }
+        else {
+
+            $("timelineText").textContent =
+                "No snapshots";
+        }
+    }
+
+
+    /* ================================================================
+       ENGINE STATISTICS
+    ================================================================ */
+
+    function updateEngineReadout() {
+
+        const stats =
+            weather.statistics();
+
+
+        $("engineReadout").innerHTML =
+            kvHTML([
+
+                [
+                    "Physics step",
+                    weather.physicsStepMinutes +
+                    " min"
+                ],
+
+                [
+                    "Physics steps",
+                    stats.physicsSteps
+                ],
+
+                [
+                    "Min temperature",
+                    fmt(
+                        stats.temperature.minimumC,
+                        1
+                    ) +
+                    " °C"
+                ],
+
+                [
+                    "Max temperature",
+                    fmt(
+                        stats.temperature.maximumC,
+                        1
+                    ) +
+                    " °C"
+                ],
+
+                [
+                    "Minimum pressure",
+                    fmt(
+                        stats.pressure.minimumHpa,
+                        0
+                    ) +
+                    " hPa"
+                ],
+
+                [
+                    "Maximum precip",
+                    fmt(
+                        stats.precipitation.maximumMmHr,
+                        2
+                    ) +
+                    " mm/h"
+                ],
+
+                [
+                    "Precipitating cells",
+                    fmt(
+                        stats.precipitation
+                            .precipitatingFraction *
+                        100,
+                        1
+                    ) +
+                    "%"
+                ],
+
+                [
+                    "Strongest front",
+                    fmt(
+                        stats.strongestFront,
+                        3
+                    )
+                ],
+
+                [
+                    "Maximum lift",
+                    fmt(
+                        stats.maximumLift,
+                        3
+                    )
+                ],
+
+                [
+                    "Air-mass records",
+                    stats.activeAirMassRecords
+                ],
+
+                [
+                    "Pressure systems",
+                    stats.activePressureSystems
+                ]
+            ]);
+    }
+
+
+    /* ================================================================
+       RENDER
+    ================================================================ */
+
+    function refresh(
+        now =
+            performance.now()
+    ) {
+
+        renderer.render();
+
+        updateClock();
+
+        updateSelectedReadout();
+
+        updateTimeline();
+
+        updateAirMassList();
+
+        updatePressureList();
+
+        updateArrowList();
+
+        updateStationSelect();
+
+        updateStationGraph();
+
+
+        if (
+            now -
+            lastStatsTime >
+            900
+        ) {
+
+            updateEngineReadout();
+
+
+            lastStatsTime =
+                now;
+        }
+
+
+        dirty =
             false;
 
-          drawPoints.push({
-            lat:
-              point.lat,
 
-            lon:
-              point.lon
-          });
+        lastRenderTime =
+            now;
+    }
 
-          world.addSteeringPath(
-            drawPoints,
-            {
-              speedKmh:
-                Number(
-                  $('steerSpeed')
-                    .value
-                ),
 
-              widthKm:
-                Number(
-                  $('steerWidth')
-                    .value
-                ),
+    /* ================================================================
+       PLAYBACK
+    ================================================================ */
 
-              strength:
-                Number(
-                  $('steerStrength')
-                    .value
-                ),
+    function stopPlayback() {
 
-              durationHours:
-                Number(
-                  $('steerDuration')
-                    .value
-                )
+        playing =
+            false;
+
+
+        weather.pause();
+
+
+        $("playButton").textContent =
+            "Play";
+
+
+        simulationAccumulator =
+            0;
+
+
+        dirty =
+            true;
+    }
+
+
+    function startPlayback() {
+
+        playing =
+            true;
+
+
+        weather.play();
+
+
+        $("playButton").textContent =
+            "Pause";
+
+
+        dirty =
+            true;
+    }
+
+
+    function queueSimulationMinutes(
+        minutes
+    ) {
+
+        weather.queueAdvance(
+            minutes
+        );
+
+
+        dirty =
+            true;
+    }
+
+
+    $("playButton")
+        .addEventListener(
+            "click",
+            guard(
+                () => {
+
+                    if (
+                        playing
+                    ) {
+
+                        stopPlayback();
+                    }
+                    else {
+
+                        startPlayback();
+                    }
+                }
+            )
+        );
+
+
+    $("plus1")
+        .addEventListener(
+            "click",
+            () => {
+
+                stopPlayback();
+
+                queueSimulationMinutes(
+                    60
+                );
             }
-          );
+        );
 
-          drawPoints =
-            [];
 
-          return;
-        }
+    $("plus6")
+        .addEventListener(
+            "click",
+            () => {
 
-        if (
-          world.mode ===
-          'station'
-        ) {
-          const name =
-            prompt(
-              'Station name:',
-              `Station ${
-                world.stations.length +
-                1
-              }`
-            );
+                stopPlayback();
 
-          if (
-            name !== null
-          ) {
-            world.addStation(
-              point.lat,
-              point.lon,
-              name ||
-              `Station ${
-                world.stations.length +
-                1
-              }`
-            );
-          }
-
-          return;
-        }
-
-        if (
-          world.mode ===
-          'pressure'
-        ) {
-          world.addPressureSystem(
-            point.lat,
-            point.lon,
-            {
-              targetHpa:
-                Number(
-                  $('pressureTarget')
-                    .value
-                ),
-
-              radiusKm:
-                Number(
-                  $('pressureRadius')
-                    .value
-                ),
-
-              strength:
-                Number(
-                  $('pressureStrength')
-                    .value
-                ),
-
-              durationHours:
-                Number(
-                  $('pressureDuration')
-                    .value
-                )
+                queueSimulationMinutes(
+                    360
+                );
             }
-          );
-        }
-      }
+        );
+
+
+    $("plus12")
+        .addEventListener(
+            "click",
+            () => {
+
+                stopPlayback();
+
+                queueSimulationMinutes(
+                    720
+                );
+            }
+        );
+
+
+    $("plus24")
+        .addEventListener(
+            "click",
+            () => {
+
+                stopPlayback();
+
+                queueSimulationMinutes(
+                    1440
+                );
+            }
+        );
+
+
+    $("minus6")
+        .addEventListener(
+            "click",
+            guard(
+                () => {
+
+                    stopPlayback();
+
+
+                    const restored =
+                        weather.rewindHours(
+                            6
+                        );
+
+
+                    if (
+                        !restored
+                    ) {
+
+                        $("mapMessage").textContent =
+                            "Not enough rewind history yet.";
+                    }
+
+
+                    dirty =
+                        true;
+                }
+            )
+        );
+
+
+    /* ================================================================
+       LAYERS
+    ================================================================ */
+
+    $("layerBar")
+        .addEventListener(
+            "click",
+            guard(
+                event => {
+
+                    const button =
+                        event.target.closest(
+                            "button[data-layer]"
+                        );
+
+
+                    if (!button) {
+                        return;
+                    }
+
+
+                    renderer.setLayer(
+                        button.dataset.layer
+                    );
+
+
+                    document
+                        .querySelectorAll(
+                            "#layerBar button[data-layer]"
+                        )
+                        .forEach(
+                            element => {
+
+                                element.classList.toggle(
+                                    "active",
+                                    element ===
+                                    button
+                                );
+                            }
+                        );
+
+
+                    dirty =
+                        true;
+                }
+            )
+        );
+
+
+    /* ================================================================
+       MAP INTERACTION
+    ================================================================ */
+
+    map.addEventListener(
+        "click",
+        guard(
+            event => {
+
+                const point =
+                    renderer.eventToLatLon(
+                        event
+                    );
+
+
+                if (
+                    arrowStage ===
+                    1
+                ) {
+
+                    arrowStart =
+                        point;
+
+
+                    arrowStage =
+                        2;
+
+
+                    $("arrowButton").textContent =
+                        "Click destination";
+
+
+                    $("mapMessage").textContent =
+                        "Steering source selected. Click destination.";
+
+
+                    return;
+                }
+
+
+                if (
+                    arrowStage ===
+                    2
+                ) {
+
+                    weather.addSteeringArrow(
+
+                        arrowStart.lat,
+
+                        arrowStart.lon,
+
+                        point.lat,
+
+                        point.lon,
+
+                        {
+
+                            speedKmh:
+                                Number(
+                                    $("arrowSpeed").value
+                                ),
+
+                            widthKm:
+                                Number(
+                                    $("arrowWidth").value
+                                ),
+
+                            strength:
+                                Number(
+                                    $("arrowStrength").value
+                                )
+                        }
+                    );
+
+
+                    arrowStage =
+                        0;
+
+
+                    arrowStart =
+                        null;
+
+
+                    $("arrowButton").textContent =
+                        "Start arrow";
+
+
+                    $("mapMessage").textContent =
+                        "Steering arrow created.";
+
+
+                    dirty =
+                        true;
+
+
+                    return;
+                }
+
+
+                selected =
+                    point;
+
+
+                renderer.setSelected(
+                    point.lat,
+                    point.lon
+                );
+
+
+                $("mapMessage").textContent =
+                    "Selected " +
+                    point.lat.toFixed(
+                        2
+                    ) +
+                    "°, " +
+                    point.lon.toFixed(
+                        2
+                    ) +
+                    "°";
+
+
+                dirty =
+                    true;
+            }
+        )
     );
 
-  async function boot() {
-    try {
-      await world.init({
-        field:
-          $('field'),
 
-        overlay:
-          $('overlay'),
+    /* ================================================================
+       CREATE AIR MASS
+    ================================================================ */
 
-        particles:
-          $('particleCanvas')
-      });
+    $("createAirMass")
+        .addEventListener(
+            "click",
+            guard(
+                () => {
 
-      $('bootStatus')
-        .textContent =
-        'Ready · real Natural Earth coastline loaded';
+                    if (
+                        !selected
+                    ) {
 
-      $('gotoTime').value =
-        U.toDatetimeLocalValue(
-          world.simTime
+                        $("mapMessage").textContent =
+                            "Select an air-mass centre on the map first.";
+
+                        return;
+                    }
+
+
+                    const options = {
+
+                        sourceType:
+                            $("airMassType").value,
+
+                        lat:
+                            selected.lat,
+
+                        lon:
+                            selected.lon,
+
+                        radiusKm:
+                            Number(
+                                $("airMassRadius").value
+                            ),
+
+                        strength:
+                            Number(
+                                $("airMassStrength").value
+                            ),
+
+                        depthLayers:
+                            Number(
+                                $("airMassDepth").value
+                            ),
+
+                        stability:
+                            Number(
+                                $("airMassStability").value
+                            ),
+
+                        bearingDeg:
+                            Number(
+                                $("airMassBearing").value
+                            ),
+
+                        speedKmh:
+                            Number(
+                                $("airMassSpeed").value
+                            )
+                    };
+
+
+                    const temperature =
+                        emptyToNull(
+                            $("airMassTemperature")
+                        );
+
+
+                    if (
+                        temperature !==
+                        null
+                    ) {
+
+                        options.temperatureC =
+                            temperature;
+                    }
+
+
+                    const humidity =
+                        emptyToNull(
+                            $("airMassHumidity")
+                        );
+
+
+                    if (
+                        humidity !==
+                        null
+                    ) {
+
+                        options.relativeHumidityPct =
+                            humidity;
+                    }
+
+
+                    const pressure =
+                        emptyToNull(
+                            $("airMassPressure")
+                        );
+
+
+                    if (
+                        pressure !==
+                        null
+                    ) {
+
+                        options.pressureHpa =
+                            pressure;
+                    }
+
+
+                    weather.createAirMass(
+                        options
+                    );
+
+
+                    $("mapMessage").textContent =
+                        options.sourceType +
+                        " air mass injected.";
+
+
+                    dirty =
+                        true;
+                }
+            )
         );
 
-      $('rangeStart').value =
-        U.toDatetimeLocalValue(
-          world.rangeStart
+
+    /* ================================================================
+       COLLISION TEST
+    ================================================================ */
+
+    $("collisionTest")
+        .addEventListener(
+            "click",
+            guard(
+                () => {
+
+                    weather.createCollisionTest({
+
+                        lat:
+                            52,
+
+                        lon:
+                            6,
+
+                        separationDegrees:
+                            16,
+
+                        radiusKm:
+                            820,
+
+                        strength:
+                            0.97,
+
+                        depthLayers:
+                            4,
+
+                        westernSource:
+                            "Atlantic",
+
+                        easternSource:
+                            "Eurasian Continental",
+
+                        westernTemperatureC:
+                            12,
+
+                        easternTemperatureC:
+                            -2,
+
+                        westernHumidityPct:
+                            96,
+
+                        easternHumidityPct:
+                            76,
+
+                        westernPressureDeltaHpa:
+                            -3,
+
+                        easternPressureDeltaHpa:
+                            4,
+
+                        speedKmh:
+                            68
+                    });
+
+
+                    renderer.setLayer(
+                        EuropaRenderer
+                            .LAYERS
+                            .AIR_MASS
+                    );
+
+
+                    document
+                        .querySelectorAll(
+                            "#layerBar button[data-layer]"
+                        )
+                        .forEach(
+                            button => {
+
+                                button.classList.toggle(
+                                    "active",
+                                    button.dataset.layer ===
+                                        "air-mass"
+                                );
+                            }
+                        );
+
+
+                    $("mapMessage").textContent =
+                        "Atlantic and continental collision test created. No precipitation was painted.";
+
+
+                    dirty =
+                        true;
+                }
+            )
         );
 
-      $('rangeEnd').value =
-        U.toDatetimeLocalValue(
-          world.rangeEnd
+
+    $("developCollision")
+        .addEventListener(
+            "click",
+            () => {
+
+                stopPlayback();
+
+
+                queueSimulationMinutes(
+                    720
+                );
+
+
+                $("mapMessage").textContent =
+                    "Developing atmosphere for 12 simulated hours using repeated 4-minute physics.";
+            }
         );
 
-      updateRangeLabels();
 
-      updatePlay();
-    } catch (error) {
-      $('bootStatus')
-        .textContent =
-        `BOOT FAILED: ${error.message}`;
+    $("airMassList")
+        .addEventListener(
+            "click",
+            guard(
+                event => {
 
-      console.error(error);
+                    const button =
+                        event.target.closest(
+                            "[data-airmass-remove]"
+                        );
+
+
+                    if (!button) {
+                        return;
+                    }
+
+
+                    weather.airMasses.remove(
+                        button.dataset
+                            .airmassRemove
+                    );
+
+
+                    dirty =
+                        true;
+                }
+            )
+        );
+
+
+    /* ================================================================
+       PRESSURE SYSTEMS
+    ================================================================ */
+
+    $("createLow")
+        .addEventListener(
+            "click",
+            guard(
+                () => {
+
+                    if (
+                        !selected
+                    ) {
+
+                        $("mapMessage").textContent =
+                            "Select a pressure-system centre first.";
+
+                        return;
+                    }
+
+
+                    weather.addLow(
+
+                        selected.lat,
+
+                        selected.lon,
+
+                        Number(
+                            $("lowPressure").value
+                        ),
+
+                        {
+
+                            name:
+                                "Manual Low",
+
+                            radiusKm:
+                                Number(
+                                    $("pressureRadius").value
+                                ),
+
+                            strength:
+                                1
+                        }
+                    );
+
+
+                    dirty =
+                        true;
+                }
+            )
+        );
+
+
+    $("createHigh")
+        .addEventListener(
+            "click",
+            guard(
+                () => {
+
+                    if (
+                        !selected
+                    ) {
+
+                        $("mapMessage").textContent =
+                            "Select a pressure-system centre first.";
+
+                        return;
+                    }
+
+
+                    weather.addHigh(
+
+                        selected.lat,
+
+                        selected.lon,
+
+                        Number(
+                            $("highPressure").value
+                        ),
+
+                        {
+
+                            name:
+                                "Manual High",
+
+                            radiusKm:
+                                Number(
+                                    $("pressureRadius").value
+                                ),
+
+                            strength:
+                                1
+                        }
+                    );
+
+
+                    dirty =
+                        true;
+                }
+            )
+        );
+
+
+    $("pressureList")
+        .addEventListener(
+            "click",
+            guard(
+                event => {
+
+                    const button =
+                        event.target.closest(
+                            "[data-system-remove]"
+                        );
+
+
+                    if (!button) {
+                        return;
+                    }
+
+
+                    weather.removePressureSystem(
+                        button.dataset
+                            .systemRemove
+                    );
+
+
+                    dirty =
+                        true;
+                }
+            )
+        );
+
+
+    /* ================================================================
+       STEERING
+    ================================================================ */
+
+    $("arrowButton")
+        .addEventListener(
+            "click",
+            () => {
+
+                if (
+                    arrowStage
+                ) {
+
+                    arrowStage =
+                        0;
+
+
+                    arrowStart =
+                        null;
+
+
+                    $("arrowButton").textContent =
+                        "Start arrow";
+
+
+                    $("mapMessage").textContent =
+                        "Steering-arrow creation cancelled.";
+                }
+                else {
+
+                    arrowStage =
+                        1;
+
+
+                    $("arrowButton").textContent =
+                        "Click source";
+
+
+                    $("mapMessage").textContent =
+                        "Click the steering-arrow source.";
+                }
+            }
+        );
+
+
+    $("clearArrows")
+        .addEventListener(
+            "click",
+            guard(
+                () => {
+
+                    weather.clearSteeringArrows();
+
+
+                    arrowStage =
+                        0;
+
+
+                    arrowStart =
+                        null;
+
+
+                    $("arrowButton").textContent =
+                        "Start arrow";
+
+
+                    dirty =
+                        true;
+                }
+            )
+        );
+
+
+    $("arrowList")
+        .addEventListener(
+            "click",
+            guard(
+                event => {
+
+                    const button =
+                        event.target.closest(
+                            "[data-arrow-remove]"
+                        );
+
+
+                    if (!button) {
+                        return;
+                    }
+
+
+                    weather.removeSteeringArrow(
+                        button.dataset
+                            .arrowRemove
+                    );
+
+
+                    dirty =
+                        true;
+                }
+            )
+        );
+
+
+    /* ================================================================
+       OVERLAYS
+    ================================================================ */
+
+    $("toggleWind")
+        .addEventListener(
+            "change",
+            () => {
+
+                renderer.setOverlay(
+                    "wind",
+                    $("toggleWind").checked
+                );
+
+
+                dirty =
+                    true;
+            }
+        );
+
+
+    $("toggleSystems")
+        .addEventListener(
+            "change",
+            () => {
+
+                renderer.setOverlay(
+                    "pressureSystems",
+                    $("toggleSystems").checked
+                );
+
+
+                dirty =
+                    true;
+            }
+        );
+
+
+    $("toggleAirMasses")
+        .addEventListener(
+            "change",
+            () => {
+
+                renderer.setOverlay(
+                    "airMassSources",
+                    $("toggleAirMasses").checked
+                );
+
+
+                dirty =
+                    true;
+            }
+        );
+
+
+    $("toggleArrows")
+        .addEventListener(
+            "change",
+            () => {
+
+                renderer.setOverlay(
+                    "steeringArrows",
+                    $("toggleArrows").checked
+                );
+
+
+                dirty =
+                    true;
+            }
+        );
+
+
+    $("windLevel")
+        .addEventListener(
+            "change",
+            guard(
+                () => {
+
+                    renderer.setWindLevel(
+                        $("windLevel").value
+                    );
+
+
+                    dirty =
+                        true;
+                }
+            )
+        );
+
+
+    /* ================================================================
+       WEATHER STATIONS
+    ================================================================ */
+
+    $("createStation")
+        .addEventListener(
+            "click",
+            guard(
+                () => {
+
+                    if (
+                        !selected
+                    ) {
+
+                        $("mapMessage").textContent =
+                            "Select a station location first.";
+
+                        return;
+                    }
+
+
+                    const name =
+                        $("stationName")
+                            .value
+                            .trim() ||
+                        (
+                            "Station " +
+                            (
+                                weather.history
+                                    .stations
+                                    .size +
+                                1
+                            )
+                        );
+
+
+                    const station =
+                        weather.addStation(
+
+                            selected.lat,
+
+                            selected.lon,
+
+                            {
+
+                                name
+                            }
+                        );
+
+
+                    updateStationSelect();
+
+
+                    $("stationSelect").value =
+                        station.id;
+
+
+                    $("stationName").value =
+                        "";
+
+
+                    dirty =
+                        true;
+                }
+            )
+        );
+
+
+    $("stationSelect")
+        .addEventListener(
+            "change",
+            () => {
+
+                dirty =
+                    true;
+            }
+        );
+
+
+    $("stationField")
+        .addEventListener(
+            "change",
+            () => {
+
+                dirty =
+                    true;
+            }
+        );
+
+
+    /* ================================================================
+       TIMELINE RESTORE
+    ================================================================ */
+
+    $("timeline")
+        .addEventListener(
+            "change",
+            guard(
+                () => {
+
+                    stopPlayback();
+
+
+                    const index =
+                        Number(
+                            $("timeline").value
+                        );
+
+
+                    const snapshot =
+                        weather.history
+                            .snapshots[
+                                index
+                            ];
+
+
+                    if (
+                        snapshot
+                    ) {
+
+                        weather.restoreSnapshot(
+                            snapshot
+                        );
+
+
+                        $("mapMessage").textContent =
+                            "Atmospheric snapshot restored.";
+                    }
+
+
+                    dirty =
+                        true;
+                }
+            )
+        );
+
+
+    $("timeline")
+        .addEventListener(
+            "input",
+            updateTimeline
+        );
+
+
+    /* ================================================================
+       WINDOW SIZE
+    ================================================================ */
+
+    window.addEventListener(
+        "resize",
+        () => {
+
+            dirty =
+                true;
+        }
+    );
+
+
+    /* ================================================================
+       FRAME LOOP
+    ================================================================ */
+
+    function frame(
+        now
+    ) {
+
+        try {
+
+            const realSeconds =
+                Math.min(
+                    0.25,
+                    Math.max(
+                        0,
+                        (
+                            now -
+                            lastFrameTime
+                        ) /
+                        1000
+                    )
+                );
+
+
+            lastFrameTime =
+                now;
+
+
+            /*
+             * Playback creates a queue of simulated minutes.
+             *
+             * Only complete four-minute chunks are added here.
+             */
+
+            if (
+                playing
+            ) {
+
+                const simulatedMinutesPerSecond =
+                    Number(
+                        $("speedSelect").value
+                    );
+
+
+                simulationAccumulator +=
+                    realSeconds *
+                    simulatedMinutesPerSecond;
+
+
+                const completeSteps =
+                    Math.floor(
+                        simulationAccumulator /
+                        weather.physicsStepMinutes
+                    );
+
+
+                if (
+                    completeSteps >
+                    0
+                ) {
+
+                    const minutes =
+                        completeSteps *
+                        weather.physicsStepMinutes;
+
+
+                    weather.queueAdvance(
+                        minutes
+                    );
+
+
+                    simulationAccumulator -=
+                        minutes;
+                }
+            }
+
+
+            /*
+             * Limit work in one animation frame.
+             *
+             * Crucially, each individual call still uses the normal
+             * four-minute physical timestep.
+             */
+
+            if (
+                weather.queuedMinutes >
+                0
+            ) {
+
+                const result =
+                    weather.processQueuedFrame(
+                        12
+                    );
+
+
+                if (
+                    result.physicsSteps >
+                    0
+                ) {
+
+                    dirty =
+                        true;
+                }
+            }
+
+
+            /*
+             * During active simulation we do not need to redraw after
+             * every individual four-minute step. Roughly four visual
+             * updates per second is enough while the underlying physics
+             * continues at full resolution.
+             */
+
+            if (
+                dirty &&
+                (
+                    !playing ||
+                    now -
+                    lastRenderTime >
+                    220
+                )
+            ) {
+
+                refresh(
+                    now
+                );
+            }
+            else {
+
+                updateClock();
+            }
+        }
+        catch (error) {
+
+            playing =
+                false;
+
+
+            showError(
+                error
+            );
+        }
+
+
+        requestAnimationFrame(
+            frame
+        );
     }
-  }
 
-  boot();
+
+    /* ================================================================
+       FIRST DISPLAY
+    ================================================================ */
+
+    refresh();
+
+    requestAnimationFrame(
+        frame
+    );
+
 })();
+
 </script>
+
 
 </body>
 
