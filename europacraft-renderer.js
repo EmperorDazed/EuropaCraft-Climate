@@ -5,9 +5,9 @@
  * Responsibilities:
  *
  * - Render the complete European atmospheric field.
- * - Render persistent terrain / coastline.
+ * - Render persistent terrain and coastline.
  * - Render selectable meteorological layers.
- * - Render precipitation by both intensity AND precipitation phase.
+ * - Render precipitation by intensity and precipitation phase.
  * - Render wind vectors.
  * - Render pressure systems.
  * - Render steering arrows.
@@ -25,8 +25,7 @@
  *
  * It reads atmospheric state only.
  *
- * A colourful layer cannot create weather, and changing the selected
- * display layer cannot alter the atmospheric model.
+ * Changing the displayed layer cannot alter the atmosphere.
  */
 
 (function (global) {
@@ -62,6 +61,21 @@
             "EuropaCraft V10: europacraft-atmosphere.js must load before europacraft-renderer.js"
         );
     }
+
+
+    const TRACER_NAMES =
+        A.TRACER_NAMES;
+
+
+    /*
+     * FIXED:
+     *
+     * The first renderer version used TRACER_COUNT in the air-mass
+     * rendering code without defining it.
+     */
+
+    const TRACER_COUNT =
+        TRACER_NAMES.length;
 
 
     /* ================================================================
@@ -126,11 +140,6 @@
     /* ================================================================
        AIR-MASS COLOURS
     ================================================================ */
-
-    /*
-     * Colours are intentionally distinct enough that a mixed tracer
-     * boundary can be recognised visually.
-     */
 
     const AIR_MASS_COLOURS =
         Object.freeze({
@@ -203,6 +212,7 @@
     ) {
 
         return [
+
             U.clamp(
                 Math.round(r),
                 0,
@@ -281,7 +291,7 @@
             stops[0][0]
         ) {
 
-            return stops[0][1];
+            return stops[0][1].slice();
         }
 
 
@@ -330,9 +340,8 @@
 
 
         return stops[
-            stops.length -
-            1
-        ][1];
+            stops.length - 1
+        ][1].slice();
     }
 
 
@@ -799,7 +808,6 @@
 
             this.buildTerrainImage();
 
-
             this.resize();
         }
 
@@ -918,26 +926,31 @@
             longitude
         ) {
 
+            const bounds =
+                this.terrain.bounds ||
+                C.bounds;
+
+
             const x =
                 (
                     longitude -
-                    C.bounds.west
+                    bounds.west
                 ) /
                 (
-                    C.bounds.east -
-                    C.bounds.west
+                    bounds.east -
+                    bounds.west
                 ) *
                 this.width;
 
 
             const y =
                 (
-                    C.bounds.north -
+                    bounds.north -
                     latitude
                 ) /
                 (
-                    C.bounds.north -
-                    C.bounds.south
+                    bounds.north -
+                    bounds.south
                 ) *
                 this.height;
 
@@ -956,27 +969,32 @@
             y
         ) {
 
+            const bounds =
+                this.terrain.bounds ||
+                C.bounds;
+
+
             const longitude =
-                C.bounds.west +
+                bounds.west +
                 U.clamp01(
                     x /
                     this.width
                 ) *
                 (
-                    C.bounds.east -
-                    C.bounds.west
+                    bounds.east -
+                    bounds.west
                 );
 
 
             const latitude =
-                C.bounds.north -
+                bounds.north -
                 U.clamp01(
                     y /
                     this.height
                 ) *
                 (
-                    C.bounds.north -
-                    C.bounds.south
+                    bounds.north -
+                    bounds.south
                 );
 
 
@@ -1019,20 +1037,25 @@
             longitude
         ) {
 
+            const bounds =
+                this.terrain.bounds ||
+                C.bounds;
+
+
             this.selected = {
 
                 lat:
                     U.clamp(
                         latitude,
-                        C.bounds.south,
-                        C.bounds.north
+                        bounds.south,
+                        bounds.north
                     ),
 
                 lon:
                     U.clamp(
                         longitude,
-                        C.bounds.west,
-                        C.bounds.east
+                        bounds.west,
+                        bounds.east
                     )
             };
 
@@ -1142,6 +1165,9 @@
                 String(
                     level
                 );
+
+
+            return this.windLevel;
         }
 
 
@@ -1186,10 +1212,6 @@
                     0.45
                 ) {
 
-                    /*
-                     * Sea background.
-                     */
-
                     colour =
                         rgb(
                             38,
@@ -1208,6 +1230,7 @@
 
                     colour =
                         interpolateColour(
+
                             rgb(
                                 90,
                                 112,
@@ -1231,12 +1254,15 @@
 
                         colour =
                             interpolateColour(
+
                                 colour,
+
                                 rgb(
                                     225,
                                     224,
                                     218
                                 ),
+
                                 U.smoothstep(
                                     1800,
                                     3500,
@@ -1348,7 +1374,7 @@
 
 
                 const name =
-                    A.TRACER_NAMES[
+                    TRACER_NAMES[
                         tracer
                     ];
 
@@ -1357,7 +1383,11 @@
                     AIR_MASS_COLOURS[
                         name
                     ] ||
-                    [150, 150, 150];
+                    [
+                        150,
+                        150,
+                        150
+                    ];
 
 
                 r +=
@@ -1394,9 +1424,15 @@
 
 
             return rgb(
-                r / total,
-                g / total,
-                b / total
+
+                r /
+                    total,
+
+                g /
+                    total,
+
+                b /
+                    total
             );
         }
 
@@ -1480,18 +1516,22 @@
 
                     const cloud =
                         U.clamp01(
+
                             a.surface.cloudFraction[
                                 cell
                             ] *
                                 0.20 +
+
                             a.level925.cloudFraction[
                                 cell
                             ] *
                                 0.32 +
+
                             a.level850.cloudFraction[
                                 cell
                             ] *
                                 0.32 +
+
                             a.level700.cloudFraction[
                                 cell
                             ] *
@@ -1499,23 +1539,39 @@
                         );
 
 
+                    const condensate =
+                        (
+                            a.surface.cloudLiquid[
+                                cell
+                            ] +
+                            a.surface.cloudIce[
+                                cell
+                            ] +
+                            a.level925.cloudLiquid[
+                                cell
+                            ] +
+                            a.level925.cloudIce[
+                                cell
+                            ] +
+                            a.level850.cloudLiquid[
+                                cell
+                            ] +
+                            a.level850.cloudIce[
+                                cell
+                            ] +
+                            a.level700.cloudLiquid[
+                                cell
+                            ] +
+                            a.level700.cloudIce[
+                                cell
+                            ]
+                        );
+
+
                     const darkness =
                         U.clamp01(
-                            (
-                                a.level925.cloudLiquid[
-                                    cell
-                                ] +
-                                a.level850.cloudLiquid[
-                                    cell
-                                ] +
-                                a.level850.cloudIce[
-                                    cell
-                                ] +
-                                a.level700.cloudIce[
-                                    cell
-                                ]
-                            ) /
-                            0.0025
+                            condensate /
+                            0.0035
                         );
 
 
@@ -1523,19 +1579,19 @@
 
                         U.lerp(
                             245,
-                            115,
+                            105,
                             darkness
                         ),
 
                         U.lerp(
                             246,
-                            123,
+                            113,
                             darkness
                         ),
 
                         U.lerp(
                             248,
-                            136,
+                            129,
                             darkness
                         ),
 
@@ -1565,9 +1621,11 @@
                 case LAYERS.PRECIPITATION_PHASE:
 
                     return precipitationColour(
+
                         a.precipitationPhase[
                             cell
                         ],
+
                         a.precipMmHr[
                             cell
                         ]
@@ -1687,23 +1745,27 @@
                             U.clamp01(
                                 convergence /
                                 (
-                                    C.fronts.convergenceThreshold *
+                                    C.fronts
+                                        .convergenceThreshold *
                                     4
                                 )
                             );
 
 
                         return interpolateColour(
+
                             rgb(
                                 240,
                                 240,
                                 240
                             ),
+
                             rgb(
                                 198,
                                 50,
                                 72
                             ),
+
                             strength
                         );
                     }
@@ -1713,23 +1775,27 @@
                         U.clamp01(
                             -convergence /
                             (
-                                C.fronts.convergenceThreshold *
+                                C.fronts
+                                    .convergenceThreshold *
                                 4
                             )
                         );
 
 
                     return interpolateColour(
+
                         rgb(
                             240,
                             240,
                             240
                         ),
+
                         rgb(
                             57,
                             97,
                             184
                         ),
+
                         strength
                     );
                 }
@@ -1750,16 +1816,19 @@
 
 
                     return interpolateColour(
+
                         rgb(
                             171,
                             133,
                             94
                         ),
+
                         rgb(
                             72,
                             157,
                             191
                         ),
+
                         U.smoothstep(
                             0.30,
                             1,
@@ -1920,11 +1989,6 @@
             ctx.beginPath();
 
 
-            /*
-             * Draw grid-cell coastline segments wherever land fraction
-             * crosses the 0.5 threshold.
-             */
-
             for (
                 let y = 0;
                 y < this.terrain.ny - 1;
@@ -2058,7 +2122,7 @@
 
             if (
                 this.layer !==
-                    LAYERS.PRESSURE
+                LAYERS.PRESSURE
             ) {
                 return;
             }
@@ -2079,26 +2143,22 @@
                 "rgba(255,255,255,0.42)";
 
 
-            ctx.fillStyle =
-                "rgba(255,255,255,0.82)";
-
-
-            ctx.font =
-                "11px system-ui, sans-serif";
-
-
             ctx.lineWidth =
                 0.8;
 
 
             const levels = [];
 
+
             for (
-                let p = 960;
-                p <= 1050;
-                p += 4
+                let pressureLevel = 960;
+                pressureLevel <= 1050;
+                pressureLevel += 4
             ) {
-                levels.push(p);
+
+                levels.push(
+                    pressureLevel
+                );
             }
 
 
@@ -2331,8 +2391,8 @@
 
 
             /*
-             * Canvas y is southward, while positive meteorological v is
-             * northward.
+             * Canvas Y increases southward.
+             * Atmospheric positive V is northward.
              */
 
             const uy =
@@ -2615,11 +2675,13 @@
                     position.x <
                         -50 ||
                     position.x >
-                        this.width + 50 ||
+                        this.width +
+                        50 ||
                     position.y <
                         -50 ||
                     position.y >
-                        this.height + 50
+                        this.height +
+                        50
                 ) {
                     continue;
                 }
@@ -2694,14 +2756,16 @@
                 ctx.strokeText(
                     pressureText,
                     position.x,
-                    position.y + 19
+                    position.y +
+                        19
                 );
 
 
                 ctx.fillText(
                     pressureText,
                     position.x,
-                    position.y + 19
+                    position.y +
+                        19
                 );
             }
 
@@ -2930,11 +2994,6 @@
                     );
 
 
-                /*
-                 * Approximate pixel radius from eastward geographical
-                 * distance.
-                 */
-
                 const edgeLon =
                     mass.lon +
                     mass.radiusKm /
@@ -2961,7 +3020,11 @@
                     AIR_MASS_COLOURS[
                         mass.sourceType
                     ] ||
-                    [220, 220, 220];
+                    [
+                        220,
+                        220,
+                        220
+                    ];
 
 
                 ctx.strokeStyle =
@@ -2998,7 +3061,8 @@
                     center.y,
                     radiusPixels,
                     0,
-                    Math.PI * 2
+                    Math.PI *
+                        2
                 );
 
 
@@ -3006,10 +3070,6 @@
 
                 ctx.stroke();
 
-
-                /*
-                 * Source center.
-                 */
 
                 ctx.fillStyle =
                     rgbaString(
@@ -3030,7 +3090,8 @@
                     center.y,
                     5,
                     0,
-                    Math.PI * 2
+                    Math.PI *
+                        2
                 );
 
 
@@ -3056,14 +3117,16 @@
                 ctx.strokeText(
                     mass.sourceType,
                     center.x,
-                    center.y - 13
+                    center.y -
+                        13
                 );
 
 
                 ctx.fillText(
                     mass.sourceType,
                     center.x,
-                    center.y - 13
+                    center.y -
+                        13
                 );
             }
 
@@ -3093,7 +3156,8 @@
 
 
             for (
-                const station of this.weather.history.stations.values()
+                const station of
+                    this.weather.history.stations.values()
             ) {
 
                 const position =
@@ -3123,7 +3187,8 @@
                     position.y,
                     5,
                     0,
-                    Math.PI * 2
+                    Math.PI *
+                        2
                 );
 
 
@@ -3154,15 +3219,19 @@
 
                 ctx.strokeText(
                     station.name,
-                    position.x + 8,
-                    position.y - 7
+                    position.x +
+                        8,
+                    position.y -
+                        7
                 );
 
 
                 ctx.fillText(
                     station.name,
-                    position.x + 8,
-                    position.y - 7
+                    position.x +
+                        8,
+                    position.y -
+                        7
                 );
             }
 
@@ -3215,31 +3284,36 @@
                 position.y,
                 8,
                 0,
-                Math.PI * 2
+                Math.PI *
+                    2
             );
 
 
             ctx.moveTo(
-                position.x - 13,
+                position.x -
+                    13,
                 position.y
             );
 
 
             ctx.lineTo(
-                position.x + 13,
+                position.x +
+                    13,
                 position.y
             );
 
 
             ctx.moveTo(
                 position.x,
-                position.y - 13
+                position.y -
+                    13
             );
 
 
             ctx.lineTo(
                 position.x,
-                position.y + 13
+                position.y +
+                    13
             );
 
 
@@ -3251,7 +3325,7 @@
 
 
         /* ============================================================
-           GRID LABEL
+           STATUS BADGE
         ============================================================ */
 
         drawStatusBadge() {
@@ -3364,29 +3438,31 @@
             this.drawTerrainBase();
 
 
-            /*
-             * Most fields are deliberately partly transparent so terrain
-             * remains faintly visible beneath the meteorology.
-             */
-
             if (
                 this.layer !==
                 LAYERS.TERRAIN
             ) {
 
                 ctx.globalAlpha =
-                    this.layer ===
-                        LAYERS.CLOUD ||
-                    this.layer ===
-                        LAYERS.PRECIPITATION ||
-                    this.layer ===
-                        LAYERS.PRECIPITATION_PHASE ||
-                    this.layer ===
-                        LAYERS.FRONT ||
-                    this.layer ===
-                        LAYERS.LIFT ||
-                    this.layer ===
-                        LAYERS.SNOW
+                    (
+                        this.layer ===
+                            LAYERS.CLOUD ||
+
+                        this.layer ===
+                            LAYERS.PRECIPITATION ||
+
+                        this.layer ===
+                            LAYERS.PRECIPITATION_PHASE ||
+
+                        this.layer ===
+                            LAYERS.FRONT ||
+
+                        this.layer ===
+                            LAYERS.LIFT ||
+
+                        this.layer ===
+                            LAYERS.SNOW
+                    )
                         ? 0.95
                         : 0.88;
 
@@ -3448,11 +3524,13 @@
 
                 location,
 
+
                 weather:
                     this.weather.sample(
                         location.lat,
                         location.lon
                     ),
+
 
                 precipitation:
                     this.weather.precipitationDiagnosisAt(
@@ -3460,11 +3538,13 @@
                         location.lon
                     ),
 
+
                 terrain:
                     this.weather.terrainAt(
                         location.lat,
                         location.lon
                     ),
+
 
                 ocean:
                     this.weather.oceanAt(
@@ -3630,28 +3710,60 @@
             }
 
 
-            const values =
-                samples.map(
-                    sample =>
-                        finite(
-                            sample[
-                                field
-                            ],
-                            0
-                        )
-                );
-
-
             let minimum =
-                Math.min(
-                    ...values
-                );
+                Infinity;
 
 
             let maximum =
-                Math.max(
-                    ...values
+                -Infinity;
+
+
+            const values =
+                new Float32Array(
+                    samples.length
                 );
+
+
+            /*
+             * Avoid spreading very large station histories through
+             * Math.min(...values) / Math.max(...values).
+             */
+
+            for (
+                let i = 0;
+                i < samples.length;
+                i++
+            ) {
+
+                const value =
+                    Number.isFinite(
+                        Number(
+                            samples[i][field]
+                        )
+                    )
+                        ? Number(
+                            samples[i][field]
+                        )
+                        : 0;
+
+
+                values[i] =
+                    value;
+
+
+                minimum =
+                    Math.min(
+                        minimum,
+                        value
+                    );
+
+
+                maximum =
+                    Math.max(
+                        maximum,
+                        value
+                    );
+            }
 
 
             if (
@@ -3664,6 +3776,7 @@
 
                 minimum -=
                     1;
+
 
                 maximum +=
                     1;
@@ -3698,9 +3811,9 @@
                 padding.bottom;
 
 
-            /*
-             * Grid.
-             */
+            /* --------------------------------------------------------
+               GRID
+            -------------------------------------------------------- */
 
             ctx.strokeStyle =
                 "rgba(255,255,255,0.12)";
@@ -3767,14 +3880,15 @@
                             : 1
                     ),
                     5,
-                    y + 3
+                    y +
+                        3
                 );
             }
 
 
-            /*
-             * Data line.
-             */
+            /* --------------------------------------------------------
+               DATA LINE
+            -------------------------------------------------------- */
 
             ctx.strokeStyle =
                 "rgba(236,240,244,0.94)";
@@ -3804,7 +3918,9 @@
 
 
                 const value =
-                    values[i];
+                    values[
+                        i
+                    ];
 
 
                 const y =
@@ -3845,12 +3961,14 @@
             ctx.stroke();
 
 
-            /*
-             * Time labels.
-             */
+            /* --------------------------------------------------------
+               TIME LABELS
+            -------------------------------------------------------- */
 
             const first =
-                samples[0];
+                samples[
+                    0
+                ];
 
 
             const last =
@@ -3880,7 +3998,8 @@
                         " "
                     ),
                 padding.left,
-                height - 9
+                height -
+                    9
             );
 
 
@@ -3901,13 +4020,14 @@
                     ),
                 width -
                     padding.right,
-                height - 9
+                height -
+                    9
             );
 
 
-            /*
-             * Title.
-             */
+            /* --------------------------------------------------------
+               TITLE
+            -------------------------------------------------------- */
 
             ctx.textAlign =
                 "center";
@@ -3946,135 +4066,180 @@
             ) {
 
                 case LAYERS.TEMPERATURE:
+
                     return {
+
                         title:
                             "Surface Temperature",
+
                         units:
                             "°C"
                     };
 
 
                 case LAYERS.ANOMALY:
+
                     return {
+
                         title:
                             "Temperature Anomaly",
+
                         units:
                             "°C"
                     };
 
 
                 case LAYERS.PRESSURE:
+
                     return {
+
                         title:
                             "Surface Pressure",
+
                         units:
                             "hPa"
                     };
 
 
                 case LAYERS.CLOUD:
+
                     return {
+
                         title:
                             "Cloud",
+
                         units:
                             "fraction / condensate"
                     };
 
 
                 case LAYERS.PRECIPITATION:
+
                     return {
+
                         title:
                             "Precipitation Intensity",
+
                         units:
                             "mm/h"
                     };
 
 
                 case LAYERS.PRECIPITATION_PHASE:
+
                     return {
+
                         title:
                             "Precipitation Phase",
+
                         units:
                             "rain / sleet / wet snow / snow"
                     };
 
 
                 case LAYERS.SST:
+
                     return {
+
                         title:
                             "Sea-Surface Temperature",
+
                         units:
                             "°C"
                     };
 
 
                 case LAYERS.AIR_MASS:
+
                     return {
+
                         title:
                             "850 hPa Air-Mass Identity",
+
                         units:
                             "source tracer mixture"
                     };
 
 
                 case LAYERS.FRONT:
+
                     return {
+
                         title:
                             "Front Strength",
+
                         units:
                             "diagnostic"
                     };
 
 
                 case LAYERS.LIFT:
+
                     return {
+
                         title:
                             "Total Vertical Forcing",
+
                         units:
                             "diagnostic"
                     };
 
 
                 case LAYERS.CONVERGENCE:
+
                     return {
+
                         title:
                             "925 hPa Convergence",
+
                         units:
                             "diagnostic"
                     };
 
 
                 case LAYERS.HUMIDITY:
+
                     return {
+
                         title:
                             "925 hPa Relative Humidity",
+
                         units:
                             "%"
                     };
 
 
                 case LAYERS.SNOW:
+
                     return {
+
                         title:
                             "Snow Depth",
+
                         units:
                             "cm"
                     };
 
 
                 case LAYERS.TERRAIN:
+
                     return {
+
                         title:
                             "Terrain",
+
                         units:
                             "m"
                     };
 
 
                 default:
+
                     return {
+
                         title:
                             this.layer,
+
                         units:
                             ""
                     };
