@@ -1,1461 +1,1081 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>EuropaCraft Weather Planner</title>
-
-    <style>
-        :root {
-            --bg: #101419;
-            --panel: #171d24;
-            --panel-2: #1d252e;
-            --panel-3: #222d38;
-
-            --border: #34414e;
-            --border-soft: #293440;
-
-            --text: #eef3f7;
-            --muted: #9aa9b6;
-
-            --accent: #e2b34f;
-            --accent-2: #f0c96d;
-
-            --danger: #d86666;
-            --good: #72c98b;
-            --locked: #8da4bc;
-
-            --input: #11171d;
-
-            --radius: 8px;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        html,
-        body {
-            margin: 0;
-            min-height: 100%;
-            background: var(--bg);
-            color: var(--text);
-            font-family:
-                Inter,
-                ui-sans-serif,
-                system-ui,
-                -apple-system,
-                BlinkMacSystemFont,
-                "Segoe UI",
-                sans-serif;
-        }
-
-        body {
-            min-width: 320px;
-        }
-
-        button,
-        input,
-        select,
-        textarea {
-            font: inherit;
-        }
-
-        button {
-            color: var(--text);
-        }
-
-        .app {
-            width: 100%;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .topbar {
-            min-height: 66px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 20px;
-            padding: 10px 16px;
-            border-bottom: 1px solid var(--border);
-            background: #121820;
-        }
-
-        .brand {
-            min-width: 0;
-        }
-
-        .brand-title {
-            margin: 0;
-            font-size: 18px;
-            font-weight: 700;
-            letter-spacing: 0.02em;
-        }
-
-        .brand-subtitle {
-            margin-top: 2px;
-            color: var(--muted);
-            font-size: 12px;
-        }
-
-        .top-status {
-            min-width: 0;
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            gap: 22px;
-            flex-wrap: wrap;
-        }
-
-        .status-block {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-
-        .status-label {
-            color: var(--muted);
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.11em;
-        }
-
-        .status-value {
-            font-size: 13px;
-            font-weight: 600;
-            white-space: nowrap;
-        }
-
-        .status-value.locked {
-            color: var(--locked);
-        }
-
-        .status-value.good {
-            color: var(--good);
-        }
-
-        .main {
-            flex: 1;
-            min-height: 0;
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) 330px;
-        }
-
-        .workspace {
-            min-width: 0;
-            min-height: 0;
-            display: flex;
-            flex-direction: column;
-            border-right: 1px solid var(--border);
-        }
-
-        .toolbar {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            flex-wrap: wrap;
-            padding: 8px 10px;
-            border-bottom: 1px solid var(--border-soft);
-            background: var(--panel);
-        }
-
-        .toolbar-group {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding-right: 8px;
-            margin-right: 2px;
-            border-right: 1px solid var(--border-soft);
-        }
-
-        .toolbar-group:last-child {
-            padding-right: 0;
-            margin-right: 0;
-            border-right: 0;
-        }
-
-        .btn {
-            min-height: 34px;
-            padding: 6px 10px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            background: var(--panel-2);
-            color: var(--text);
-            cursor: pointer;
-            transition:
-                background 100ms ease,
-                border-color 100ms ease,
-                transform 100ms ease;
-        }
-
-        .btn:hover {
-            background: var(--panel-3);
-            border-color: #4a5b6b;
-        }
-
-        .btn:active {
-            transform: translateY(1px);
-        }
-
-        .btn:focus-visible,
-        input:focus-visible,
-        select:focus-visible,
-        textarea:focus-visible {
-            outline: 2px solid var(--accent);
-            outline-offset: 2px;
-        }
-
-        .btn.active {
-            color: #15120a;
-            background: var(--accent);
-            border-color: var(--accent-2);
-            font-weight: 700;
-        }
-
-        .btn.good {
-            border-color: #4c8f60;
-        }
-
-        .btn.danger {
-            border-color: #8c4848;
-        }
-
-        .btn.danger:hover {
-            background: #3a2225;
-        }
-
-        .btn:disabled {
-            opacity: 0.45;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .map-wrap {
-            position: relative;
-            flex: 1;
-            min-height: 470px;
-            overflow: hidden;
-            background: #0e1820;
-        }
-
-        #weatherMap {
-            display: block;
-            width: 100%;
-            height: 100%;
-            min-height: 470px;
-            cursor: crosshair;
-            touch-action: none;
-        }
-
-        .map-help {
-            position: absolute;
-            left: 10px;
-            bottom: 10px;
-            max-width: min(520px, calc(100% - 20px));
-            padding: 6px 9px;
-            border: 1px solid rgba(180, 200, 216, 0.24);
-            border-radius: 6px;
-            background: rgba(12, 18, 24, 0.83);
-            color: #d7e0e7;
-            font-size: 11px;
-            line-height: 1.4;
-            pointer-events: none;
-            backdrop-filter: blur(4px);
-        }
-
-        .map-coordinates {
-            position: absolute;
-            right: 10px;
-            bottom: 10px;
-            padding: 5px 8px;
-            border: 1px solid rgba(180, 200, 216, 0.24);
-            border-radius: 6px;
-            background: rgba(12, 18, 24, 0.83);
-            color: #d7e0e7;
-            font-size: 11px;
-            pointer-events: none;
-            font-variant-numeric: tabular-nums;
-        }
-
-        .timeline {
-            padding: 10px 12px 12px;
-            border-top: 1px solid var(--border);
-            background: var(--panel);
-        }
-
-        .timeline-top {
-            display: grid;
-            grid-template-columns: auto minmax(220px, 1fr) auto;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 8px;
-        }
-
-        .time-jump-group {
-            display: flex;
-            gap: 5px;
-            flex-wrap: wrap;
-        }
-
-        .small-btn {
-            min-height: 31px;
-            padding: 4px 8px;
-            font-size: 12px;
-        }
-
-        .timeline input[type="range"] {
-            width: 100%;
-        }
-
-        .datetime {
-            width: 205px;
-            min-height: 34px;
-            padding: 5px 7px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            background: var(--input);
-            color: var(--text);
-        }
-
-        .timeline-scale {
-            display: flex;
-            justify-content: space-between;
-            gap: 12px;
-            color: var(--muted);
-            font-size: 11px;
-        }
-
-        .timeline-note {
-            margin-top: 7px;
-            color: var(--muted);
-            font-size: 11px;
-        }
-
-        .sidebar {
-            min-width: 0;
-            background: var(--panel);
-            overflow-y: auto;
-        }
-
-        .panel {
-            padding: 13px;
-            border-bottom: 1px solid var(--border-soft);
-        }
-
-        .panel-title {
-            margin: 0 0 10px;
-            font-size: 13px;
-            font-weight: 700;
-            letter-spacing: 0.02em;
-        }
-
-        .panel-subtitle {
-            margin: -5px 0 10px;
-            color: var(--muted);
-            font-size: 11px;
-            line-height: 1.4;
-        }
-
-        .field {
-            margin-bottom: 9px;
-        }
-
-        .field:last-child {
-            margin-bottom: 0;
-        }
-
-        .field-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-        }
-
-        .field label {
-            display: block;
-            margin-bottom: 4px;
-            color: var(--muted);
-            font-size: 11px;
-        }
-
-        .field input,
-        .field select,
-        .field textarea {
-            width: 100%;
-            min-height: 34px;
-            padding: 6px 8px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            background: var(--input);
-            color: var(--text);
-        }
-
-        .field textarea {
-            min-height: 72px;
-            resize: vertical;
-        }
-
-        .field input[readonly] {
-            color: var(--muted);
-        }
-
-        .section-divider {
-            margin: 12px 0;
-            border: 0;
-            border-top: 1px solid var(--border-soft);
-        }
-
-        .selected-empty {
-            padding: 15px 4px;
-            color: var(--muted);
-            font-size: 12px;
-            line-height: 1.5;
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        .weather-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 7px;
-        }
-
-        .weather-cell {
-            min-width: 0;
-            padding: 8px;
-            border: 1px solid var(--border-soft);
-            border-radius: 6px;
-            background: var(--panel-2);
-        }
-
-        .weather-name {
-            color: var(--muted);
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.07em;
-        }
-
-        .weather-value {
-            margin-top: 3px;
-            font-size: 14px;
-            font-weight: 700;
-            word-break: break-word;
-        }
-
-        .weather-wide {
-            grid-column: 1 / -1;
-        }
-
-        .status-message {
-            min-height: 38px;
-            padding: 9px 12px;
-            border-top: 1px solid var(--border);
-            background: #11171d;
-            color: var(--muted);
-            font-size: 12px;
-        }
-
-        .status-message strong {
-            color: var(--text);
-        }
-
-        .locked-note {
-            padding: 8px;
-            border: 1px solid #465a6e;
-            border-radius: 6px;
-            background: #17222d;
-            color: #b9c8d6;
-            font-size: 11px;
-            line-height: 1.45;
-        }
-
-        .danger-note {
-            padding: 8px;
-            border: 1px solid #744343;
-            border-radius: 6px;
-            background: #281b1d;
-            color: #dfb3b3;
-            font-size: 11px;
-            line-height: 1.45;
-        }
-
-        .inline-actions {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-            margin-top: 10px;
-        }
-
-        .object-list {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            max-height: 190px;
-            overflow-y: auto;
-        }
-
-        .object-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            width: 100%;
-            min-height: 34px;
-            padding: 6px 8px;
-            border: 1px solid var(--border-soft);
-            border-radius: 5px;
-            background: var(--panel-2);
-            color: var(--text);
-            text-align: left;
-            cursor: pointer;
-        }
-
-        .object-item:hover {
-            background: var(--panel-3);
-        }
-
-        .object-item.selected {
-            border-color: var(--accent);
-        }
-
-        .object-name {
-            min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            font-size: 12px;
-        }
-
-        .object-type {
-            flex: 0 0 auto;
-            color: var(--muted);
-            font-size: 10px;
-            text-transform: uppercase;
-        }
-
-        @media (max-width: 980px) {
-            .main {
-                grid-template-columns: 1fr;
-            }
-
-            .workspace {
-                border-right: 0;
-            }
-
-            .sidebar {
-                border-top: 1px solid var(--border);
-            }
-
-            .timeline-top {
-                grid-template-columns: 1fr;
-            }
-
-            .datetime {
-                width: 100%;
-            }
-        }
-
-        @media (max-width: 620px) {
-            .topbar {
-                align-items: flex-start;
-                flex-direction: column;
-            }
-
-            .top-status {
-                justify-content: flex-start;
-            }
-
-            .toolbar-group {
-                padding-right: 0;
-                margin-right: 0;
-                border-right: 0;
-            }
-
-            .map-wrap,
-            #weatherMap {
-                min-height: 390px;
-            }
-
-            .field-row {
-                grid-template-columns: 1fr;
-            }
-
-            .weather-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .weather-wide {
-                grid-column: auto;
-            }
-        }
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>EuropaCraft Weather Studio</title>
+
+  <style>
+    :root{
+      --bg:#0d1217;
+      --panel:#151c23;
+      --panel2:#1b242d;
+      --line:#31404d;
+      --text:#eef3f6;
+      --muted:#9aabb8;
+      --accent:#d9b45f;
+      --good:#76c38e;
+      --danger:#d66f6f;
+      --input:#0f151b;
+    }
+
+    *{
+      box-sizing:border-box;
+    }
+
+    html,
+    body{
+      margin:0;
+      min-height:100%;
+      background:var(--bg);
+      color:var(--text);
+      font-family:
+        Inter,
+        system-ui,
+        -apple-system,
+        "Segoe UI",
+        sans-serif;
+    }
+
+    button,
+    input,
+    select{
+      font:inherit;
+    }
+
+    button{
+      cursor:pointer;
+    }
+
+    .app{
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+    }
+
+    header{
+      display:flex;
+      justify-content:space-between;
+      gap:20px;
+      align-items:center;
+      padding:11px 15px;
+      background:#111820;
+      border-bottom:1px solid var(--line);
+    }
+
+    h1{
+      font-size:18px;
+      margin:0;
+    }
+
+    .sub{
+      font-size:12px;
+      color:var(--muted);
+      margin-top:2px;
+    }
+
+    .statusTop{
+      display:flex;
+      gap:18px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .stat{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+    }
+
+    .stat b{
+      font-size:12px;
+    }
+
+    .stat span{
+      font-size:10px;
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:.08em;
+    }
+
+    .main{
+      display:grid;
+      grid-template-columns:minmax(0,1fr) 320px;
+      flex:1;
+      min-height:0;
+    }
+
+    .work{
+      display:flex;
+      flex-direction:column;
+      min-width:0;
+      border-right:1px solid var(--line);
+    }
+
+    .toolbar{
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      padding:8px 10px;
+      background:var(--panel);
+      border-bottom:1px solid var(--line);
+      align-items:center;
+    }
+
+    .btn,
+    .select{
+      min-height:34px;
+      border:1px solid var(--line);
+      border-radius:6px;
+      background:var(--panel2);
+      color:var(--text);
+      padding:6px 10px;
+    }
+
+    .btn:hover{
+      border-color:#53697b;
+    }
+
+    .btn.active{
+      background:var(--accent);
+      color:#16120a;
+      border-color:#f1cb77;
+      font-weight:700;
+    }
+
+    .btn.good{
+      border-color:#4e8c62;
+    }
+
+    .btn.danger{
+      border-color:#854848;
+    }
+
+    .btn:disabled{
+      opacity:.45;
+      cursor:not-allowed;
+    }
+
+    .sep{
+      height:25px;
+      width:1px;
+      background:var(--line);
+      margin:0 2px;
+    }
+
+    .mapWrap{
+      position:relative;
+      flex:1;
+      min-height:500px;
+      overflow:hidden;
+      background:#122b39;
+    }
+
+    canvas{
+      display:block;
+      width:100%;
+      height:100%;
+      min-height:500px;
+      touch-action:none;
+      cursor:crosshair;
+    }
+
+    .mapHint,
+    .coords{
+      position:absolute;
+      bottom:9px;
+      padding:6px 8px;
+      border:1px solid rgba(220,230,238,.2);
+      background:rgba(10,15,20,.82);
+      font-size:11px;
+      border-radius:6px;
+      pointer-events:none;
+    }
+
+    .mapHint{
+      left:9px;
+      max-width:65%;
+    }
+
+    .coords{
+      right:9px;
+      font-variant-numeric:tabular-nums;
+    }
+
+    .timeline{
+      padding:9px 11px 11px;
+      background:var(--panel);
+      border-top:1px solid var(--line);
+    }
+
+    .timeRow{
+      display:grid;
+      grid-template-columns:auto minmax(180px,1fr) 190px;
+      gap:8px;
+      align-items:center;
+    }
+
+    .jump{
+      display:flex;
+      gap:5px;
+    }
+
+    .jump .btn{
+      min-height:30px;
+      padding:4px 7px;
+      font-size:12px;
+    }
+
+    .timeRow input[type=range]{
+      width:100%;
+    }
+
+    .dt{
+      width:100%;
+      min-height:34px;
+      padding:5px 7px;
+      border-radius:6px;
+      border:1px solid var(--line);
+      background:var(--input);
+      color:var(--text);
+    }
+
+    .scale{
+      display:flex;
+      justify-content:space-between;
+      color:var(--muted);
+      font-size:10px;
+      margin-top:5px;
+    }
+
+    .side{
+      background:var(--panel);
+      overflow:auto;
+    }
+
+    .panel{
+      padding:12px;
+      border-bottom:1px solid var(--line);
+    }
+
+    .panel h2{
+      font-size:13px;
+      margin:0 0 9px;
+    }
+
+    .small{
+      font-size:11px;
+      line-height:1.45;
+      color:var(--muted);
+    }
+
+    label{
+      display:block;
+      color:var(--muted);
+      font-size:11px;
+      margin-bottom:4px;
+    }
+
+    .field{
+      margin-bottom:9px;
+    }
+
+    .field:last-child{
+      margin-bottom:0;
+    }
+
+    .field select,
+    .field input{
+      width:100%;
+      min-height:34px;
+      border:1px solid var(--line);
+      border-radius:6px;
+      background:var(--input);
+      color:var(--text);
+      padding:5px 7px;
+    }
+
+    .grid2{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:7px;
+    }
+
+    .weather{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:6px;
+    }
+
+    .wcell{
+      background:var(--panel2);
+      border:1px solid #293743;
+      border-radius:6px;
+      padding:7px;
+      min-width:0;
+    }
+
+    .wcell.wide{
+      grid-column:1/-1;
+    }
+
+    .wname{
+      font-size:9px;
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:.07em;
+    }
+
+    .wval{
+      font-size:13px;
+      font-weight:700;
+      margin-top:2px;
+      word-break:break-word;
+    }
+
+    .objects{
+      display:flex;
+      flex-direction:column;
+      gap:5px;
+      max-height:190px;
+      overflow:auto;
+    }
+
+    .obj{
+      width:100%;
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+      text-align:left;
+      min-height:32px;
+      align-items:center;
+      border:1px solid #293743;
+      background:var(--panel2);
+      color:var(--text);
+      border-radius:5px;
+      padding:5px 7px;
+    }
+
+    .obj.selected{
+      border-color:var(--accent);
+    }
+
+    .obj small{
+      color:var(--muted);
+    }
+
+    .actions{
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+    }
+
+    .note{
+      padding:7px 8px;
+      border:1px solid #3c4d5b;
+      border-radius:6px;
+      background:#131b22;
+      font-size:11px;
+      color:#b8c7d1;
+      line-height:1.45;
+    }
+
+    .hidden{
+      display:none!important;
+    }
+
+    footer{
+      padding:8px 11px;
+      border-top:1px solid var(--line);
+      background:#10161c;
+      color:var(--muted);
+      font-size:11px;
+      min-height:34px;
+    }
+
+    @media(max-width:930px){
+      .main{
+        grid-template-columns:1fr;
+      }
+
+      .work{
+        border-right:0;
+      }
+
+      .side{
+        border-top:1px solid var(--line);
+      }
+
+      .timeRow{
+        grid-template-columns:1fr;
+      }
+
+      .mapWrap,
+      canvas{
+        min-height:430px;
+      }
+    }
+
+    @media(max-width:600px){
+      header{
+        align-items:flex-start;
+        flex-direction:column;
+      }
+
+      .statusTop{
+        justify-content:flex-start;
+      }
+
+      .weather,
+      .grid2{
+        grid-template-columns:1fr;
+      }
+
+      .wcell.wide{
+        grid-column:auto;
+      }
+
+      .mapHint{
+        max-width:75%;
+      }
+    }
+  </style>
 </head>
 
 <body>
 
 <div class="app">
 
-    <header class="topbar">
+  <header>
 
-        <div class="brand">
-            <h1 class="brand-title">EuropaCraft Weather Planner</h1>
-            <div class="brand-subtitle">
-                Deterministic weather authoring · no APIs · no procedural atmosphere
-            </div>
+    <div>
+      <h1>EuropaCraft Weather Studio</h1>
+      <div class="sub">
+        Draw causes. Inspect the weather they produce.
+      </div>
+    </div>
+
+    <div class="statusTop">
+
+      <div class="stat">
+        <span>Viewing</span>
+        <b id="currentTime">—</b>
+      </div>
+
+      <div class="stat">
+        <span>Plan</span>
+        <b id="planRange">—</b>
+      </div>
+
+      <div class="stat">
+        <span>State</span>
+        <b id="planState">NOT DONE</b>
+      </div>
+
+    </div>
+
+  </header>
+
+
+  <div class="main">
+
+    <section class="work">
+
+      <div class="toolbar">
+
+        <button
+          class="btn active"
+          data-tool="inspect"
+        >
+          Inspect
+        </button>
+
+        <button
+          class="btn"
+          data-tool="air"
+        >
+          ↝ Draw Air
+        </button>
+
+        <button
+          class="btn"
+          data-tool="high"
+        >
+          + High
+        </button>
+
+        <button
+          class="btn"
+          data-tool="low"
+        >
+          + Low
+        </button>
+
+        <button
+          class="btn good hidden"
+          id="finishAir"
+        >
+          Finish Air
+        </button>
+
+        <button
+          class="btn danger hidden"
+          id="cancelAir"
+        >
+          Cancel
+        </button>
+
+        <span class="sep"></span>
+
+        <select
+          class="select"
+          id="layer"
+        >
+          <option value="synoptic">
+            Synoptic
+          </option>
+
+          <option value="temperature">
+            Temperature
+          </option>
+
+          <option value="anomaly">
+            Temperature anomaly
+          </option>
+
+          <option value="precip">
+            Precipitation
+          </option>
+
+          <option value="moisture">
+            Moisture
+          </option>
+
+          <option value="elevation">
+            Elevation
+          </option>
+        </select>
+
+      </div>
+
+
+      <div class="mapWrap">
+
+        <canvas id="map"></canvas>
+
+        <div
+          class="mapHint"
+          id="mapHint"
+        >
+          Loading real European geography and terrain…
         </div>
 
-        <div class="top-status">
+        <div
+          class="coords"
+          id="coords"
+        >
+          —
+        </div>
 
-            <div class="status-block">
-                <span class="status-label">Viewing</span>
-                <span
-                    id="ec-current-time"
-                    class="status-value"
-                >
-                    Loading…
-                </span>
-            </div>
+      </div>
 
-            <div class="status-block">
-                <span class="status-label">Planning block</span>
-                <span
-                    id="ec-plan-range"
-                    class="status-value"
-                >
-                    —
-                </span>
-            </div>
 
-            <div class="status-block">
-                <span class="status-label">State</span>
-                <span
-                    id="ec-lock-state"
-                    class="status-value"
-                >
-                    —
-                </span>
-            </div>
+      <div class="timeline">
+
+        <div class="timeRow">
+
+          <div class="jump">
+
+            <button
+              class="btn"
+              id="m6"
+            >
+              −6h
+            </button>
+
+            <button
+              class="btn"
+              id="m1"
+            >
+              −1h
+            </button>
+
+            <button
+              class="btn"
+              id="p1"
+            >
+              +1h
+            </button>
+
+            <button
+              class="btn"
+              id="p6"
+            >
+              +6h
+            </button>
+
+          </div>
+
+
+          <input
+            id="timeSlider"
+            type="range"
+            min="0"
+            max="2000"
+            step="1"
+            value="0"
+          >
+
+
+          <input
+            id="timeInput"
+            class="dt"
+            type="datetime-local"
+            step="60"
+          >
 
         </div>
 
-    </header>
-
-
-    <main class="main">
-
-        <section class="workspace">
-
-            <div class="toolbar">
-
-                <div class="toolbar-group">
-
-                    <button
-                        type="button"
-                        class="btn active"
-                        data-tool="inspect"
-                    >
-                        Inspect
-                    </button>
-
-                </div>
-
-                <div class="toolbar-group">
-
-                    <button
-                        type="button"
-                        class="btn"
-                        data-tool="high"
-                    >
-                        + High
-                    </button>
-
-                    <button
-                        type="button"
-                        class="btn"
-                        data-tool="low"
-                    >
-                        + Low
-                    </button>
-
-                    <button
-                        type="button"
-                        class="btn"
-                        data-tool="airmass"
-                    >
-                        + Air Mass
-                    </button>
-
-                </div>
-
-                <div class="toolbar-group">
-
-                    <button
-                        type="button"
-                        class="btn"
-                        data-tool="coldfront"
-                    >
-                        + Cold Front
-                    </button>
-
-                    <button
-                        type="button"
-                        class="btn"
-                        data-tool="warmfront"
-                    >
-                        + Warm Front
-                    </button>
-
-                    <button
-                        type="button"
-                        class="btn"
-                        data-tool="precip"
-                    >
-                        + Precipitation
-                    </button>
-
-                </div>
-
-                <div class="toolbar-group">
-
-                    <button
-                        id="ec-delete-selected"
-                        type="button"
-                        class="btn danger"
-                        disabled
-                    >
-                        Delete
-                    </button>
-
-                    <button
-                        id="ec-duplicate-selected"
-                        type="button"
-                        class="btn"
-                        disabled
-                    >
-                        Duplicate
-                    </button>
-
-                </div>
-
-            </div>
-
 
-            <div class="map-wrap">
-
-                <canvas
-                    id="weatherMap"
-                    width="1200"
-                    height="700"
-                    aria-label="EuropaCraft weather planning map"
-                ></canvas>
-
-                <div
-                    id="ec-map-help"
-                    class="map-help"
-                >
-                    Inspect mode: click anywhere to inspect the deterministic
-                    weather at that location and time.
-                </div>
+        <div class="scale">
 
-                <div
-                    id="ec-map-coordinates"
-                    class="map-coordinates"
-                >
-                    —
-                </div>
-
-            </div>
+          <span id="timeStart">
+            —
+          </span>
 
+          <span id="timeMiddle">
+            NOT DONE · editable
+          </span>
 
-            <div class="timeline">
+          <span id="timeEnd">
+            —
+          </span>
 
-                <div class="timeline-top">
+        </div>
 
-                    <div class="time-jump-group">
-
-                        <button
-                            id="ec-minus-6h"
-                            type="button"
-                            class="btn small-btn"
-                        >
-                            −6h
-                        </button>
-
-                        <button
-                            id="ec-minus-1h"
-                            type="button"
-                            class="btn small-btn"
-                        >
-                            −1h
-                        </button>
-
-                        <button
-                            id="ec-plus-1h"
-                            type="button"
-                            class="btn small-btn"
-                        >
-                            +1h
-                        </button>
-
-                        <button
-                            id="ec-plus-6h"
-                            type="button"
-                            class="btn small-btn"
-                        >
-                            +6h
-                        </button>
-
-                    </div>
-
-                    <input
-                        id="ec-time-slider"
-                        type="range"
-                        min="0"
-                        max="1000"
-                        step="1"
-                        value="0"
-                        aria-label="Weather timeline"
-                    >
-
-                    <input
-                        id="ec-time-input"
-                        class="datetime"
-                        type="datetime-local"
-                        step="60"
-                        aria-label="Exact weather time"
-                    >
-
-                </div>
-
-                <div class="timeline-scale">
-
-                    <span id="ec-timeline-start">—</span>
-
-                    <span id="ec-timeline-middle">
-                        Drag freely through the plan
-                    </span>
-
-                    <span id="ec-timeline-end">—</span>
-
-                </div>
-
-                <div
-                    id="ec-timeline-note"
-                    class="timeline-note"
-                >
-                    Locked history remains visible for continuity but cannot be edited.
-                </div>
-
-            </div>
-
-        </section>
-
-
-        <aside class="sidebar">
-
-            <section class="panel">
-
-                <h2 class="panel-title">Weather at inspected point</h2>
-
-                <div
-                    id="ec-inspected-location"
-                    class="panel-subtitle"
-                >
-                    Click the map to inspect a location.
-                </div>
-
-                <div class="weather-grid">
-
-                    <div class="weather-cell">
-                        <div class="weather-name">Temperature</div>
-                        <div
-                            id="wx-temp"
-                            class="weather-value"
-                        >
-                            —
-                        </div>
-                    </div>
-
-                    <div class="weather-cell">
-                        <div class="weather-name">Pressure</div>
-                        <div
-                            id="wx-pressure"
-                            class="weather-value"
-                        >
-                            —
-                        </div>
-                    </div>
-
-                    <div class="weather-cell">
-                        <div class="weather-name">Wind</div>
-                        <div
-                            id="wx-wind"
-                            class="weather-value"
-                        >
-                            —
-                        </div>
-                    </div>
-
-                    <div class="weather-cell">
-                        <div class="weather-name">Cloud</div>
-                        <div
-                            id="wx-cloud"
-                            class="weather-value"
-                        >
-                            —
-                        </div>
-                    </div>
-
-                    <div class="weather-cell">
-                        <div class="weather-name">Precipitation</div>
-                        <div
-                            id="wx-precip"
-                            class="weather-value"
-                        >
-                            —
-                        </div>
-                    </div>
-
-                    <div class="weather-cell">
-                        <div class="weather-name">Snow depth</div>
-                        <div
-                            id="wx-snow"
-                            class="weather-value"
-                        >
-                            —
-                        </div>
-                    </div>
-
-                    <div class="weather-cell weather-wide">
-                        <div class="weather-name">Surface</div>
-                        <div
-                            id="wx-surface"
-                            class="weather-value"
-                        >
-                            —
-                        </div>
-                    </div>
-
-                </div>
-
-            </section>
-
+      </div>
 
-            <section class="panel">
+    </section>
 
-                <h2 class="panel-title">Active weather objects</h2>
 
-                <div
-                    id="ec-object-list"
-                    class="object-list"
-                >
-                    <div class="selected-empty">
-                        No weather objects active at this time.
-                    </div>
-                </div>
+    <aside class="side">
 
-            </section>
-
+      <section class="panel">
 
-            <section class="panel">
+        <h2>Air you are drawing</h2>
 
-                <h2 class="panel-title">Selected object</h2>
+        <div class="small">
+          No anomaly painting. Choose the source air; the engine
+          derives its temperature character and lets sea crossings
+          add moisture.
+        </div>
 
-                <div
-                    id="ec-selected-empty"
-                    class="selected-empty"
-                >
-                    Select an object on the map or create one using the toolbar.
-                </div>
 
+        <div
+          class="field"
+          style="margin-top:9px"
+        >
 
-                <div
-                    id="ec-selected-editor"
-                    class="hidden"
-                >
+          <label for="airType">
+            Air source
+          </label>
 
-                    <div class="field">
+          <select id="airType">
 
-                        <label for="obj-name">
-                            Name
-                        </label>
+            <option value="arctic">
+              Arctic
+            </option>
 
-                        <input
-                            id="obj-name"
-                            type="text"
-                            maxlength="80"
-                        >
+            <option value="polar_maritime">
+              Polar maritime
+            </option>
 
-                    </div>
+            <option value="atlantic">
+              Atlantic maritime
+            </option>
 
+            <option value="continental">
+              Continental
+            </option>
 
-                    <div class="field">
+            <option value="mediterranean">
+              Mediterranean
+            </option>
 
-                        <label for="obj-type">
-                            Type
-                        </label>
+            <option value="tropical">
+              Tropical / North African
+            </option>
 
-                        <input
-                            id="obj-type"
-                            type="text"
-                            readonly
-                        >
+          </select>
 
-                    </div>
+        </div>
 
 
-                    <div class="field-row">
+        <div class="grid2">
 
-                        <div class="field">
+          <div class="field">
 
-                            <label for="obj-start-time">
-                                Start
-                            </label>
+            <label for="airIntensity">
+              Intensity
+            </label>
 
-                            <input
-                                id="obj-start-time"
-                                type="datetime-local"
-                                step="60"
-                            >
+            <select id="airIntensity">
 
-                        </div>
+              <option value="gentle">
+                Gentle
+              </option>
 
-                        <div class="field">
+              <option
+                value="normal"
+                selected
+              >
+                Normal
+              </option>
 
-                            <label for="obj-end-time">
-                                End
-                            </label>
+              <option value="strong">
+                Strong
+              </option>
 
-                            <input
-                                id="obj-end-time"
-                                type="datetime-local"
-                                step="60"
-                            >
+              <option value="extreme">
+                Extreme
+              </option>
 
-                        </div>
+            </select>
 
-                    </div>
+          </div>
 
 
-                    <hr class="section-divider">
+          <div class="field">
 
+            <label for="airWidth">
+              Width
+            </label>
 
-                    <div class="field-row">
+            <select id="airWidth">
 
-                        <div class="field">
+              <option value="350">
+                Narrow
+              </option>
 
-                            <label for="obj-start-lat">
-                                Start latitude
-                            </label>
+              <option
+                value="650"
+                selected
+              >
+                Normal
+              </option>
 
-                            <input
-                                id="obj-start-lat"
-                                type="number"
-                                min="30"
-                                max="74"
-                                step="0.01"
-                            >
+              <option value="950">
+                Broad
+              </option>
 
-                        </div>
+              <option value="1300">
+                Very broad
+              </option>
 
-                        <div class="field">
+            </select>
 
-                            <label for="obj-start-lon">
-                                Start longitude
-                            </label>
+          </div>
 
-                            <input
-                                id="obj-start-lon"
-                                type="number"
-                                min="-26"
-                                max="52"
-                                step="0.01"
-                            >
+        </div>
 
-                        </div>
 
-                    </div>
+        <div class="field">
 
+          <label for="airDuration">
+            Travel time
+          </label>
 
-                    <div class="field-row">
+          <select id="airDuration">
 
-                        <div class="field">
+            <option value="12">
+              12 hours
+            </option>
 
-                            <label for="obj-end-lat">
-                                End latitude
-                            </label>
+            <option value="24">
+              24 hours
+            </option>
 
-                            <input
-                                id="obj-end-lat"
-                                type="number"
-                                min="30"
-                                max="74"
-                                step="0.01"
-                            >
+            <option
+              value="36"
+              selected
+            >
+              36 hours
+            </option>
 
-                        </div>
+            <option value="48">
+              48 hours
+            </option>
 
-                        <div class="field">
+            <option value="72">
+              72 hours
+            </option>
 
-                            <label for="obj-end-lon">
-                                End longitude
-                            </label>
+            <option value="120">
+              5 days
+            </option>
 
-                            <input
-                                id="obj-end-lon"
-                                type="number"
-                                min="-26"
-                                max="52"
-                                step="0.01"
-                            >
+          </select>
 
-                        </div>
+        </div>
 
-                    </div>
+      </section>
 
 
-                    <div
-                        id="field-strength"
-                        class="field"
-                    >
+      <section class="panel">
 
-                        <label for="obj-strength">
-                            Strength
-                        </label>
+        <h2>Pressure tool</h2>
 
-                        <input
-                            id="obj-strength"
-                            type="number"
-                            min="-30"
-                            max="30"
-                            step="0.5"
-                        >
+        <div class="grid2">
 
-                    </div>
+          <div class="field">
 
+            <label for="pressureStrength">
+              Strength
+            </label>
 
-                    <div
-                        id="field-radius"
-                        class="field"
-                    >
+            <select id="pressureStrength">
 
-                        <label for="obj-radius">
-                            Radius / influence (km)
-                        </label>
+              <option value="weak">
+                Weak
+              </option>
 
-                        <input
-                            id="obj-radius"
-                            type="number"
-                            min="20"
-                            max="3000"
-                            step="10"
-                        >
+              <option
+                value="normal"
+                selected
+              >
+                Normal
+              </option>
 
-                    </div>
+              <option value="strong">
+                Strong
+              </option>
 
+              <option value="extreme">
+                Extreme
+              </option>
 
-                    <div
-                        id="field-airmass"
-                        class="field hidden"
-                    >
+            </select>
 
-                        <label for="obj-airmass">
-                            Air mass
-                        </label>
+          </div>
 
-                        <select id="obj-airmass">
 
-                            <option value="arctic">
-                                Arctic
-                            </option>
+          <div class="field">
 
-                            <option value="polar_maritime">
-                                Polar Maritime
-                            </option>
+            <label for="pressureDuration">
+              Duration
+            </label>
 
-                            <option value="atlantic">
-                                Atlantic Maritime
-                            </option>
+            <select id="pressureDuration">
 
-                            <option value="continental">
-                                Continental
-                            </option>
+              <option value="24">
+                24h
+              </option>
 
-                            <option value="mediterranean">
-                                Mediterranean
-                            </option>
+              <option value="48">
+                48h
+              </option>
 
-                            <option value="tropical">
-                                Tropical / North African
-                            </option>
+              <option
+                value="72"
+                selected
+              >
+                72h
+              </option>
 
-                        </select>
+              <option value="120">
+                5 days
+              </option>
 
-                    </div>
+            </select>
 
+          </div>
 
-                    <div
-                        id="field-front"
-                        class="hidden"
-                    >
+        </div>
 
-                        <div class="field-row">
+      </section>
 
-                            <div class="field">
 
-                                <label for="obj-angle">
-                                    Front angle (°)
-                                </label>
+      <section class="panel">
 
-                                <input
-                                    id="obj-angle"
-                                    type="number"
-                                    min="0"
-                                    max="359"
-                                    step="1"
-                                >
+        <h2>Weather at inspected point</h2>
 
-                            </div>
+        <div
+          class="small"
+          id="where"
+        >
+          Click the map.
+        </div>
 
-                            <div class="field">
 
-                                <label for="obj-length">
-                                    Front length (km)
-                                </label>
+        <div
+          class="weather"
+          style="margin-top:8px"
+        >
 
-                                <input
-                                    id="obj-length"
-                                    type="number"
-                                    min="50"
-                                    max="3000"
-                                    step="10"
-                                >
+          <div class="wcell">
+            <div class="wname">Temperature</div>
+            <div class="wval" id="wxTemp">—</div>
+          </div>
 
-                            </div>
+          <div class="wcell">
+            <div class="wname">Anomaly</div>
+            <div class="wval" id="wxAnom">—</div>
+          </div>
 
-                        </div>
+          <div class="wcell">
+            <div class="wname">Pressure</div>
+            <div class="wval" id="wxPressure">—</div>
+          </div>
 
-                    </div>
+          <div class="wcell">
+            <div class="wname">Wind</div>
+            <div class="wval" id="wxWind">—</div>
+          </div>
 
+          <div class="wcell">
+            <div class="wname">Cloud</div>
+            <div class="wval" id="wxCloud">—</div>
+          </div>
 
-                    <div
-                        id="field-precip"
-                        class="hidden"
-                    >
+          <div class="wcell">
+            <div class="wname">Moisture</div>
+            <div class="wval" id="wxMoisture">—</div>
+          </div>
 
-                        <div class="field">
+          <div class="wcell wide">
+            <div class="wname">Precipitation</div>
+            <div class="wval" id="wxPrecip">—</div>
+          </div>
 
-                            <label for="obj-precip-mode">
-                                Precipitation phase
-                            </label>
+          <div class="wcell">
+            <div class="wname">Snow depth</div>
+            <div class="wval" id="wxSnow">—</div>
+          </div>
 
-                            <select id="obj-precip-mode">
+          <div class="wcell">
+            <div class="wname">Elevation</div>
+            <div class="wval" id="wxElevation">—</div>
+          </div>
 
-                                <option value="auto">
-                                    Automatic from temperature
-                                </option>
+        </div>
 
-                                <option value="rain">
-                                    Rain
-                                </option>
+      </section>
 
-                                <option value="sleet">
-                                    Sleet
-                                </option>
 
-                                <option value="snow">
-                                    Snow
-                                </option>
+      <section class="panel">
 
-                            </select>
+        <h2>Active systems</h2>
 
-                        </div>
+        <div
+          class="objects"
+          id="objects"
+        >
+          <div class="small">
+            None.
+          </div>
+        </div>
 
+        <div
+          class="actions"
+          style="margin-top:8px"
+        >
 
-                        <div class="field-row">
+          <button
+            class="btn danger"
+            id="deleteSelected"
+            disabled
+          >
+            Delete selected
+          </button>
 
-                            <div class="field">
+        </div>
 
-                                <label for="obj-precip-rate">
-                                    Rate (mm/h)
-                                </label>
+      </section>
 
-                                <input
-                                    id="obj-precip-rate"
-                                    type="number"
-                                    min="0"
-                                    max="100"
-                                    step="0.1"
-                                >
 
-                            </div>
+      <section class="panel">
 
-                            <div class="field">
+        <h2>Planning state</h2>
 
-                                <label for="obj-cloud">
-                                    Cloud cover (%)
-                                </label>
+        <div class="note">
+          Locked weather remains viewable but cannot be altered.
+          Continue the next block with the final 12 locked hours visible.
+        </div>
 
-                                <input
-                                    id="obj-cloud"
-                                    type="number"
-                                    min="0"
-                                    max="100"
-                                    step="1"
-                                >
+        <div
+          class="actions"
+          style="margin-top:8px"
+        >
 
-                            </div>
+          <button
+            class="btn good"
+            id="markDone"
+          >
+            Mark through here Done
+          </button>
 
-                        </div>
+          <button
+            class="btn"
+            id="lockThrough"
+          >
+            Lock through here
+          </button>
 
-                    </div>
+          <button
+            class="btn"
+            id="nextBlock"
+          >
+            Next 3-month block
+          </button>
 
+        </div>
 
-                    <div class="field">
+      </section>
 
-                        <label for="obj-notes">
-                            Notes
-                        </label>
 
-                        <textarea
-                            id="obj-notes"
-                            maxlength="1000"
-                            placeholder="Optional planning notes..."
-                        ></textarea>
+      <section class="panel">
 
-                    </div>
+        <h2>Save and export</h2>
 
+        <div class="actions">
 
-                    <div
-                        id="ec-locked-object-note"
-                        class="locked-note hidden"
-                    >
-                        This object belongs to a locked period. It can be inspected,
-                        but it cannot be changed or deleted.
-                    </div>
+          <button
+            class="btn"
+            id="save"
+          >
+            Save locally
+          </button>
 
-                </div>
+          <button
+            class="btn active"
+            id="export"
+          >
+            Export plan JSON
+          </button>
 
-            </section>
+          <button
+            class="btn danger"
+            id="reset"
+          >
+            Reset
+          </button>
 
+        </div>
 
-            <section class="panel">
+      </section>
 
-                <h2 class="panel-title">Planning state</h2>
+    </aside>
 
-                <div class="panel-subtitle">
-                    Locked weather is immutable. The planner keeps the final
-                    12 hours visible when you continue into a new block.
-                </div>
+  </div>
 
-                <div class="inline-actions">
 
-                    <button
-                        id="ec-mark-done"
-                        type="button"
-                        class="btn good"
-                    >
-                        Mark through current time Done
-                    </button>
-
-                    <button
-                        id="ec-lock-through"
-                        type="button"
-                        class="btn"
-                    >
-                        Lock through current time
-                    </button>
-
-                </div>
-
-                <div
-                    id="ec-lock-warning"
-                    class="danger-note"
-                    style="margin-top: 10px;"
-                >
-                    Locking is intentionally permanent in normal use. Review the
-                    transition before locking.
-                </div>
-
-            </section>
-
-
-            <section class="panel">
-
-                <h2 class="panel-title">Save and export</h2>
-
-                <div class="panel-subtitle">
-                    The planner works entirely locally. The exported plan is
-                    deterministic and does not depend on live weather APIs.
-                </div>
-
-                <div class="inline-actions">
-
-                    <button
-                        id="ec-save-local"
-                        type="button"
-                        class="btn"
-                    >
-                        Save locally
-                    </button>
-
-                    <button
-                        id="ec-export-plan"
-                        type="button"
-                        class="btn"
-                    >
-                        Export planner JSON
-                    </button>
-
-                    <button
-                        id="ec-export-server"
-                        type="button"
-                        class="btn active"
-                    >
-                        Export server weather
-                    </button>
-
-                </div>
-
-                <div class="inline-actions">
-
-                    <button
-                        id="ec-reset-plan"
-                        type="button"
-                        class="btn danger"
-                    >
-                        Reset local working copy
-                    </button>
-
-                </div>
-
-            </section>
-
-        </aside>
-
-    </main>
-
-
-    <footer
-        id="ec-status-message"
-        class="status-message"
-        aria-live="polite"
-    >
-        Loading EuropaCraft Weather Planner…
-    </footer>
+  <footer id="message">
+    Starting EuropaCraft Weather Studio…
+  </footer>
 
 </div>
 
 
-<script src="europacraft-weather-plan.js"></script>
 <script src="europacraft-weather.js"></script>
 
 </body>
