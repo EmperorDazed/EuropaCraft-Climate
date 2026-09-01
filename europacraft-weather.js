@@ -1,8 +1,8 @@
 "use strict";
 
-(function () {
+(() => {
 
-  const BOUNDS = {
+  const B = {
     north: 74,
     south: 30,
     west: -26,
@@ -10,72 +10,69 @@
   };
 
 
-  /*
-      Static geography only.
-
-      These are NOT weather APIs.
-
-      Natural Earth supplies the real coastline/land mask.
-
-      AWS Terrarium supplies real elevation at a deliberately coarse
-      zoom appropriate for a continental weather planner.
-  */
-
-  const GEO_URL =
-    "https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@ca96624a/geojson/ne_50m_land.geojson";
+  const HOUR =
+    3600000;
 
 
-  const TERRAIN_URL =
-    "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
-
-
-  /*
-      Zoom 4 is intentionally coarse.
-
-      At continental scale this is enough to represent:
-      - Alps
-      - Pyrenees
-      - Carpathians
-      - Scandinavian mountains
-      - Scottish Highlands
-      - Balkan mountains
-      - major lowlands
-
-      without turning the browser into a terrain-processing project.
-  */
-  const TERRAIN_ZOOM =
-    4;
+  const DAY =
+    86400000;
 
 
   const KM_PER_DEG =
     111.32;
 
 
-  const MS_HOUR =
-    3600000;
+  const STORAGE =
+    "europacraft-weather-studio-v3";
 
 
-  const MS_DAY =
-    86400000;
+  /*
+      Real geography.
+
+      It tries several real Natural Earth sources rather than
+      falling back to invented polygons.
+  */
+
+  const GEO_URLS = [
+
+    "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_land.geojson",
+
+    "https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@master/geojson/ne_50m_land.geojson",
+
+    "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_0_countries.geojson"
+
+  ];
 
 
-  const STORAGE_KEY =
-    "europacraft-weather-studio-v1";
+  /*
+      Real elevation.
+
+      Zoom 4 is deliberately continental-scale.
+  */
+
+  const TERRAIN_Z =
+    4;
 
 
-  const DEFAULT_PLAN = {
+  const TERRAIN_HOSTS = [
+
+    "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png",
+
+    "https://elevation-tiles-prod.s3.amazonaws.com/terrarium/{z}/{x}/{y}.png"
+
+  ];
+
+
+  const defaults = {
 
     version:
-      1,
+      3,
 
     blockStart:
       "2026-10-01T00:00:00Z",
 
     blockEnd:
       "2026-12-31T23:59:59Z",
-
-    lockedHistoryHours:
-      12,
 
     doneThrough:
       null,
@@ -89,238 +86,175 @@
   };
 
 
-  let plan =
-    loadPlan() ||
-    structuredCloneSafe(
-      DEFAULT_PLAN
-    );
-
-
-  const canvas =
-    document.getElementById(
-      "map"
-    );
-
-
-  const ctx =
-    canvas.getContext(
-      "2d"
-    );
+  const $ =
+    id =>
+      document.getElementById(
+        id
+      );
 
 
   const ui = {
 
+    canvas:
+      $("map"),
+
     currentTime:
-      document.getElementById(
-        "currentTime"
-      ),
+      $("currentTime"),
 
     planRange:
-      document.getElementById(
-        "planRange"
-      ),
+      $("planRange"),
 
     planState:
-      document.getElementById(
-        "planState"
-      ),
+      $("planState"),
 
     mapHint:
-      document.getElementById(
-        "mapHint"
-      ),
+      $("mapHint"),
 
     coords:
-      document.getElementById(
-        "coords"
-      ),
-
-    layer:
-      document.getElementById(
-        "layer"
-      ),
-
-    finishAir:
-      document.getElementById(
-        "finishAir"
-      ),
-
-    cancelAir:
-      document.getElementById(
-        "cancelAir"
-      ),
-
-    airType:
-      document.getElementById(
-        "airType"
-      ),
-
-    airIntensity:
-      document.getElementById(
-        "airIntensity"
-      ),
-
-    airWidth:
-      document.getElementById(
-        "airWidth"
-      ),
-
-    airDuration:
-      document.getElementById(
-        "airDuration"
-      ),
-
-    pressureStrength:
-      document.getElementById(
-        "pressureStrength"
-      ),
-
-    pressureDuration:
-      document.getElementById(
-        "pressureDuration"
-      ),
-
-    timeSlider:
-      document.getElementById(
-        "timeSlider"
-      ),
-
-    timeInput:
-      document.getElementById(
-        "timeInput"
-      ),
-
-    timeStart:
-      document.getElementById(
-        "timeStart"
-      ),
-
-    timeMiddle:
-      document.getElementById(
-        "timeMiddle"
-      ),
-
-    timeEnd:
-      document.getElementById(
-        "timeEnd"
-      ),
-
-    m6:
-      document.getElementById(
-        "m6"
-      ),
-
-    m1:
-      document.getElementById(
-        "m1"
-      ),
-
-    p1:
-      document.getElementById(
-        "p1"
-      ),
-
-    p6:
-      document.getElementById(
-        "p6"
-      ),
-
-    where:
-      document.getElementById(
-        "where"
-      ),
-
-    wxTemp:
-      document.getElementById(
-        "wxTemp"
-      ),
-
-    wxAnom:
-      document.getElementById(
-        "wxAnom"
-      ),
-
-    wxPressure:
-      document.getElementById(
-        "wxPressure"
-      ),
-
-    wxWind:
-      document.getElementById(
-        "wxWind"
-      ),
-
-    wxCloud:
-      document.getElementById(
-        "wxCloud"
-      ),
-
-    wxMoisture:
-      document.getElementById(
-        "wxMoisture"
-      ),
-
-    wxPrecip:
-      document.getElementById(
-        "wxPrecip"
-      ),
-
-    wxSnow:
-      document.getElementById(
-        "wxSnow"
-      ),
-
-    wxElevation:
-      document.getElementById(
-        "wxElevation"
-      ),
-
-    objects:
-      document.getElementById(
-        "objects"
-      ),
-
-    deleteSelected:
-      document.getElementById(
-        "deleteSelected"
-      ),
-
-    markDone:
-      document.getElementById(
-        "markDone"
-      ),
-
-    lockThrough:
-      document.getElementById(
-        "lockThrough"
-      ),
-
-    nextBlock:
-      document.getElementById(
-        "nextBlock"
-      ),
-
-    save:
-      document.getElementById(
-        "save"
-      ),
-
-    export:
-      document.getElementById(
-        "export"
-      ),
-
-    reset:
-      document.getElementById(
-        "reset"
-      ),
+      $("coords"),
 
     message:
-      document.getElementById(
-        "message"
-      )
+      $("message"),
+
+    layer:
+      $("layer"),
+
+    finishAir:
+      $("finishAir"),
+
+    cancelAir:
+      $("cancelAir"),
+
+    airType:
+      $("airType"),
+
+    airIntensity:
+      $("airIntensity"),
+
+    airWidth:
+      $("airWidth"),
+
+    airDuration:
+      $("airDuration"),
+
+    pressureStrength:
+      $("pressureStrength"),
+
+    pressureDuration:
+      $("pressureDuration"),
+
+    timeSlider:
+      $("timeSlider"),
+
+    timeInput:
+      $("timeInput"),
+
+    timeStart:
+      $("timeStart"),
+
+    timeMiddle:
+      $("timeMiddle"),
+
+    timeEnd:
+      $("timeEnd"),
+
+    wxTemp:
+      $("wxTemp"),
+
+    wxAnom:
+      $("wxAnom"),
+
+    wxPressure:
+      $("wxPressure"),
+
+    wxWind:
+      $("wxWind"),
+
+    wxCloud:
+      $("wxCloud"),
+
+    wxMoisture:
+      $("wxMoisture"),
+
+    wxPrecip:
+      $("wxPrecip"),
+
+    wxSnow:
+      $("wxSnow"),
+
+    wxElevation:
+      $("wxElevation"),
+
+    where:
+      $("where"),
+
+    objects:
+      $("objects"),
+
+    deleteSelected:
+      $("deleteSelected"),
+
+    markDone:
+      $("markDone"),
+
+    lockThrough:
+      $("lockThrough"),
+
+    save:
+      $("save"),
+
+    export:
+      $("export"),
+
+    reset:
+      $("reset"),
+
+    m6:
+      $("m6"),
+
+    m1:
+      $("m1"),
+
+    p1:
+      $("p1"),
+
+    p6:
+      $("p6")
 
   };
+
+
+  if (
+    !ui.canvas
+  ) {
+
+    throw new Error(
+      "EuropaCraft Weather Studio: #map canvas not found."
+    );
+
+  }
+
+
+  const ctx =
+    ui.canvas.getContext(
+      "2d"
+    );
+
+
+  const clone =
+    x =>
+      JSON.parse(
+        JSON.stringify(
+          x
+        )
+      );
+
+
+  let plan =
+    loadPlan() ||
+    clone(
+      defaults
+    );
 
 
   const state = {
@@ -336,31 +270,25 @@
         plan.blockStart
       ),
 
-    displayStart:
-      0,
-
-    displayEnd:
-      0,
-
     selectedId:
       null,
 
     inspect: {
-      lat: 53.5,
-      lon: 15
+      lat: 51.25,
+      lon: 0.5
     },
 
-    drawPath:
-      [],
-
-    drawActive:
+    drawing:
       false,
 
-    width:
-      900,
+    draftPath:
+      [],
 
-    height:
-      520,
+    w:
+      1000,
+
+    h:
+      600,
 
     dpr:
       1,
@@ -371,32 +299,18 @@
     terrainReady:
       false,
 
-    terrainLoading:
-      false,
-
-    landMask:
+    landData:
       null,
-
-    baseCanvas:
-      document.createElement(
-        "canvas"
-      ),
 
     terrainTiles:
       new Map(),
 
-    overlayCache:
-      new Map()
+    baseCanvas:
+      document.createElement(
+        "canvas"
+      )
 
   };
-
-
-  const MASK_W =
-    780;
-
-
-  const MASK_H =
-    440;
 
 
   const landCanvas =
@@ -406,11 +320,11 @@
 
 
   landCanvas.width =
-    MASK_W;
+    780;
 
 
   landCanvas.height =
-    MASK_H;
+    440;
 
 
   const landCtx =
@@ -423,52 +337,17 @@
     );
 
 
-  /*
-      ==========================================================
-      GENERIC HELPERS
-      ==========================================================
-  */
-
-
-  function structuredCloneSafe(
-    value
-  ) {
-
-    return JSON.parse(
-      JSON.stringify(
-        value
-      )
-    );
-
-  }
-
-
   function clamp(
     v,
-    min,
-    max
+    a,
+    b
   ) {
 
-    v =
-      Number(v);
-
-
-    if (
-      !Number.isFinite(
-        v
-      )
-    ) {
-
-      return min;
-
-    }
-
-
     return Math.max(
-      min,
+      a,
       Math.min(
-        max,
-        v
+        b,
+        Number(v)
       )
     );
 
@@ -493,7 +372,7 @@
   }
 
 
-  function smoothstep(
+  function smooth(
     t
   ) {
 
@@ -518,7 +397,7 @@
   }
 
 
-  function degToRad(
+  function rad(
     d
   ) {
 
@@ -531,7 +410,7 @@
   }
 
 
-  function radToDeg(
+  function deg(
     r
   ) {
 
@@ -544,38 +423,13 @@
   }
 
 
-  function normDeg(
-    d
-  ) {
-
-    d %=
-      360;
-
-
-    if (
-      d <
-      0
-    ) {
-
-      d +=
-        360;
-
-    }
-
-
-    return d;
-
-  }
-
-
-  function pad2(
+  function pad(
     n
   ) {
 
     return String(
       n
-    )
-    .padStart(
+    ).padStart(
       2,
       "0"
     );
@@ -583,8 +437,56 @@
   }
 
 
+  function sign1(
+    v
+  ) {
+
+    return (
+      v >=
+      0
+        ? "+"
+        : ""
+    );
+
+  }
+
+
+  function uid(
+    prefix
+  ) {
+
+    return (
+      `${prefix}_` +
+      Date.now()
+        .toString(
+          36
+        ) +
+      "_" +
+      Math.random()
+        .toString(
+          36
+        )
+        .slice(
+          2,
+          7
+        )
+    );
+
+  }
+
+
+  function msg(
+    s
+  ) {
+
+    ui.message.textContent =
+      s;
+
+  }
+
+
   function monthName(
-    i
+    m
   ) {
 
     return [
@@ -600,12 +502,12 @@
       "Oct",
       "Nov",
       "Dec"
-    ][i];
+    ][m];
 
   }
 
 
-  function formatUTC(
+  function fmt(
     ms
   ) {
 
@@ -618,20 +520,20 @@
     return (
       d.getUTCFullYear() +
       "-" +
-      pad2(
+      pad(
         d.getUTCMonth() +
         1
       ) +
       "-" +
-      pad2(
+      pad(
         d.getUTCDate()
       ) +
       " " +
-      pad2(
+      pad(
         d.getUTCHours()
       ) +
       ":" +
-      pad2(
+      pad(
         d.getUTCMinutes()
       ) +
       " UTC"
@@ -640,7 +542,7 @@
   }
 
 
-  function shortUTC(
+  function shortFmt(
     ms
   ) {
 
@@ -651,7 +553,7 @@
 
 
     return (
-      pad2(
+      pad(
         d.getUTCDate()
       ) +
       " " +
@@ -659,11 +561,11 @@
         d.getUTCMonth()
       ) +
       " " +
-      pad2(
+      pad(
         d.getUTCHours()
       ) +
       ":" +
-      pad2(
+      pad(
         d.getUTCMinutes()
       )
     );
@@ -671,7 +573,7 @@
   }
 
 
-  function toLocalInput(
+  function inputFmt(
     ms
   ) {
 
@@ -684,20 +586,20 @@
     return (
       d.getUTCFullYear() +
       "-" +
-      pad2(
+      pad(
         d.getUTCMonth() +
         1
       ) +
       "-" +
-      pad2(
+      pad(
         d.getUTCDate()
       ) +
       "T" +
-      pad2(
+      pad(
         d.getUTCHours()
       ) +
       ":" +
-      pad2(
+      pad(
         d.getUTCMinutes()
       )
     );
@@ -705,33 +607,28 @@
   }
 
 
-  function parseLocalInputAsUTC(
-    text
+  function parseInput(
+    s
   ) {
 
     const m =
       /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/
       .exec(
-        text ||
+        s ||
         ""
       );
 
 
-    if (!m) {
-
-      return NaN;
-
-    }
-
-
-    return Date.UTC(
-      +m[1],
-      +m[2] -
-      1,
-      +m[3],
-      +m[4],
-      +m[5]
-    );
+    return m
+      ? Date.UTC(
+          +m[1],
+          +m[2] -
+          1,
+          +m[3],
+          +m[4],
+          +m[5]
+        )
+      : NaN;
 
   }
 
@@ -756,7 +653,7 @@
             1
           )
         ) /
-        MS_DAY
+        DAY
       ) +
       1
     );
@@ -764,150 +661,157 @@
   }
 
 
-  function msg(
-    text,
-    lead =
-      ""
-  ) {
+  function saveSilent() {
 
-    ui.message.textContent =
-      lead
-        ? lead +
-          " " +
-          text
-        : text;
+    localStorage.setItem(
+      STORAGE,
+      JSON.stringify(
+        plan
+      )
+    );
+
+  }
+
+
+  function loadPlan() {
+
+    try {
+
+      const raw =
+        localStorage.getItem(
+          STORAGE
+        );
+
+
+      if (!raw) {
+
+        return null;
+
+      }
+
+
+      const p =
+        JSON.parse(
+          raw
+        );
+
+
+      return (
+        p &&
+        Array.isArray(
+          p.objects
+        )
+          ? p
+          : null
+      );
+
+    }
+    catch {
+
+      return null;
+
+    }
 
   }
 
 
   /*
-      ==========================================================
-      MAP PROJECTION
-      ==========================================================
+      =========================================================
+      MAP COORDINATES
+      =========================================================
   */
 
 
-  function lonToX(
+  function lonX(
     lon,
-    width =
-      state.width
+    w =
+      state.w
   ) {
 
     return (
       (
         lon -
-        BOUNDS.west
+        B.west
       ) /
       (
-        BOUNDS.east -
-        BOUNDS.west
+        B.east -
+        B.west
       ) *
-      width
+      w
     );
 
   }
 
 
-  function latToY(
+  function latY(
     lat,
-    height =
-      state.height
+    h =
+      state.h
   ) {
 
     return (
       (
-        BOUNDS.north -
+        B.north -
         lat
       ) /
       (
-        BOUNDS.north -
-        BOUNDS.south
+        B.north -
+        B.south
       ) *
-      height
+      h
     );
 
   }
 
 
-  function xToLon(
+  function xLon(
     x,
-    width =
-      state.width
+    w =
+      state.w
   ) {
 
     return (
-      BOUNDS.west +
+      B.west +
       x /
-      width *
+      w *
       (
-        BOUNDS.east -
-        BOUNDS.west
+        B.east -
+        B.west
       )
     );
 
   }
 
 
-  function yToLat(
+  function yLat(
     y,
-    height =
-      state.height
+    h =
+      state.h
   ) {
 
     return (
-      BOUNDS.north -
+      B.north -
       y /
-      height *
+      h *
       (
-        BOUNDS.north -
-        BOUNDS.south
+        B.north -
+        B.south
       )
     );
 
   }
 
 
-  function canvasPoint(
-    evt
-  ) {
-
-    const r =
-      canvas.getBoundingClientRect();
-
-
-    return {
-
-      x:
-        (
-          evt.clientX -
-          r.left
-        ) *
-        state.width /
-        r.width,
-
-      y:
-        (
-          evt.clientY -
-          r.top
-        ) *
-        state.height /
-        r.height
-
-    };
-
-  }
-
-
-  function kmPerLonDeg(
+  function kmLon(
     lat
   ) {
 
     return (
       KM_PER_DEG *
       Math.max(
-        0.12,
+        .12,
         Math.cos(
-          degToRad(
+          rad(
             lat
           )
         )
@@ -917,7 +821,7 @@
   }
 
 
-  function distanceKm(
+  function distKm(
     aLat,
     aLon,
     bLat,
@@ -932,33 +836,28 @@
       2;
 
 
-    const dx =
+    return Math.hypot(
+
       (
         bLon -
         aLon
       ) *
-      kmPerLonDeg(
+      kmLon(
         ml
-      );
+      ),
 
-
-    const dy =
       (
         bLat -
         aLat
       ) *
-      KM_PER_DEG;
+      KM_PER_DEG
 
-
-    return Math.hypot(
-      dx,
-      dy
     );
 
   }
 
 
-  function localVectorKm(
+  function vecKm(
     aLat,
     aLon,
     bLat,
@@ -980,7 +879,7 @@
           bLon -
           aLon
         ) *
-        kmPerLonDeg(
+        kmLon(
           ml
         ),
 
@@ -996,120 +895,41 @@
   }
 
 
-  function uid(
-    prefix
+  function canvasPoint(
+    e
   ) {
 
-    return (
-      prefix +
-      "_" +
-      Date.now()
-        .toString(
-          36
-        ) +
-      "_" +
-      Math.random()
-        .toString(
-          36
-        )
-        .slice(
-          2,
-          7
-        )
-    );
+    const r =
+      ui.canvas.getBoundingClientRect();
+
+
+    return {
+
+      x:
+        (
+          e.clientX -
+          r.left
+        ) *
+        state.w /
+        r.width,
+
+      y:
+        (
+          e.clientY -
+          r.top
+        ) *
+        state.h /
+        r.height
+
+    };
 
   }
 
 
   /*
-      ==========================================================
-      PLAN SAVE / LOAD
-      ==========================================================
-  */
-
-
-  function loadPlan() {
-
-    try {
-
-      const raw =
-        localStorage.getItem(
-          STORAGE_KEY
-        );
-
-
-      if (!raw) {
-
-        return null;
-
-      }
-
-
-      const p =
-        JSON.parse(
-          raw
-        );
-
-
-      if (
-        !p ||
-        !Array.isArray(
-          p.objects
-        ) ||
-        !p.blockStart ||
-        !p.blockEnd
-      ) {
-
-        return null;
-
-      }
-
-
-      return p;
-
-    }
-    catch (_) {
-
-      return null;
-
-    }
-
-  }
-
-
-  function savePlan() {
-
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(
-        plan
-      )
-    );
-
-
-    msg(
-      "Working plan saved locally."
-    );
-
-  }
-
-
-  function savePlanSilently() {
-
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(
-        plan
-      )
-    );
-
-  }
-
-
-  /*
-      ==========================================================
-      LOCKING
-      ==========================================================
+      =========================================================
+      LOCK STATE
+      =========================================================
   */
 
 
@@ -1117,16 +937,8 @@
     ms
   ) {
 
-    if (
-      !plan.lockedThrough
-    ) {
-
-      return false;
-
-    }
-
-
     return (
+      !!plan.lockedThrough &&
       ms <=
       Date.parse(
         plan.lockedThrough
@@ -1136,20 +948,12 @@
   }
 
 
-  function objectFrozen(
+  function frozen(
     obj
   ) {
 
-    if (
-      !plan.lockedThrough
-    ) {
-
-      return false;
-
-    }
-
-
     return (
+      !!plan.lockedThrough &&
       Date.parse(
         obj.startTime
       ) <=
@@ -1161,14 +965,11 @@
   }
 
 
-  function planningState(
-    ms =
-      state.now
-  ) {
+  function planState() {
 
     if (
       plan.lockedThrough &&
-      ms <=
+      state.now <=
       Date.parse(
         plan.lockedThrough
       )
@@ -1181,7 +982,7 @@
 
     if (
       plan.doneThrough &&
-      ms <=
+      state.now <=
       Date.parse(
         plan.doneThrough
       )
@@ -1198,121 +999,93 @@
 
 
   /*
-      ==========================================================
+      =========================================================
       TIMELINE
-      ==========================================================
+      =========================================================
   */
 
 
-  function rebuildTimeline() {
+  function syncTimeline() {
 
-    const start =
+    const a =
       Date.parse(
         plan.blockStart
       );
 
 
-    const end =
+    const b =
       Date.parse(
         plan.blockEnd
       );
 
 
-    let displayStart =
-      start;
-
-
-    /*
-        When moving into a later planning block, expose the
-        final 12 hours of already-locked history.
-    */
-
-    if (
-      plan.lockedThrough
-    ) {
-
-      const locked =
-        Date.parse(
-          plan.lockedThrough
-        );
-
-
-      if (
-        locked <
-        start
-      ) {
-
-        displayStart =
-          locked -
-          plan.lockedHistoryHours *
-          MS_HOUR;
-
-      }
-
-    }
-
-
-    state.displayStart =
-      displayStart;
-
-
-    state.displayEnd =
-      end;
-
-
     state.now =
       clamp(
         state.now,
-        displayStart,
-        end
+        a,
+        b
       );
 
 
+    ui.currentTime.textContent =
+      fmt(
+        state.now
+      );
+
+
+    ui.planRange.textContent =
+      shortFmt(
+        a
+      ) +
+      " → " +
+      shortFmt(
+        b
+      );
+
+
+    ui.planState.textContent =
+      planState();
+
+
     ui.timeStart.textContent =
-      shortUTC(
-        displayStart
+      shortFmt(
+        a
       );
 
 
     ui.timeEnd.textContent =
-      shortUTC(
-        end
+      shortFmt(
+        b
       );
 
 
-    syncTimeControls();
+    ui.timeMiddle.textContent =
+      planState() ===
+      "LOCKED"
+        ? "LOCKED · view only"
+        : planState() ===
+          "DONE"
+          ? "DONE · reviewed"
+          : "NOT DONE · editable";
 
-  }
 
-
-  function syncTimeControls() {
-
-    const f =
-      (
-        state.now -
-        state.displayStart
-      ) /
-      Math.max(
-        1,
-        state.displayEnd -
-        state.displayStart
+    ui.timeInput.value =
+      inputFmt(
+        state.now
       );
 
 
     ui.timeSlider.value =
-      String(
-        clamp(
-          f *
-          2000,
-          0,
-          2000
-        )
-      );
-
-
-    ui.timeInput.value =
-      toLocalInput(
-        state.now
+      Math.round(
+        (
+          state.now -
+          a
+        ) /
+        (
+          b -
+          a
+        ) *
+        2000
       );
 
   }
@@ -1324,18 +1097,21 @@
 
     state.now =
       clamp(
+
         ms,
-        state.displayStart,
-        state.displayEnd
+
+        Date.parse(
+          plan.blockStart
+        ),
+
+        Date.parse(
+          plan.blockEnd
+        )
+
       );
 
 
-    state.overlayCache.clear();
-
-
-    syncTimeControls();
-
-    updateTop();
+    syncTimeline();
 
     updateObjects();
 
@@ -1346,146 +1122,137 @@
   }
 
 
-  function updateTop() {
-
-    ui.currentTime.textContent =
-      formatUTC(
-        state.now
-      );
-
-
-    ui.planRange.textContent =
-      shortUTC(
-        Date.parse(
-          plan.blockStart
-        )
-      ) +
-      " → " +
-      shortUTC(
-        Date.parse(
-          plan.blockEnd
-        )
-      );
-
-
-    const s =
-      planningState();
-
-
-    ui.planState.textContent =
-      s;
-
-
-    ui.timeMiddle.textContent =
-      s ===
-      "LOCKED"
-        ? "LOCKED · view only"
-        : s ===
-          "DONE"
-          ? "DONE · reviewed, still editable"
-          : "NOT DONE · editable";
-
-  }
-
-
   /*
-      ==========================================================
-      REAL GEOGRAPHY
-      ==========================================================
+      =========================================================
+      REAL EUROPE
+      =========================================================
   */
 
 
-  async function loadGeography() {
+  async function fetchJSON(
+    urls
+  ) {
 
-    try {
-
-      msg(
-        "Loading Natural Earth coastline…"
-      );
+    let last;
 
 
-      const res =
-        await fetch(
-          GEO_URL,
-          {
-            cache:
-              "force-cache"
-          }
-        );
+    for (
+      const url of
+      urls
+    ) {
+
+      try {
+
+        const r =
+          await fetch(
+            url,
+            {
+              cache:
+                "force-cache"
+            }
+          );
 
 
-      if (
-        !res.ok
+        if (
+          !r.ok
+        ) {
+
+          throw new Error(
+            r.status +
+            " " +
+            r.statusText
+          );
+
+        }
+
+
+        return await r.json();
+
+      }
+      catch (
+        e
       ) {
 
-        throw new Error(
-          "Natural Earth HTTP " +
-          res.status
+        last =
+          e;
+
+
+        console.warn(
+          "Geography source failed",
+          url,
+          e
         );
 
       }
 
-
-      const geo =
-        await res.json();
-
-
-      buildLandMask(
-        geo
-      );
-
-
-      state.geoReady =
-        true;
-
-
-      buildBaseMap();
-
-      render();
-
-
-      msg(
-        "Real coastline loaded. Loading terrain elevation…"
-      );
-
-
-      await loadTerrainTiles();
-
-
-      buildBaseMap();
-
-      render();
-
-      updateInspect();
-
-
-      msg(
-        "Ready. Draw an air path, place a high or low, then use the overlays to see what develops."
-      );
-
     }
-    catch (
-      err
+
+
+    throw (
+      last ||
+      new Error(
+        "No geography source available"
+      )
+    );
+
+  }
+
+
+  function drawRing(
+    ring
+  ) {
+
+    if (
+      !ring ||
+      ring.length <
+      2
     ) {
 
-      console.error(
-        err
-      );
-
-
-      msg(
-        "Could not load real geography. The planner will not substitute fake Europe.",
-        "DATA ERROR:"
-      );
-
-
-      ui.mapHint.textContent =
-        "REAL GEOGRAPHY COULD NOT LOAD — check internet/static dataset access.";
-
-
-      render();
+      return;
 
     }
+
+
+    landCtx.moveTo(
+
+      lonX(
+        ring[0][0],
+        landCanvas.width
+      ),
+
+      latY(
+        ring[0][1],
+        landCanvas.height
+      )
+
+    );
+
+
+    for (
+      let i = 1;
+      i <
+      ring.length;
+      i++
+    ) {
+
+      landCtx.lineTo(
+
+        lonX(
+          ring[i][0],
+          landCanvas.width
+        ),
+
+        latY(
+          ring[i][1],
+          landCanvas.height
+        )
+
+      );
+
+    }
+
+
+    landCtx.closePath();
 
   }
 
@@ -1497,8 +1264,8 @@
     landCtx.clearRect(
       0,
       0,
-      MASK_W,
-      MASK_H
+      landCanvas.width,
+      landCanvas.height
     );
 
 
@@ -1509,71 +1276,14 @@
     landCtx.beginPath();
 
 
-    function ringPath(
-      ring
-    ) {
-
-      if (
-        !ring ||
-        ring.length <
-        2
-      ) {
-
-        return;
-
-      }
-
-
-      const p0 =
-        ring[0];
-
-
-      landCtx.moveTo(
-        lonToX(
-          p0[0],
-          MASK_W
-        ),
-        latToY(
-          p0[1],
-          MASK_H
-        )
-      );
-
-
-      for (
-        let i = 1;
-        i <
-        ring.length;
-        i++
-      ) {
-
-        landCtx.lineTo(
-          lonToX(
-            ring[i][0],
-            MASK_W
-          ),
-          latToY(
-            ring[i][1],
-            MASK_H
-          )
-        );
-
-      }
-
-
-      landCtx.closePath();
-
-    }
-
-
     for (
-      const feature of
+      const f of
       geo.features ||
       []
     ) {
 
       const g =
-        feature.geometry;
+        f.geometry;
 
 
       if (!g) {
@@ -1593,14 +1303,16 @@
           g.coordinates
         ) {
 
-          ringPath(
+          drawRing(
             ring
           );
 
         }
 
       }
-      else if (
+
+
+      if (
         g.type ===
         "MultiPolygon"
       ) {
@@ -1615,7 +1327,7 @@
             poly
           ) {
 
-            ringPath(
+            drawRing(
               ring
             );
 
@@ -1633,13 +1345,17 @@
     );
 
 
-    state.landMask =
+    state.landData =
       landCtx.getImageData(
         0,
         0,
-        MASK_W,
-        MASK_H
+        landCanvas.width,
+        landCanvas.height
       ).data;
+
+
+    state.geoReady =
+      true;
 
   }
 
@@ -1651,7 +1367,7 @@
 
     if (
       !state.geoReady ||
-      !state.landMask
+      !state.landData
     ) {
 
       return false;
@@ -1661,47 +1377,55 @@
 
     const x =
       clamp(
+
         Math.floor(
           (
             lon -
-            BOUNDS.west
+            B.west
           ) /
           (
-            BOUNDS.east -
-            BOUNDS.west
+            B.east -
+            B.west
           ) *
-          MASK_W
+          landCanvas.width
         ),
+
         0,
-        MASK_W -
+
+        landCanvas.width -
         1
+
       );
 
 
     const y =
       clamp(
+
         Math.floor(
           (
-            BOUNDS.north -
+            B.north -
             lat
           ) /
           (
-            BOUNDS.north -
-            BOUNDS.south
+            B.north -
+            B.south
           ) *
-          MASK_H
+          landCanvas.height
         ),
+
         0,
-        MASK_H -
+
+        landCanvas.height -
         1
+
       );
 
 
     return (
-      state.landMask[
+      state.landData[
         (
           y *
-          MASK_W +
+          landCanvas.width +
           x
         ) *
         4 +
@@ -1714,14 +1438,13 @@
 
 
   /*
-      ==========================================================
-      REAL ELEVATION
-      AWS TERRARIUM
-      ==========================================================
+      =========================================================
+      TERRAIN
+      =========================================================
   */
 
 
-  function mercatorTileXY(
+  function tilePos(
     lat,
     lon,
     z
@@ -1732,8 +1455,8 @@
       z;
 
 
-    const latRad =
-      degToRad(
+    const la =
+      rad(
         clamp(
           lat,
           -85.0511,
@@ -1756,7 +1479,7 @@
         1 -
         Math.asinh(
           Math.tan(
-            latRad
+            la
           )
         ) /
         Math.PI
@@ -1788,146 +1511,61 @@
   }
 
 
-  async function imageDataFromBlob(
+  async function blobImageData(
     blob
   ) {
 
+    const bmp =
+      await createImageBitmap(
+        blob
+      );
+
+
+    const c =
+      document.createElement(
+        "canvas"
+      );
+
+
+    c.width =
+      bmp.width;
+
+
+    c.height =
+      bmp.height;
+
+
+    const cctx =
+      c.getContext(
+        "2d",
+        {
+          willReadFrequently:
+            true
+        }
+      );
+
+
+    cctx.drawImage(
+      bmp,
+      0,
+      0
+    );
+
+
     if (
-      "createImageBitmap" in
-      window
+      bmp.close
     ) {
 
-      const bmp =
-        await createImageBitmap(
-          blob
-        );
-
-
-      const c =
-        document.createElement(
-          "canvas"
-        );
-
-
-      c.width =
-        bmp.width;
-
-
-      c.height =
-        bmp.height;
-
-
-      const cctx =
-        c.getContext(
-          "2d",
-          {
-            willReadFrequently:
-              true
-          }
-        );
-
-
-      cctx.drawImage(
-        bmp,
-        0,
-        0
-      );
-
-
-      if (
-        bmp.close
-      ) {
-
-        bmp.close();
-
-      }
-
-
-      return cctx.getImageData(
-        0,
-        0,
-        c.width,
-        c.height
-      );
+      bmp.close();
 
     }
 
 
-    return await new Promise(
-      (
-        resolve,
-        reject
-      ) => {
-
-        const url =
-          URL.createObjectURL(
-            blob
-          );
-
-
-        const img =
-          new Image();
-
-
-        img.onload =
-          () => {
-
-            const c =
-              document.createElement(
-                "canvas"
-              );
-
-
-            c.width =
-              img.naturalWidth;
-
-
-            c.height =
-              img.naturalHeight;
-
-
-            const cctx =
-              c.getContext(
-                "2d",
-                {
-                  willReadFrequently:
-                    true
-                }
-              );
-
-
-            cctx.drawImage(
-              img,
-              0,
-              0
-            );
-
-
-            URL.revokeObjectURL(
-              url
-            );
-
-
-            resolve(
-              cctx.getImageData(
-                0,
-                0,
-                c.width,
-                c.height
-              )
-            );
-
-          };
-
-
-        img.onerror =
-          reject;
-
-
-        img.src =
-          url;
-
-      }
+    return cctx.getImageData(
+      0,
+      0,
+      c.width,
+      c.height
     );
 
   }
@@ -1953,93 +1591,106 @@
       )
     ) {
 
-      return;
+      return true;
 
     }
 
 
-    const url =
-      TERRAIN_URL
-        .replace(
-          "{z}",
-          z
-        )
-        .replace(
-          "{x}",
-          x
-        )
-        .replace(
-          "{y}",
-          y
+    for (
+      const tpl of
+      TERRAIN_HOSTS
+    ) {
+
+      const url =
+        tpl
+          .replace(
+            "{z}",
+            z
+          )
+          .replace(
+            "{x}",
+            x
+          )
+          .replace(
+            "{y}",
+            y
+          );
+
+
+      try {
+
+        const r =
+          await fetch(
+            url,
+            {
+              cache:
+                "force-cache"
+            }
+          );
+
+
+        if (
+          !r.ok
+        ) {
+
+          throw new Error(
+            String(
+              r.status
+            )
+          );
+
+        }
+
+
+        state.terrainTiles.set(
+
+          key,
+
+          await blobImageData(
+            await r.blob()
+          )
+
         );
 
 
-    const res =
-      await fetch(
-        url,
-        {
-          cache:
-            "force-cache"
-        }
-      );
+        return true;
 
+      }
+      catch (
+        e
+      ) {
 
-    if (
-      !res.ok
-    ) {
+        console.warn(
+          "Terrain tile failed",
+          url,
+          e
+        );
 
-      throw new Error(
-        "Terrain " +
-        key +
-        ": HTTP " +
-        res.status
-      );
+      }
 
     }
 
 
-    const imageData =
-      await imageDataFromBlob(
-        await res.blob()
-      );
-
-
-    state.terrainTiles.set(
-      key,
-      imageData
-    );
+    return false;
 
   }
 
 
-  async function loadTerrainTiles() {
-
-    if (
-      state.terrainLoading
-    ) {
-
-      return;
-
-    }
-
-
-    state.terrainLoading =
-      true;
-
+  async function loadTerrain() {
 
     const nw =
-      mercatorTileXY(
-        BOUNDS.north,
-        BOUNDS.west,
-        TERRAIN_ZOOM
+      tilePos(
+        B.north,
+        B.west,
+        TERRAIN_Z
       );
 
 
     const se =
-      mercatorTileXY(
-        BOUNDS.south,
-        BOUNDS.east,
-        TERRAIN_ZOOM
+      tilePos(
+        B.south,
+        B.east,
+        TERRAIN_Z
       );
 
 
@@ -2063,7 +1714,7 @@
 
         jobs.push(
           loadTerrainTile(
-            TERRAIN_ZOOM,
+            TERRAIN_Z,
             x,
             y
           )
@@ -2075,41 +1726,20 @@
 
 
     const results =
-      await Promise.allSettled(
+      await Promise.all(
         jobs
       );
 
 
-    const ok =
-      results.filter(
-        result =>
-          result.status ===
-          "fulfilled"
-      ).length;
-
-
     state.terrainReady =
-      ok >
-      0;
-
-
-    state.terrainLoading =
-      false;
-
-
-    if (
-      ok !==
-      results.length
-    ) {
-
-      console.warn(
-        "Terrain tiles loaded " +
-        ok +
-        "/" +
-        results.length
+      results.some(
+        Boolean
       );
 
-    }
+
+    return results.filter(
+      Boolean
+    ).length;
 
   }
 
@@ -2120,7 +1750,11 @@
   ) {
 
     if (
-      !state.terrainReady
+      !state.terrainReady ||
+      !isLand(
+        lat,
+        lon
+      )
     ) {
 
       return 0;
@@ -2129,16 +1763,16 @@
 
 
     const t =
-      mercatorTileXY(
+      tilePos(
         lat,
         lon,
-        TERRAIN_ZOOM
+        TERRAIN_Z
       );
 
 
     const data =
       state.terrainTiles.get(
-        TERRAIN_ZOOM +
+        TERRAIN_Z +
         "/" +
         t.x +
         "/" +
@@ -2155,6 +1789,7 @@
 
     const px =
       clamp(
+
         Math.floor(
           (
             t.xf -
@@ -2162,14 +1797,18 @@
           ) *
           data.width
         ),
+
         0,
+
         data.width -
         1
+
       );
 
 
     const py =
       clamp(
+
         Math.floor(
           (
             t.yf -
@@ -2177,9 +1816,12 @@
           ) *
           data.height
         ),
+
         0,
+
         data.height -
         1
+
       );
 
 
@@ -2192,88 +1834,69 @@
       4;
 
 
-    const r =
-      data.data[i];
-
-
-    const g =
-      data.data[
-        i +
-        1
-      ];
-
-
-    const b =
-      data.data[
-        i +
-        2
-      ];
+    const d =
+      data.data;
 
 
     /*
-        Terrarium encoding:
-
-        elevation =
-            R * 256
-            + G
-            + B / 256
-            - 32768
+        Terrarium elevation encoding.
     */
 
-    const h =
-      r *
-      256 +
-      g +
-      b /
-      256 -
-      32768;
-
-
     return (
-      isLand(
-        lat,
-        lon
-      )
-        ? h
-        : 0
+      d[i] *
+      256 +
+      d[
+        i +
+        1
+      ] +
+      d[
+        i +
+        2
+      ] /
+      256 -
+      32768
     );
 
   }
 
 
   /*
-      ==========================================================
-      BASE MAP
-      ==========================================================
+      =========================================================
+      TERRAIN MAP
+      =========================================================
   */
 
 
-  function buildBaseMap() {
+  function buildBase() {
 
     const W =
-      MASK_W;
+      780;
 
 
     const H =
-      MASK_H;
+      440;
 
 
-    state.baseCanvas.width =
+    const c =
+      state.baseCanvas;
+
+
+    c.width =
       W;
 
 
-    state.baseCanvas.height =
+    c.height =
       H;
 
 
-    const bctx =
-      state.baseCanvas.getContext(
+    const cctx =
+      c.getContext(
         "2d"
       );
 
 
     const img =
-      bctx.createImageData(
+      cctx.createImageData(
         W,
         H
       );
@@ -2287,9 +1910,9 @@
     ) {
 
       const lat =
-        yToLat(
+        yLat(
           y +
-          0.5,
+          .5,
           H
         );
 
@@ -2302,9 +1925,9 @@
       ) {
 
         const lon =
-          xToLon(
+          xLon(
             x +
-            0.5,
+            .5,
             W
           );
 
@@ -2325,35 +1948,30 @@
           4;
 
 
-        let r;
-        let g;
-        let b;
+        let r =
+          18;
 
 
-        if (!land) {
+        let g =
+          48;
 
-          r =
-            19;
 
-          g =
-            48;
+        let b =
+          65;
 
-          b =
-            66;
 
-        }
-        else {
+        if (
+          land
+        ) {
 
           const h =
-            state.terrainReady
-              ? Math.max(
-                  -50,
-                  elevationAt(
-                    lat,
-                    lon
-                  )
-                )
-              : 0;
+            Math.max(
+              0,
+              elevationAt(
+                lat,
+                lon
+              )
+            );
 
 
           if (
@@ -2362,13 +1980,13 @@
           ) {
 
             r =
-              68;
+              63;
 
             g =
               94;
 
             b =
-              61;
+              62;
 
           }
           else if (
@@ -2386,22 +2004,24 @@
 
             r =
               lerp(
-                68,
+                63,
                 111,
                 t
               );
 
+
             g =
               lerp(
                 94,
-                104,
+                105,
                 t
               );
 
+
             b =
               lerp(
-                61,
-                68,
+                62,
+                70,
                 t
               );
 
@@ -2422,21 +2042,23 @@
             r =
               lerp(
                 111,
-                142,
+                145,
                 t
               );
+
 
             g =
               lerp(
-                104,
-                127,
+                105,
+                128,
                 t
               );
 
+
             b =
               lerp(
-                68,
-                98,
+                70,
+                100,
                 t
               );
 
@@ -2456,22 +2078,24 @@
 
             r =
               lerp(
-                142,
-                177,
+                145,
+                180,
                 t
               );
+
 
             g =
               lerp(
-                127,
-                162,
+                128,
+                165,
                 t
               );
 
+
             b =
               lerp(
-                98,
-                140,
+                100,
+                145,
                 t
               );
 
@@ -2492,22 +2116,24 @@
 
             r =
               lerp(
-                177,
+                180,
+                235,
+                t
+              );
+
+
+            g =
+              lerp(
+                165,
                 232,
                 t
               );
 
-            g =
-              lerp(
-                162,
-                229,
-                t
-              );
 
             b =
               lerp(
-                140,
-                225,
+                145,
+                228,
                 t
               );
 
@@ -2517,27 +2143,24 @@
 
 
         img.data[i] =
-          Math.round(
-            r
-          );
+          r |
+          0;
 
 
         img.data[
           i +
           1
         ] =
-          Math.round(
-            g
-          );
+          g |
+          0;
 
 
         img.data[
           i +
           2
         ] =
-          Math.round(
-            b
-          );
+          b |
+          0;
 
 
         img.data[
@@ -2551,7 +2174,7 @@
     }
 
 
-    bctx.putImageData(
+    cctx.putImageData(
       img,
       0,
       0
@@ -2561,13 +2184,13 @@
 
 
   /*
-      ==========================================================
-      CLIMATOLOGICAL BASELINE
-      ==========================================================
+      =========================================================
+      BASIC CLIMATE
+      =========================================================
   */
 
 
-  function baselineTempNoElevation(
+  function baselineTempNoElev(
     lat,
     lon,
     ms
@@ -2588,19 +2211,16 @@
 
     let annual =
       17.5 -
-      0.46 *
+      .46 *
       (
         lat -
         35
+      ) +
+      (
+        land
+          ? 0
+          : .7
       );
-
-
-    if (!land) {
-
-      annual +=
-        0.7;
-
-    }
 
 
     if (
@@ -2612,7 +2232,7 @@
     ) {
 
       annual +=
-        1.2;
+        1.1;
 
     }
 
@@ -2624,12 +2244,12 @@
     ) {
 
       annual +=
-        1.2;
+        1.0;
 
     }
 
 
-    const cont =
+    const continental =
       land
         ? clamp(
             (
@@ -2637,34 +2257,26 @@
               5
             ) /
             38,
-            0.08,
-            0.95
-          ) *
-          (
-            lon <
-            3 &&
-            lat >
-            48
-              ? 0.5
-              : 1
+            .08,
+            .95
           )
-        : 0.05;
+        : .05;
 
 
     const amp =
       land
         ? (
-            6.0 +
-            cont *
-            8.0 +
+            6 +
+            continental *
+            8 +
             Math.max(
               0,
               lat -
               48
             ) *
-            0.06
+            .06
           )
-        : 5.0;
+        : 5;
 
 
     const seasonal =
@@ -2686,42 +2298,36 @@
       );
 
 
-    let solarHour =
-      d.getUTCHours() +
-      d.getUTCMinutes() /
-      60 +
-      lon /
-      15;
-
-
-    solarHour =
+    const solar =
       (
         (
-          solarHour %
-          24
-        ) +
+          d.getUTCHours() +
+          d.getUTCMinutes() /
+          60 +
+          lon /
+          15
+        ) %
+        24 +
         24
       ) %
       24;
 
 
-    const diurnalAmp =
-      land
-        ? (
-            1.7 +
-            cont *
-            2.5
-          )
-        : 0.6;
-
-
     const diurnal =
-      diurnalAmp *
+      (
+        land
+          ? (
+              1.7 +
+              continental *
+              2.4
+            )
+          : .6
+      ) *
       Math.cos(
         2 *
         Math.PI *
         (
-          solarHour -
+          solar -
           15
         ) /
         24
@@ -2744,7 +2350,7 @@
   ) {
 
     return (
-      baselineTempNoElevation(
+      baselineTempNoElev(
         lat,
         lon,
         ms
@@ -2828,7 +2434,7 @@
       2;
 
 
-    let cloud =
+    let c =
       42 +
       17 *
       winter;
@@ -2841,7 +2447,7 @@
       )
     ) {
 
-      cloud +=
+      c +=
         8;
 
     }
@@ -2854,8 +2460,8 @@
       48
     ) {
 
-      cloud +=
-        8;
+      c +=
+        7;
 
     }
 
@@ -2867,16 +2473,16 @@
       -8
     ) {
 
-      cloud -=
-        14;
+      c -=
+        13;
 
     }
 
 
     return clamp(
-      cloud,
+      c,
       12,
-      88
+      90
     );
 
   }
@@ -2893,31 +2499,27 @@
         lat,
         lon
       )
-        ? 0.48
-        : 0.73;
+        ? .48
+        : .73;
 
 
-    const d =
+    const mo =
       new Date(
         ms
-      );
-
-
-    const month =
-      d.getUTCMonth();
+      ).getUTCMonth();
 
 
     if (
       lat <
       45 &&
-      month >=
+      mo >=
       4 &&
-      month <=
+      mo <=
       8
     ) {
 
       m -=
-        0.08;
+        .08;
 
     }
 
@@ -2930,32 +2532,28 @@
     ) {
 
       m +=
-        0.05;
+        .05;
 
     }
 
 
     return clamp(
       m,
-      0.25,
-      0.82
+      .25,
+      .84
     );
 
   }
 
 
   /*
-      ==========================================================
+      =========================================================
       AIR SOURCES
-
-      User chooses WHAT air is entering Europe.
-
-      They do not paint anomalies manually.
-      ==========================================================
+      =========================================================
   */
 
 
-  function airBaseAnomaly(
+  function airAnomaly(
     type,
     ms
   ) {
@@ -2978,183 +2576,130 @@
       2;
 
 
-    switch (
-      type
-    ) {
-
-      case "arctic":
-
-        return lerp(
-          -5.5,
-          -13.0,
-          winter
-        );
-
-
-      case "polar_maritime":
-
-        return lerp(
-          -2.5,
-          -6.0,
-          winter
-        );
-
-
-      case "atlantic":
-
-        return lerp(
-          -2.0,
-          3.0,
-          winter
-        );
-
-
-      case "continental":
-
-        return lerp(
-          4.5,
-          -7.0,
-          winter
-        );
-
-
-      case "mediterranean":
-
-        return lerp(
-          5.0,
-          7.0,
-          winter
-        );
-
-
-      case "tropical":
-
-        return lerp(
-          9.0,
-          11.5,
-          winter
-        );
-
-
-      default:
-
-        return 0;
-
-    }
-
-  }
-
-
-  function airSourceMoisture(
-    type
-  ) {
-
-    switch (
-      type
-    ) {
-
-      case "arctic":
-        return 0.22;
-
-      case "polar_maritime":
-        return 0.62;
-
-      case "atlantic":
-        return 0.78;
-
-      case "continental":
-        return 0.26;
-
-      case "mediterranean":
-        return 0.68;
-
-      case "tropical":
-        return 0.32;
-
-      default:
-        return 0.5;
-
-    }
-
-  }
-
-
-  function intensityMultiplier(
-    name
-  ) {
-
     return (
+
       {
-        gentle:
-          0.72,
 
-        normal:
-          1.0,
+        arctic:
+          lerp(
+            -5.5,
+            -13,
+            winter
+          ),
 
-        strong:
-          1.28,
+        polar_maritime:
+          lerp(
+            -2.5,
+            -6,
+            winter
+          ),
 
-        extreme:
-          1.55
-      }[name] ||
-      1
+        atlantic:
+          lerp(
+            -2,
+            3,
+            winter
+          ),
+
+        continental:
+          lerp(
+            4.5,
+            -7,
+            winter
+          ),
+
+        mediterranean:
+          lerp(
+            5,
+            7,
+            winter
+          ),
+
+        tropical:
+          lerp(
+            9,
+            11.5,
+            winter
+          )
+
+      }[type] ??
+      0
+
     );
 
   }
 
 
-  function intensityWind(
-    name
-  ) {
+  const airMoisture =
+    t =>
+      (
 
-    return (
-      {
-        gentle:
-          6,
+        {
+          arctic: .22,
+          polar_maritime: .62,
+          atlantic: .78,
+          continental: .26,
+          mediterranean: .68,
+          tropical: .32
+        }[t] ??
 
-        normal:
-          9,
+        .5
 
-        strong:
-          13,
-
-        extreme:
-          18
-      }[name] ||
-      9
-    );
-
-  }
+      );
 
 
-  function pressureStrength(
-    name
-  ) {
+  const intensity =
+    n =>
+      (
 
-    return (
-      {
-        weak:
-          9,
+        {
+          gentle: .72,
+          normal: 1,
+          strong: 1.28,
+          extreme: 1.55
+        }[n] ??
 
-        normal:
-          18,
+        1
 
-        strong:
-          28,
+      );
 
-        extreme:
-          38
-      }[name] ||
-      18
-    );
 
-  }
+  const airWind =
+    n =>
+      (
+
+        {
+          gentle: 6,
+          normal: 9,
+          strong: 13,
+          extreme: 18
+        }[n] ??
+
+        9
+
+      );
+
+
+  const pStrength =
+    n =>
+      (
+
+        {
+          weak: 9,
+          normal: 18,
+          strong: 28,
+          extreme: 38
+        }[n] ??
+
+        18
+
+      );
 
 
   /*
-      ==========================================================
-      CURVED AIR PATHS
-      ==========================================================
+      =========================================================
+      CURVED PATH
+      =========================================================
   */
 
 
@@ -3177,7 +2722,7 @@
 
 
     return (
-      0.5 *
+      .5 *
       (
         2 *
         b +
@@ -3214,25 +2759,18 @@
   }
 
 
-  function pathPosition(
+  function pathPos(
     path,
     u
   ) {
 
     if (
-      !Array.isArray(
-        path
-      ) ||
-      path.length ===
-      0
+      !path?.length
     ) {
 
       return {
-        lat:
-          50,
-
-        lon:
-          10
+        lat: 50,
+        lon: 10
       };
 
     }
@@ -3243,13 +2781,7 @@
       1
     ) {
 
-      return {
-        lat:
-          path[0].lat,
-
-        lon:
-          path[0].lon
-      };
+      return path[0];
 
     }
 
@@ -3262,7 +2794,7 @@
       );
 
 
-    const scaled =
+    const s =
       u *
       (
         path.length -
@@ -3275,13 +2807,13 @@
         path.length -
         2,
         Math.floor(
-          scaled
+          s
         )
       );
 
 
     const t =
-      scaled -
+      s -
       i;
 
 
@@ -3348,11 +2880,11 @@
   ) {
 
     const a =
-      pathPosition(
+      pathPos(
         path,
         clamp(
           u -
-          0.008,
+          .008,
           0,
           1
         )
@@ -3360,11 +2892,11 @@
 
 
     const b =
-      pathPosition(
+      pathPos(
         path,
         clamp(
           u +
-          0.008,
+          .008,
           0,
           1
         )
@@ -3372,7 +2904,7 @@
 
 
     const v =
-      localVectorKm(
+      vecKm(
         a.lat,
         a.lon,
         b.lat,
@@ -3404,99 +2936,71 @@
 
 
   function active(
-    obj,
+    o,
     ms
   ) {
 
-    const s =
+    const a =
       Date.parse(
-        obj.startTime
+        o.startTime
       );
 
 
-    const e =
+    const b =
       Date.parse(
-        obj.endTime
+        o.endTime
       );
 
 
     return (
-      Number.isFinite(
-        s
-      ) &&
-      Number.isFinite(
-        e
-      ) &&
       ms >=
-      s &&
+      a &&
       ms <=
-      e
+      b
     );
 
   }
 
 
   function progress(
-    obj,
+    o,
     ms
   ) {
 
-    const s =
-      Date.parse(
-        obj.startTime
-      );
+    return smooth(
 
+      (
+        ms -
+        Date.parse(
+          o.startTime
+        )
+      ) /
 
-    const e =
-      Date.parse(
-        obj.endTime
-      );
-
-
-    if (
-      !Number.isFinite(
-        s
-      ) ||
-      !Number.isFinite(
-        e
-      ) ||
-      e <=
-      s
-    ) {
-
-      return 0;
-
-    }
-
-
-    return smoothstep(
-      clamp(
-        (
-          ms -
-          s
-        ) /
-        (
-          e -
-          s
-        ),
-        0,
-        1
+      Math.max(
+        1,
+        Date.parse(
+          o.endTime
+        ) -
+        Date.parse(
+          o.startTime
+        )
       )
+
     );
 
   }
 
 
-  function radialWeight(
+  function radial(
     d,
-    radius
+    r
   ) {
 
     const x =
       d /
       Math.max(
         1,
-        radius
+        r
       );
 
 
@@ -3528,73 +3032,64 @@
   }
 
 
-  /*
-      Air is not merely a circular blob.
-
-      The recently traversed section of the curved route remains
-      influential, making the result feel more like an actual
-      stream of air moving into Europe.
-  */
-
-  function distanceToRecentPath(
-    obj,
+  function recentPathDistance(
+    o,
     lat,
     lon,
     u
   ) {
 
-    const startU =
-      Math.max(
-        0,
-        u -
-        0.22
-      );
-
-
-    const endU =
-      Math.min(
-        1,
-        u +
-        0.035
-      );
-
-
     let best =
       Infinity;
 
 
-    const samples =
-      18;
+    const a =
+      Math.max(
+        0,
+        u -
+        .24
+      );
+
+
+    const b =
+      Math.min(
+        1,
+        u +
+        .04
+      );
 
 
     for (
       let i = 0;
       i <=
-      samples;
+      14;
       i++
     ) {
 
-      const q =
-        pathPosition(
-          obj.path,
+      const p =
+        pathPos(
+          o.path,
           lerp(
-            startU,
-            endU,
+            a,
+            b,
             i /
-            samples
+            14
           )
         );
 
 
       best =
         Math.min(
+
           best,
-          distanceKm(
+
+          distKm(
             lat,
             lon,
-            q.lat,
-            q.lon
+            p.lat,
+            p.lon
           )
+
         );
 
     }
@@ -3606,49 +3101,38 @@
 
 
   /*
-      ==========================================================
-      SEA MOISTURE PICKUP
+      =========================================================
+      MOISTURE PICKUP
 
-      This is one of the core ideas of this version.
-
-      Drag Arctic air:
-          Scandinavia
-          → Norwegian Sea
-          → North Sea
-          → Denmark
-          → Baltic
-          → Poland
-
-      and it becomes progressively more moisture-rich.
-
-      Long continental journeys gradually dry it again.
-      ==========================================================
+      Crossing sea automatically moistens the air.
+      Long journeys over land gradually dry it.
+      =========================================================
   */
 
 
   function moistureAlongPath(
-    obj,
+    o,
     u
   ) {
 
-    let moisture =
-      airSourceMoisture(
-        obj.airType
+    let m =
+      airMoisture(
+        o.airType
       );
 
 
     let prev =
-      pathPosition(
-        obj.path,
+      pathPos(
+        o.path,
         0
       );
 
 
     const steps =
       Math.max(
-        1,
+        2,
         Math.round(
-          34 *
+          28 *
           u
         )
       );
@@ -3662,8 +3146,8 @@
     ) {
 
       const p =
-        pathPosition(
-          obj.path,
+        pathPos(
+          o.path,
           u *
           i /
           steps
@@ -3671,7 +3155,7 @@
 
 
       const d =
-        distanceKm(
+        distKm(
           prev.lat,
           prev.lon,
           p.lat,
@@ -3686,38 +3170,40 @@
         )
       ) {
 
-        const pickup =
-          1 -
-          Math.exp(
-            -d /
-            260
-          );
-
-
-        moisture =
+        m =
           lerp(
-            moisture,
-            0.95,
-            pickup
+
+            m,
+
+            .96,
+
+            1 -
+            Math.exp(
+              -d /
+              240
+            )
+
           );
 
       }
       else {
 
-        const dry =
-          1 -
-          Math.exp(
-            -d /
-            850
-          );
-
-
-        moisture =
+        m =
           lerp(
-            moisture,
-            0.38,
-            dry *
-            0.32
+
+            m,
+
+            .36,
+
+            (
+              1 -
+              Math.exp(
+                -d /
+                800
+              )
+            ) *
+            .32
+
           );
 
       }
@@ -3730,41 +3216,28 @@
 
 
     return clamp(
-      moisture,
-      0.08,
-      0.97
+      m,
+      .08,
+      .97
     );
 
   }
 
 
   /*
-      ==========================================================
-      CORE ATMOSPHERIC FIELD
-
-      This calculates the CAUSES.
-
-      Precipitation is not calculated here yet.
-
-      Output includes:
-      - temperature
-      - anomaly
-      - pressure
-      - moisture
-      - cloud tendency
-      - wind
-      - broad synoptic lift
-      ==========================================================
+      =========================================================
+      ATMOSPHERIC FIELD
+      =========================================================
   */
 
 
-  function coreField(
+  function core(
     lat,
     lon,
     ms
   ) {
 
-    const baseT =
+    const base =
       baselineTemp(
         lat,
         lon,
@@ -3773,7 +3246,7 @@
 
 
     let temp =
-      baseT;
+      base;
 
 
     let pressure =
@@ -3799,29 +3272,26 @@
       );
 
 
-    /*
-        Gentle climatological westerly background.
-    */
-    let uWind =
-      4.0;
+    let u =
+      4;
 
 
-    let vWind =
-      0.0;
+    let v =
+      0;
 
 
-    let synopticLift =
+    let lift =
       0;
 
 
     for (
-      const obj of
+      const o of
       plan.objects
     ) {
 
       if (
         !active(
-          obj,
+          o,
           ms
         )
       ) {
@@ -3831,34 +3301,21 @@
       }
 
 
-      /*
-          ------------------------------------------------------
-          AIR STREAM
-          ------------------------------------------------------
-      */
-
       if (
-        obj.kind ===
+        o.kind ===
         "air"
       ) {
 
         const pr =
           progress(
-            obj,
+            o,
             ms
           );
 
 
-        const head =
-          pathPosition(
-            obj.path,
-            pr
-          );
-
-
-        const dist =
-          distanceToRecentPath(
-            obj,
+        const d =
+          recentPathDistance(
+            o,
             lat,
             lon,
             pr
@@ -3866,115 +3323,110 @@
 
 
         const w =
-          radialWeight(
-            dist,
-            obj.widthKm
+          radial(
+            d,
+            o.widthKm
           );
 
 
-        if (
-          w <=
-          0
-        ) {
+        if (!w) {
 
           continue;
 
         }
 
 
-        const anomaly =
-          airBaseAnomaly(
-            obj.airType,
-            ms
-          ) *
-          intensityMultiplier(
-            obj.intensity
-          );
-
-
-        const moist =
+        const m =
           moistureAlongPath(
-            obj,
+            o,
             pr
           );
 
 
-        const tangent =
+        const tan =
           pathTangent(
-            obj.path,
+            o.path,
             pr
           );
 
 
-        const speed =
-          intensityWind(
-            obj.intensity
+        const spd =
+          airWind(
+            o.intensity
           );
 
 
         temp +=
-          anomaly *
+          airAnomaly(
+            o.airType,
+            ms
+          ) *
+          intensity(
+            o.intensity
+          ) *
           w;
 
 
         moisture =
           lerp(
             moisture,
-            moist,
+            m,
             w *
-            0.88
+            .9
           );
 
 
         cloud +=
           Math.max(
             0,
-            moist -
-            0.56
+            m -
+            .54
           ) *
-          42 *
+          45 *
           w;
 
 
-        uWind +=
-          tangent.x *
-          speed *
+        u +=
+          tan.x *
+          spd *
           w;
 
 
-        vWind +=
-          tangent.y *
-          speed *
+        v +=
+          tan.y *
+          spd *
           w;
 
-
-        /*
-            Moist maritime air arriving over land has some
-            natural broad ascent / instability.
-        */
 
         if (
           isLand(
             lat,
             lon
           ) &&
-          moist >
-          0.72
+          m >
+          .69
         ) {
 
-          synopticLift +=
+          lift +=
             (
-              moist -
-              0.72
+              m -
+              .69
             ) *
-            0.8 *
+            1.05 *
             w;
 
         }
 
 
-        const headD =
-          distanceKm(
+        const head =
+          pathPos(
+            o.path,
+            pr
+          );
+
+
+        const hd =
+          distKm(
             lat,
             lon,
             head.lat,
@@ -3983,168 +3435,143 @@
 
 
         if (
-          headD <
-          obj.widthKm *
-          0.75
+          hd <
+          o.widthKm *
+          .7
         ) {
 
-          synopticLift +=
-            0.08 *
+          lift +=
+            .10 *
             w;
 
         }
 
       }
-
-
-      /*
-          ------------------------------------------------------
-          HIGH / LOW PRESSURE
-          ------------------------------------------------------
-      */
-
-      if (
-        obj.kind ===
+      else if (
+        o.kind ===
         "high" ||
-        obj.kind ===
+        o.kind ===
         "low"
       ) {
 
         const d =
-          distanceKm(
+          distKm(
             lat,
             lon,
-            obj.lat,
-            obj.lon
+            o.lat,
+            o.lon
           );
-
-
-        const radius =
-          obj.radiusKm ||
-          900;
 
 
         const w =
-          radialWeight(
+          radial(
             d,
-            radius
+            o.radiusKm ||
+            900
           );
 
 
-        if (
-          w <=
-          0
-        ) {
+        if (!w) {
 
           continue;
 
         }
 
 
-        const amp =
-          pressureStrength(
-            obj.strength
-          ) *
-          (
-            obj.kind ===
-            "high"
-              ? 1
-              : -1
+        const s =
+          pStrength(
+            o.strength
           );
 
 
+        const sg =
+          o.kind ===
+          "high"
+            ? 1
+            : -1;
+
+
         pressure +=
-          amp *
+          sg *
+          s *
           w;
 
 
         cloud +=
           (
-            obj.kind ===
+            o.kind ===
             "high"
-              ? -24
-              : 28
+              ? -25
+              : 30
           ) *
           w;
 
 
-        synopticLift +=
+        lift +=
           (
-            obj.kind ===
+            o.kind ===
             "high"
-              ? -0.5
-              : 0.9
+              ? -.5
+              : 1.05
           ) *
           w;
 
 
-        /*
-            Northern Hemisphere pressure circulation.
-
-            Low:
-                counter-clockwise.
-
-            High:
-                clockwise.
-        */
-
-        const vec =
-          localVectorKm(
-            obj.lat,
-            obj.lon,
+        const q =
+          vecKm(
+            o.lat,
+            o.lon,
             lat,
             lon
           );
 
 
-        const len =
+        const l =
           Math.hypot(
-            vec.x,
-            vec.y
+            q.x,
+            q.y
           ) ||
           1;
 
 
         const nx =
-          vec.x /
-          len;
+          q.x /
+          l;
 
 
         const ny =
-          vec.y /
-          len;
+          q.y /
+          l;
 
 
         const tx =
-          obj.kind ===
+          o.kind ===
           "low"
             ? -ny
             : ny;
 
 
         const ty =
-          obj.kind ===
+          o.kind ===
           "low"
             ? nx
             : -nx;
 
 
-        const speed =
-          pressureStrength(
-            obj.strength
-          ) *
-          0.34 *
+        const spd =
+          s *
+          .34 *
           w;
 
 
-        uWind +=
+        u +=
           tx *
-          speed;
+          spd;
 
 
-        vWind +=
+        v +=
           ty *
-          speed;
+          spd;
 
       }
 
@@ -4153,23 +3580,26 @@
 
     cloud =
       clamp(
+
         cloud +
 
         Math.max(
           0,
           moisture -
-          0.62
+          .60
         ) *
-        22 +
+        20 +
 
         Math.max(
           0,
-          synopticLift
+          lift
         ) *
-        12,
+        13,
 
         0,
+
         100
+
       );
 
 
@@ -4194,14 +3624,14 @@
         ),
 
       baselineTemperatureC:
-        baseT,
+        base,
 
       temperatureC:
         temp,
 
       anomalyC:
         temp -
-        baseT,
+        base,
 
       pressureHpa:
         pressure,
@@ -4217,19 +3647,19 @@
         cloud,
 
       uWind:
-        uWind,
+        u,
 
       vWind:
-        vWind,
+        v,
 
       windSpeed:
         Math.hypot(
-          uWind,
-          vWind
+          u,
+          v
         ),
 
       synopticLift:
-        synopticLift
+        lift
 
     };
 
@@ -4237,59 +3667,47 @@
 
 
   /*
-      ==========================================================
+      =========================================================
       NATURAL PRECIPITATION
 
-      There is deliberately no user precipitation object.
+      There is no precipitation placement tool.
 
-      The engine asks:
-
-      1. Is enough moisture present?
-      2. Are winds converging?
-      3. Is low pressure generating ascent?
-      4. Is real terrain forcing the air upward?
-      5. Is hot/moist air convectively unstable?
-      6. Is there enough cloud support?
-
-      Only then does precipitation emerge.
-      ==========================================================
+      It is generated from:
+      moisture
+      + convergence
+      + low pressure
+      + terrain uplift
+      + limited convection
+      =========================================================
   */
 
 
-  function precipitationField(
+  function precip(
     lat,
     lon,
     ms,
-    centerCore =
-      null
+    c0
   ) {
 
     const c =
-      centerCore ||
-      coreField(
+      c0 ||
+      core(
         lat,
         lon,
         ms
       );
 
 
-    /*
-        Sample nearby wind fields and estimate horizontal
-        divergence.
-
-        Negative divergence = convergence = rising-air tendency.
-    */
-
     const dLat =
-      0.32;
+      .34;
 
 
     const dLon =
-      0.42;
+      .44;
 
 
-    const west =
-      coreField(
+    const w =
+      core(
         lat,
         lon -
         dLon,
@@ -4297,8 +3715,8 @@
       );
 
 
-    const east =
-      coreField(
+    const e =
+      core(
         lat,
         lon +
         dLon,
@@ -4306,8 +3724,8 @@
       );
 
 
-    const south =
-      coreField(
+    const s =
+      core(
         lat -
         dLat,
         lon,
@@ -4315,8 +3733,8 @@
       );
 
 
-    const north =
-      coreField(
+    const n =
+      core(
         lat +
         dLat,
         lon,
@@ -4324,54 +3742,38 @@
       );
 
 
-    const dxKm =
-      2 *
-      dLon *
-      kmPerLonDeg(
-        lat
-      );
-
-
-    const dyKm =
-      2 *
-      dLat *
-      KM_PER_DEG;
-
-
-    const divergence =
+    const div =
       (
-        east.uWind -
-        west.uWind
+        e.uWind -
+        w.uWind
       ) /
-      Math.max(
-        1,
-        dxKm
+      (
+        2 *
+        dLon *
+        kmLon(
+          lat
+        )
       ) +
 
       (
-        north.vWind -
-        south.vWind
+        n.vWind -
+        s.vWind
       ) /
-      Math.max(
-        1,
-        dyKm
+      (
+        2 *
+        dLat *
+        KM_PER_DEG
       );
 
 
     const convergence =
       clamp(
-        -divergence *
-        24,
+        -div *
+        25,
         0,
         1.8
       );
 
-
-    /*
-        --------------------------------------------------------
-        REAL TERRAIN UPLIFT
-        --------------------------------------------------------
-    */
 
     let oro =
       0;
@@ -4393,83 +3795,68 @@
         c.windSpeed;
 
 
-      function upwindElevation(
-        km
-      ) {
+      const sample =
+        km =>
+          elevationAt(
 
-        const upLat =
-          lat -
-          uy *
-          km /
-          KM_PER_DEG;
+            lat -
+            uy *
+            km /
+            KM_PER_DEG,
 
+            lon -
+            ux *
+            km /
+            kmLon(
+              lat
+            )
 
-        const upLon =
-          lon -
-          ux *
-          km /
-          kmPerLonDeg(
-            lat
           );
-
-
-        return elevationAt(
-          upLat,
-          upLon
-        );
-
-      }
 
 
       const rise =
         Math.max(
+
           0,
+
           c.elevationM -
+
           Math.min(
-            upwindElevation(
-              90
+            sample(
+              80
             ),
-            upwindElevation(
-              170
+            sample(
+              160
             )
           )
+
         );
 
 
       oro =
         clamp(
           rise /
-          650,
+          620,
           0,
           1.8
         ) *
         clamp(
           c.windSpeed /
           8,
-          0.3,
+          .3,
           1.8
         );
 
     }
 
 
-    /*
-        --------------------------------------------------------
-        LIMITED CONVECTION
-        --------------------------------------------------------
-
-        This is intentionally restrained.
-
-        It allows warm/moist summer air to generate additional
-        precipitation without turning the project back into the
-        abandoned full atmospheric simulator.
-    */
-
-    const convective =
-      c.temperatureC >
-      18 &&
-      c.moisture >
-      0.72
+    const convection =
+      (
+        c.temperatureC >
+        18 &&
+        c.moisture >
+        .72
+      )
 
         ? clamp(
             (
@@ -4483,29 +3870,31 @@
           clamp(
             (
               c.moisture -
-              0.72
+              .72
             ) /
-            0.22,
+            .22,
             0,
             1
           ) *
-          0.8
+          .75
 
         : 0;
 
 
     const lift =
       Math.max(
+
         0,
 
         c.synopticLift +
 
-        convergence *
-        1.15 +
+        1.15 *
+        convergence +
 
         oro +
 
-        convective
+        convection
+
       );
 
 
@@ -4513,21 +3902,21 @@
       clamp(
         (
           c.moisture -
-          0.56
+          .55
         ) /
-        0.38,
+        .4,
         0,
         1
       );
 
 
-    const cloudSupport =
+    const cloud =
       clamp(
         (
           c.cloud -
-          62
+          58
         ) /
-        38,
+        42,
         0,
         1
       );
@@ -4535,43 +3924,39 @@
 
     let rate =
       moist *
-      cloudSupport *
+      cloud *
       (
-        0.08 +
+        .10 +
         lift *
-        3.1
+        3.2
       );
 
 
-    /*
-        Weak saturated maritime drizzle.
-    */
-
     if (
       rate <
-      0.08 &&
+      .05 &&
       c.moisture >
-      0.81 &&
+      .83 &&
       c.cloud >
-      88 &&
+      90 &&
       lift >
-      0.05
+      .04
     ) {
 
       rate =
-        0.08 +
+        .07 +
         (
           c.moisture -
-          0.81
+          .83
         ) *
-        1.5;
+        1.4;
 
     }
 
 
     if (
       rate <
-      0.04
+      .04
     ) {
 
       rate =
@@ -4579,10 +3964,6 @@
 
     }
 
-
-    /*
-        Precipitation phase from local temperature.
-    */
 
     let phase =
       "none";
@@ -4593,39 +3974,17 @@
       0
     ) {
 
-      if (
+      phase =
         c.temperatureC <=
-        0.2
-      ) {
-
-        phase =
-          "snow";
-
-      }
-      else if (
-        c.temperatureC <=
-        1.0
-      ) {
-
-        phase =
-          "wet snow";
-
-      }
-      else if (
-        c.temperatureC <=
-        2.2
-      ) {
-
-        phase =
-          "sleet";
-
-      }
-      else {
-
-        phase =
-          "rain";
-
-      }
+        .2
+          ? "snow"
+          : c.temperatureC <=
+            1
+            ? "wet snow"
+            : c.temperatureC <=
+              2.2
+              ? "sleet"
+              : "rain";
 
     }
 
@@ -4652,14 +4011,7 @@
   }
 
 
-  /*
-      ==========================================================
-      COMPLETE WEATHER
-      ==========================================================
-  */
-
-
-  function weatherAt(
+  function weather(
     lat,
     lon,
     ms,
@@ -4668,7 +4020,7 @@
   ) {
 
     const c =
-      coreField(
+      core(
         lat,
         lon,
         ms
@@ -4676,7 +4028,7 @@
 
 
     const p =
-      precipitationField(
+      precip(
         lat,
         lon,
         ms,
@@ -4684,39 +4036,31 @@
       );
 
 
-    let snowDepth =
+    let snow =
       0;
 
-
-    /*
-        Snow is only integrated when specifically required,
-        such as when inspecting a point.
-
-        The full map therefore remains responsive.
-    */
 
     if (
       withSnow &&
       c.land
     ) {
 
-      const start =
-        ms -
-        72 *
-        MS_HOUR;
-
-
       for (
-        let t = start;
+        let t =
+          ms -
+          72 *
+          HOUR;
+
         t <=
         ms;
+
         t +=
         3 *
-        MS_HOUR
+        HOUR
       ) {
 
         const cc =
-          coreField(
+          core(
             lat,
             lon,
             t
@@ -4724,7 +4068,7 @@
 
 
         const pp =
-          precipitationField(
+          precip(
             lat,
             lon,
             t,
@@ -4732,7 +4076,7 @@
           );
 
 
-        const amount =
+        const amt =
           pp.rate *
           3;
 
@@ -4742,9 +4086,9 @@
           "snow"
         ) {
 
-          snowDepth +=
-            amount *
-            0.9;
+          snow +=
+            amt *
+            .9;
 
         }
         else if (
@@ -4752,9 +4096,9 @@
           "wet snow"
         ) {
 
-          snowDepth +=
-            amount *
-            0.5;
+          snow +=
+            amt *
+            .5;
 
         }
         else if (
@@ -4762,9 +4106,9 @@
           "sleet"
         ) {
 
-          snowDepth +=
-            amount *
-            0.15;
+          snow +=
+            amt *
+            .15;
 
         }
         else if (
@@ -4772,9 +4116,9 @@
           "rain"
         ) {
 
-          snowDepth -=
-            amount *
-            0.18;
+          snow -=
+            amt *
+            .18;
 
         }
 
@@ -4784,12 +4128,11 @@
           0
         ) {
 
-          snowDepth -=
+          snow -=
             (
-              0.04 *
+              .04 *
               cc.temperatureC +
-
-              0.003 *
+              .003 *
               cc.temperatureC *
               cc.temperatureC
             ) *
@@ -4798,14 +4141,11 @@
         }
 
 
-        snowDepth *=
-          0.998;
-
-
-        snowDepth =
+        snow =
           Math.max(
             0,
-            snowDepth
+            snow *
+            .998
           );
 
       }
@@ -4819,7 +4159,7 @@
       ...p,
 
       snowDepthCm:
-        snowDepth
+        snow
 
     };
 
@@ -4827,87 +4167,16 @@
 
 
   /*
-      ==========================================================
-      MAP RENDERING
-      ==========================================================
+      =========================================================
+      OVERLAYS
+      =========================================================
   */
-
-
-  function drawBase() {
-
-    ctx.clearRect(
-      0,
-      0,
-      state.width,
-      state.height
-    );
-
-
-    ctx.fillStyle =
-      "#112a38";
-
-
-    ctx.fillRect(
-      0,
-      0,
-      state.width,
-      state.height
-    );
-
-
-    if (
-      !state.geoReady
-    ) {
-
-      ctx.fillStyle =
-        "#d9e4ea";
-
-
-      ctx.font =
-        "bold 18px system-ui";
-
-
-      ctx.textAlign =
-        "center";
-
-
-      ctx.fillText(
-        "LOADING REAL EUROPE…",
-        state.width /
-        2,
-        state.height /
-        2
-      );
-
-
-      return;
-
-    }
-
-
-    ctx.imageSmoothingEnabled =
-      true;
-
-
-    ctx.drawImage(
-      state.baseCanvas,
-      0,
-      0,
-      state.width,
-      state.height
-    );
-
-  }
 
 
   function overlayColor(
     layer,
-    wx
+    w
   ) {
-
-    /*
-        TEMPERATURE
-    */
 
     if (
       layer ===
@@ -4917,7 +4186,7 @@
       const t =
         clamp(
           (
-            wx.temperatureC +
+            w.temperatureC +
             20
           ) /
           55,
@@ -4926,45 +4195,39 @@
         );
 
 
+      const mid =
+        1 -
+        Math.abs(
+          t -
+          .5
+        ) *
+        2;
+
+
       return (
         "rgba(" +
-
         Math.round(
           45 +
           210 *
           t
         ) +
         "," +
-
         Math.round(
-          95 +
-          90 *
-          (
-            1 -
-            Math.abs(
-              t -
-              0.5
-            ) *
-            2
-          )
+          90 +
+          100 *
+          mid
         ) +
         "," +
-
         Math.round(
           235 -
           205 *
           t
         ) +
-
-        ",.48)"
+        ",.52)"
       );
 
     }
 
-
-    /*
-        TEMPERATURE ANOMALY
-    */
 
     if (
       layer ===
@@ -4974,7 +4237,7 @@
       const a =
         clamp(
           Math.abs(
-            wx.anomalyC
+            w.anomalyC
           ) /
           14,
           0,
@@ -4983,97 +4246,70 @@
 
 
       if (
-        wx.anomalyC <
-        -0.1
+        Math.abs(
+          w.anomalyC
+        ) <
+        .15
       ) {
 
-        return (
-          "rgba(" +
-
-          Math.round(
-            55 -
-            20 *
-            a
-          ) +
-          "," +
-
-          Math.round(
-            135 +
-            50 *
-            a
-          ) +
-          "," +
-
-          Math.round(
-            215 +
-            30 *
-            a
-          ) +
-          "," +
-
-          (
-            0.08 +
-            0.55 *
-            a
-          ) +
-
-          ")"
-        );
-
-      }
-
-
-      if (
-        wx.anomalyC >
-        0.1
-      ) {
-
-        return (
-          "rgba(" +
-
-          Math.round(
-            220 +
-            30 *
-            a
-          ) +
-          "," +
-
-          Math.round(
-            145 -
-            90 *
-            a
-          ) +
-          "," +
-
-          Math.round(
-            65 -
-            30 *
-            a
-          ) +
-          "," +
-
-          (
-            0.08 +
-            0.55 *
-            a
-          ) +
-
-          ")"
-        );
+        return "rgba(180,180,180,.03)";
 
       }
 
 
       return (
-        "rgba(180,180,180,.03)"
+        w.anomalyC <
+        0
+
+          ? "rgba(45,150,245," +
+            (
+              .08 +
+              .58 *
+              a
+            ) +
+            ")"
+
+          : "rgba(245,95,45," +
+            (
+              .08 +
+              .58 *
+              a
+            ) +
+            ")"
       );
 
     }
 
 
-    /*
-        PRECIPITATION
-    */
+    if (
+      layer ===
+      "moisture"
+    ) {
+
+      const a =
+        clamp(
+          (
+            w.moisture -
+            .3
+          ) /
+          .65,
+          0,
+          1
+        );
+
+
+      return (
+        "rgba(45,155,230," +
+        (
+          .10 +
+          .48 *
+          a
+        ) +
+        ")"
+      );
+
+    }
+
 
     if (
       layer ===
@@ -5081,8 +4317,7 @@
     ) {
 
       if (
-        wx.rate <=
-        0
+        !w.rate
       ) {
 
         return null;
@@ -5091,11 +4326,11 @@
 
 
       const a =
-        0.2 +
-        0.65 *
+        .20 +
+        .68 *
         clamp(
           Math.log1p(
-            wx.rate
+            w.rate
           ) /
           Math.log(
             8
@@ -5106,14 +4341,14 @@
 
 
       if (
-        wx.phase ===
+        w.phase ===
         "snow" ||
-        wx.phase ===
+        w.phase ===
         "wet snow"
       ) {
 
         return (
-          "rgba(235,245,255," +
+          "rgba(242,248,255," +
           a +
           ")"
         );
@@ -5122,12 +4357,12 @@
 
 
       if (
-        wx.phase ===
+        w.phase ===
         "sleet"
       ) {
 
         return (
-          "rgba(145,205,235," +
+          "rgba(155,215,240," +
           a +
           ")"
         );
@@ -5136,65 +4371,8 @@
 
 
       return (
-        "rgba(35,115,225," +
+        "rgba(30,105,235," +
         a +
-        ")"
-      );
-
-    }
-
-
-    /*
-        MOISTURE
-    */
-
-    if (
-      layer ===
-      "moisture"
-    ) {
-
-      const a =
-        clamp(
-          (
-            wx.moisture -
-            0.3
-          ) /
-          0.65,
-          0,
-          1
-        );
-
-
-      return (
-        "rgba(" +
-
-        Math.round(
-          75 -
-          30 *
-          a
-        ) +
-        "," +
-
-        Math.round(
-          125 +
-          60 *
-          a
-        ) +
-        "," +
-
-        Math.round(
-          180 +
-          60 *
-          a
-        ) +
-        "," +
-
-        (
-          0.12 +
-          0.42 *
-          a
-        ) +
-
         ")"
       );
 
@@ -5206,222 +4384,64 @@
   }
 
 
-  function drawOverlay() {
+  function drawBase() {
 
-    if (
-      !state.geoReady ||
-      state.layer ===
-      "synoptic" ||
-      state.layer ===
-      "elevation"
-    ) {
-
-      return;
-
-    }
-
-
-    const cols =
-      62;
-
-
-    const rows =
-      35;
-
-
-    const cw =
-      state.width /
-      cols;
-
-
-    const ch =
-      state.height /
-      rows;
-
-
-    for (
-      let gy = 0;
-      gy <
-      rows;
-      gy++
-    ) {
-
-      const lat =
-        yToLat(
-          (
-            gy +
-            0.5
-          ) *
-          ch
-        );
-
-
-      for (
-        let gx = 0;
-        gx <
-        cols;
-        gx++
-      ) {
-
-        const lon =
-          xToLon(
-            (
-              gx +
-              0.5
-            ) *
-            cw
-          );
-
-
-        let wx;
-
-
-        if (
-          state.layer ===
-          "precip"
-        ) {
-
-          wx =
-            weatherAt(
-              lat,
-              lon,
-              state.now,
-              false
-            );
-
-        }
-        else {
-
-          wx =
-            coreField(
-              lat,
-              lon,
-              state.now
-            );
-
-        }
-
-
-        const color =
-          overlayColor(
-            state.layer,
-            wx
-          );
-
-
-        if (!color) {
-
-          continue;
-
-        }
-
-
-        ctx.fillStyle =
-          color;
-
-
-        ctx.fillRect(
-          gx *
-          cw,
-          gy *
-          ch,
-          cw +
-          1,
-          ch +
-          1
-        );
-
-      }
-
-    }
-
-
-    drawLegend();
-
-  }
-
-
-  function drawLegend() {
-
-    const labels = {
-
-      temperature:
-        "TEMPERATURE °C",
-
-      anomaly:
-        "TEMPERATURE ANOMALY °C",
-
-      precip:
-        "PRECIPITATION",
-
-      moisture:
-        "MOISTURE"
-
-    };
-
-
-    if (
-      !labels[
-        state.layer
-      ]
-    ) {
-
-      return;
-
-    }
-
-
-    ctx.save();
+    ctx.clearRect(
+      0,
+      0,
+      state.w,
+      state.h
+    );
 
 
     ctx.fillStyle =
-      "rgba(7,12,16,.76)";
+      "#12303e";
 
 
     ctx.fillRect(
-      10,
-      10,
-      190,
-      38
+      0,
+      0,
+      state.w,
+      state.h
     );
 
 
-    ctx.fillStyle =
-      "#eef3f6";
+    if (
+      state.geoReady
+    ) {
+
+      ctx.drawImage(
+        state.baseCanvas,
+        0,
+        0,
+        state.w,
+        state.h
+      );
+
+    }
+    else {
+
+      ctx.fillStyle =
+        "#dfe8ed";
 
 
-    ctx.font =
-      "bold 11px system-ui";
+      ctx.font =
+        "700 18px system-ui";
 
 
-    ctx.fillText(
-      labels[
-        state.layer
-      ],
-      18,
-      25
-    );
+      ctx.textAlign =
+        "center";
 
 
-    ctx.font =
-      "10px system-ui";
+      ctx.fillText(
+        "LOADING REAL EUROPE…",
+        state.w /
+        2,
+        state.h /
+        2
+      );
 
-
-    ctx.fillStyle =
-      "#b8c7d1";
-
-
-    ctx.fillText(
-      state.layer ===
-      "precip"
-        ? "natural output — not painted"
-        : "derived field",
-      18,
-      40
-    );
-
-
-    ctx.restore();
+    }
 
   }
 
@@ -5432,15 +4452,11 @@
 
 
     ctx.strokeStyle =
-      "rgba(230,238,243,.13)";
+      "rgba(235,242,246,.12)";
 
 
     ctx.fillStyle =
-      "rgba(235,241,245,.62)";
-
-
-    ctx.lineWidth =
-      1;
+      "rgba(235,242,246,.55)";
 
 
     ctx.font =
@@ -5456,22 +4472,25 @@
     ) {
 
       const x =
-        lonToX(
+        lonX(
           lon
         );
 
 
       ctx.beginPath();
 
+
       ctx.moveTo(
         x,
         0
       );
 
+
       ctx.lineTo(
         x,
-        state.height
+        state.h
       );
+
 
       ctx.stroke();
 
@@ -5502,22 +4521,25 @@
     ) {
 
       const y =
-        latToY(
+        latY(
           lat
         );
 
 
       ctx.beginPath();
 
+
       ctx.moveTo(
         0,
         y
       );
 
+
       ctx.lineTo(
-        state.width,
+        state.w,
         y
       );
+
 
       ctx.stroke();
 
@@ -5538,7 +4560,245 @@
   }
 
 
-  function drawArrowHead(
+  function drawOverlay() {
+
+    if (
+      !state.geoReady ||
+      state.layer ===
+      "synoptic" ||
+      state.layer ===
+      "elevation"
+    ) {
+
+      return;
+
+    }
+
+
+    const cols =
+      state.layer ===
+      "precip"
+        ? 44
+        : 58;
+
+
+    const rows =
+      Math.round(
+        cols *
+        (
+          B.north -
+          B.south
+        ) /
+        (
+          B.east -
+          B.west
+        )
+      );
+
+
+    const cw =
+      state.w /
+      cols;
+
+
+    const ch =
+      state.h /
+      rows;
+
+
+    for (
+      let gy = 0;
+      gy <
+      rows;
+      gy++
+    ) {
+
+      const lat =
+        yLat(
+          (
+            gy +
+            .5
+          ) *
+          ch
+        );
+
+
+      for (
+        let gx = 0;
+        gx <
+        cols;
+        gx++
+      ) {
+
+        const lon =
+          xLon(
+            (
+              gx +
+              .5
+            ) *
+            cw
+          );
+
+
+        const w =
+          state.layer ===
+          "precip"
+
+            ? weather(
+                lat,
+                lon,
+                state.now,
+                false
+              )
+
+            : core(
+                lat,
+                lon,
+                state.now
+              );
+
+
+        const c =
+          overlayColor(
+            state.layer,
+            w
+          );
+
+
+        if (
+          c
+        ) {
+
+          ctx.fillStyle =
+            c;
+
+
+          ctx.fillRect(
+            gx *
+            cw,
+            gy *
+            ch,
+            cw +
+            1,
+            ch +
+            1
+          );
+
+        }
+
+      }
+
+    }
+
+
+    ctx.fillStyle =
+      "rgba(5,10,14,.78)";
+
+
+    ctx.fillRect(
+      10,
+      10,
+      190,
+      38
+    );
+
+
+    ctx.fillStyle =
+      "#eef4f7";
+
+
+    ctx.font =
+      "700 10px system-ui";
+
+
+    ctx.fillText(
+
+      state.layer ===
+      "precip"
+        ? "PRECIPITATION · CALCULATED"
+        : state.layer.toUpperCase(),
+
+      18,
+      25
+
+    );
+
+
+    ctx.fillStyle =
+      "#b6c5ce";
+
+
+    ctx.font =
+      "9px system-ui";
+
+
+    ctx.fillText(
+
+      state.layer ===
+      "precip"
+        ? "moisture + lift + terrain"
+        : "derived field",
+
+      18,
+      40
+
+    );
+
+  }
+
+
+  /*
+      =========================================================
+      DRAW SYSTEMS
+      =========================================================
+  */
+
+
+  function airName(
+    t
+  ) {
+
+    return (
+
+      {
+        arctic: "ARCTIC",
+        polar_maritime: "POLAR MARITIME",
+        atlantic: "ATLANTIC",
+        continental: "CONTINENTAL",
+        mediterranean: "MEDITERRANEAN",
+        tropical: "TROPICAL"
+      }[t] ||
+
+      "AIR"
+
+    );
+
+  }
+
+
+  function airColor(
+    t
+  ) {
+
+    return (
+
+      {
+        arctic: "#b7e8ff",
+        polar_maritime: "#8cccf1",
+        atlantic: "#79b7dc",
+        continental: "#e4d39a",
+        mediterranean: "#efb36d",
+        tropical: "#ef8c50"
+      }[t] ||
+
+      "#fff"
+
+    );
+
+  }
+
+
+  function arrowHead(
     x1,
     y1,
     x2,
@@ -5556,7 +4816,7 @@
       y1;
 
 
-    const len =
+    const l =
       Math.hypot(
         dx,
         dy
@@ -5566,12 +4826,12 @@
 
     const ux =
       dx /
-      len;
+      l;
 
 
     const uy =
       dy /
-      len;
+      l;
 
 
     const px =
@@ -5601,7 +4861,6 @@
       11 +
       px *
       5,
-
       y2 -
       uy *
       11 +
@@ -5616,7 +4875,6 @@
       11 -
       px *
       5,
-
       y2 -
       uy *
       11 -
@@ -5632,114 +4890,34 @@
   }
 
 
-  function airColor(
-    type
-  ) {
-
-    if (
-      type ===
-      "arctic"
-    ) {
-
-      return "#a8e3ff";
-
-    }
-
-
-    if (
-      type ===
-      "polar_maritime"
-    ) {
-
-      return "#8acbf2";
-
-    }
-
-
-    if (
-      type ===
-      "atlantic"
-    ) {
-
-      return "#7eb8da";
-
-    }
-
-
-    if (
-      type ===
-      "continental"
-    ) {
-
-      return "#e0d39a";
-
-    }
-
-
-    if (
-      type ===
-      "mediterranean"
-    ) {
-
-      return "#efb66f";
-
-    }
-
-
-    return "#ef8f55";
-
-  }
-
-
-  function airLabel(
-    type
-  ) {
-
-    return (
-      {
-        arctic:
-          "ARCTIC",
-
-        polar_maritime:
-          "POLAR MARITIME",
-
-        atlantic:
-          "ATLANTIC",
-
-        continental:
-          "CONTINENTAL",
-
-        mediterranean:
-          "MEDITERRANEAN",
-
-        tropical:
-          "TROPICAL"
-      }[type] ||
-      "AIR"
-    );
-
-  }
-
-
-  function drawAirObject(
-    obj
+  function drawAir(
+    o
   ) {
 
     const color =
       airColor(
-        obj.airType
+        o.airType
       );
 
 
     const samples =
       Math.max(
-        36,
-        obj.path.length *
-        16
+        35,
+        o.path.length *
+        14
       );
 
 
     ctx.save();
+
+
+    ctx.globalAlpha =
+      active(
+        o,
+        state.now
+      )
+        ? 1
+        : .25;
 
 
     ctx.strokeStyle =
@@ -5748,18 +4926,9 @@
 
     ctx.lineWidth =
       state.selectedId ===
-      obj.id
+      o.id
         ? 4
-        : 2.2;
-
-
-    ctx.globalAlpha =
-      active(
-        obj,
-        state.now
-      )
-        ? 0.95
-        : 0.25;
+        : 2.3;
 
 
     ctx.beginPath();
@@ -5777,21 +4946,21 @@
     ) {
 
       const p =
-        pathPosition(
-          obj.path,
+        pathPos(
+          o.path,
           i /
           samples
         );
 
 
       const x =
-        lonToX(
+        lonX(
           p.lon
         );
 
 
       const y =
-        latToY(
+        latY(
           p.lat
         );
 
@@ -5818,6 +4987,7 @@
 
 
       if (
+        prev &&
         i >
         0 &&
         i %
@@ -5828,11 +4998,10 @@
             5
           )
         ) ===
-        0 &&
-        prev
+        0
       ) {
 
-        drawArrowHead(
+        arrowHead(
           prev.x,
           prev.y,
           x,
@@ -5844,11 +5013,8 @@
 
 
       prev = {
-        x:
-          x,
-
-        y:
-          y
+        x,
+        y
       };
 
     }
@@ -5857,67 +5023,71 @@
     ctx.stroke();
 
 
-    /*
-        Current head / active air mass.
-    */
-
     if (
       active(
-        obj,
+        o,
         state.now
       )
     ) {
 
       const pr =
         progress(
-          obj,
+          o,
           state.now
         );
 
 
-      const head =
-        pathPosition(
-          obj.path,
+      const h =
+        pathPos(
+          o.path,
           pr
         );
 
 
       const x =
-        lonToX(
-          head.lon
+        lonX(
+          h.lon
         );
 
 
       const y =
-        latToY(
-          head.lat
+        latY(
+          h.lat
         );
 
 
-      const moisture =
+      const m =
         moistureAlongPath(
-          obj,
+          o,
           pr
         );
 
 
-      const anom =
-        airBaseAnomaly(
-          obj.airType,
+      const a =
+        airAnomaly(
+          o.airType,
           state.now
         ) *
-        intensityMultiplier(
-          obj.intensity
+        intensity(
+          o.intensity
         );
+
+
+      ctx.globalAlpha =
+        .13;
+
+
+      ctx.fillStyle =
+        color;
 
 
       const rx =
         Math.abs(
-          lonToX(
-            head.lon +
-            obj.widthKm /
-            kmPerLonDeg(
-              head.lat
+          lonX(
+            h.lon +
+            o.widthKm /
+            kmLon(
+              h.lat
             )
           ) -
           x
@@ -5926,21 +5096,13 @@
 
       const ry =
         Math.abs(
-          latToY(
-            head.lat +
-            obj.widthKm /
+          latY(
+            h.lat +
+            o.widthKm /
             KM_PER_DEG
           ) -
           y
         );
-
-
-      ctx.fillStyle =
-        color;
-
-
-      ctx.globalAlpha =
-        0.12;
 
 
       ctx.beginPath();
@@ -5950,11 +5112,11 @@
         x,
         y,
         Math.max(
-          10,
+          12,
           rx
         ),
         Math.max(
-          10,
+          12,
           ry
         ),
         0,
@@ -5972,17 +5134,21 @@
 
 
       ctx.fillStyle =
-        "rgba(8,13,18,.82)";
+        "rgba(6,11,15,.82)";
 
 
       ctx.fillRect(
         x -
         73,
         y -
-        30,
+        29,
         146,
-        42
+        40
       );
+
+
+      ctx.textAlign =
+        "center";
 
 
       ctx.fillStyle =
@@ -5990,52 +5156,51 @@
 
 
       ctx.font =
-        "bold 11px system-ui";
-
-
-      ctx.textAlign =
-        "center";
+        "700 10px system-ui";
 
 
       ctx.fillText(
-        airLabel(
-          obj.airType
+
+        airName(
+          o.airType
         ) +
         " " +
-        (
-          anom >=
-          0
-            ? "+"
-            : ""
+        sign1(
+          a
         ) +
-        anom.toFixed(
+        a.toFixed(
           1
         ) +
         "°",
+
         x,
         y -
         14
+
       );
 
 
       ctx.fillStyle =
-        "#e7eef2";
+        "#edf3f6";
 
 
       ctx.font =
-        "10px system-ui";
+        "9px system-ui";
 
 
       ctx.fillText(
+
         "moisture " +
         Math.round(
-          moisture *
+          m *
           100
         ) +
         "%",
+
         x,
         y +
         1
+
       );
 
     }
@@ -6047,12 +5212,12 @@
 
 
   function drawPressure(
-    obj
+    o
   ) {
 
     if (
       !active(
-        obj,
+        o,
         state.now
       )
     ) {
@@ -6063,38 +5228,42 @@
 
 
     const x =
-      lonToX(
-        obj.lon
+      lonX(
+        o.lon
       );
 
 
     const y =
-      latToY(
-        obj.lat
+      latY(
+        o.lat
       );
 
 
     const high =
-      obj.kind ===
+      o.kind ===
       "high";
+
+
+    const color =
+      high
+        ? "#a9e1f5"
+        : "#f3a0a0";
 
 
     ctx.save();
 
 
     ctx.fillStyle =
-      "rgba(8,13,18,.82)";
+      "rgba(6,11,15,.84)";
 
 
     ctx.strokeStyle =
-      high
-        ? "#9edcf5"
-        : "#f39d9d";
+      color;
 
 
     ctx.lineWidth =
       state.selectedId ===
-      obj.id
+      o.id
         ? 3.5
         : 2;
 
@@ -6118,11 +5287,7 @@
 
 
     ctx.fillStyle =
-      ctx.strokeStyle;
-
-
-    ctx.font =
-      "bold 22px system-ui";
+      color;
 
 
     ctx.textAlign =
@@ -6131,6 +5296,10 @@
 
     ctx.textBaseline =
       "middle";
+
+
+    ctx.font =
+      "800 22px system-ui";
 
 
     ctx.fillText(
@@ -6144,33 +5313,32 @@
 
 
     ctx.fillStyle =
-      "#eef3f6";
+      "#eef4f7";
 
 
     ctx.font =
-      "10px system-ui";
-
-
-    const p =
-      1014 +
-      pressureStrength(
-        obj.strength
-      ) *
-      (
-        high
-          ? 1
-          : -1
-      );
+      "9px system-ui";
 
 
     ctx.fillText(
+
       Math.round(
-        p
+        1014 +
+        pStrength(
+          o.strength
+        ) *
+        (
+          high
+            ? 1
+            : -1
+        )
       ) +
       " hPa",
+
       x,
       y +
       31
+
     );
 
 
@@ -6179,20 +5347,20 @@
   }
 
 
-  function drawObjects() {
+  function drawSystems() {
 
     for (
-      const obj of
+      const o of
       plan.objects
     ) {
 
       if (
-        obj.kind ===
+        o.kind ===
         "air"
       ) {
 
-        drawAirObject(
-          obj
+        drawAir(
+          o
         );
 
       }
@@ -6201,19 +5369,19 @@
 
 
     for (
-      const obj of
+      const o of
       plan.objects
     ) {
 
       if (
-        obj.kind ===
+        o.kind ===
         "high" ||
-        obj.kind ===
+        o.kind ===
         "low"
       ) {
 
         drawPressure(
-          obj
+          o
         );
 
       }
@@ -6226,9 +5394,8 @@
   function drawDraft() {
 
     if (
-      !state.drawActive ||
-      state.drawPath.length ===
-      0
+      !state.drawing ||
+      !state.draftPath.length
     ) {
 
       return;
@@ -6240,11 +5407,11 @@
 
 
     ctx.strokeStyle =
-      "#ffe07a";
+      "#ffe173";
 
 
     ctx.fillStyle =
-      "#ffe07a";
+      "#ffe173";
 
 
     ctx.lineWidth =
@@ -6262,30 +5429,29 @@
     ctx.beginPath();
 
 
-    state.drawPath.forEach(
+    state.draftPath.forEach(
       (
         p,
         i
       ) => {
 
         const x =
-          lonToX(
+          lonX(
             p.lon
           );
 
 
         const y =
-          latToY(
+          latY(
             p.lat
           );
 
 
         if (
-          i ===
-          0
+          i
         ) {
 
-          ctx.moveTo(
+          ctx.lineTo(
             x,
             y
           );
@@ -6293,7 +5459,7 @@
         }
         else {
 
-          ctx.lineTo(
+          ctx.moveTo(
             x,
             y
           );
@@ -6314,17 +5480,17 @@
 
     for (
       const p of
-      state.drawPath
+      state.draftPath
     ) {
 
       ctx.beginPath();
 
 
       ctx.arc(
-        lonToX(
+        lonX(
           p.lon
         ),
-        latToY(
+        latY(
           p.lat
         ),
         4,
@@ -6344,13 +5510,11 @@
   }
 
 
-  function drawInspectMarker() {
+  function drawInspect() {
 
-    const p =
-      state.inspect;
-
-
-    if (!p) {
+    if (
+      !state.inspect
+    ) {
 
       return;
 
@@ -6358,14 +5522,14 @@
 
 
     const x =
-      lonToX(
-        p.lon
+      lonX(
+        state.inspect.lon
       );
 
 
     const y =
-      latToY(
-        p.lat
+      latY(
+        state.inspect.lat
       );
 
 
@@ -6439,24 +5603,15 @@
 
     drawBase();
 
-
-    if (
-      state.layer !==
-      "elevation"
-    ) {
-
-      drawOverlay();
-
-    }
-
+    drawOverlay();
 
     drawGrid();
 
-    drawObjects();
+    drawSystems();
 
     drawDraft();
 
-    drawInspectMarker();
+    drawInspect();
 
   }
 
@@ -6464,10 +5619,10 @@
   function resize() {
 
     const r =
-      canvas.getBoundingClientRect();
+      ui.canvas.getBoundingClientRect();
 
 
-    state.width =
+    state.w =
       Math.max(
         320,
         Math.round(
@@ -6476,7 +5631,7 @@
       );
 
 
-    state.height =
+    state.h =
       Math.max(
         360,
         Math.round(
@@ -6486,26 +5641,26 @@
 
 
     state.dpr =
-      Math.max(
-        1,
-        Math.min(
-          2,
+      Math.min(
+        2,
+        Math.max(
+          1,
           window.devicePixelRatio ||
           1
         )
       );
 
 
-    canvas.width =
+    ui.canvas.width =
       Math.round(
-        state.width *
+        state.w *
         state.dpr
       );
 
 
-    canvas.height =
+    ui.canvas.height =
       Math.round(
-        state.height *
+        state.h *
         state.dpr
       );
 
@@ -6526,9 +5681,9 @@
 
 
   /*
-      ==========================================================
-      TOOL SELECTION
-      ==========================================================
+      =========================================================
+      TOOLS
+      =========================================================
   */
 
 
@@ -6537,12 +5692,14 @@
   ) {
 
     if (
-      state.drawActive &&
+      state.drawing &&
       tool !==
       "air"
     ) {
 
-      cancelAir();
+      cancelAir(
+        false
+      );
 
     }
 
@@ -6556,15 +5713,12 @@
         "[data-tool]"
       )
       .forEach(
-        button => {
-
-          button.classList.toggle(
+        b =>
+          b.classList.toggle(
             "active",
-            button.dataset.tool ===
+            b.dataset.tool ===
             tool
-          );
-
-        }
+          )
       );
 
 
@@ -6574,7 +5728,29 @@
     ) {
 
       ui.mapHint.textContent =
-        "Inspect: click anywhere for local weather. Click an H/L or use the active-system list to select it.";
+        "Inspect: click anywhere for calculated weather.";
+
+    }
+
+
+    if (
+      tool ===
+      "high"
+    ) {
+
+      ui.mapHint.textContent =
+        "High: click to place the centre.";
+
+    }
+
+
+    if (
+      tool ===
+      "low"
+    ) {
+
+      ui.mapHint.textContent =
+        "Low: click to place the centre.";
 
     }
 
@@ -6588,36 +5764,7 @@
 
     }
 
-
-    if (
-      tool ===
-      "high"
-    ) {
-
-      ui.mapHint.textContent =
-        "High: click where you want the high-pressure centre.";
-
-    }
-
-
-    if (
-      tool ===
-      "low"
-    ) {
-
-      ui.mapHint.textContent =
-        "Low: click where you want the low-pressure centre.";
-
-    }
-
   }
-
-
-  /*
-      ==========================================================
-      DRAW AIR
-      ==========================================================
-  */
 
 
   function startAir() {
@@ -6629,10 +5776,73 @@
     ) {
 
       msg(
-        "You cannot start a new air stream inside locked time.",
-        "LOCKED:"
+        "This time is locked. Move the slider into editable time first."
       );
 
+
+      setTool(
+        "inspect"
+      );
+
+
+      return;
+
+    }
+
+
+    state.drawing =
+      true;
+
+
+    state.draftPath =
+      [];
+
+
+    ui.finishAir.hidden =
+      false;
+
+
+    ui.cancelAir.hidden =
+      false;
+
+
+    ui.finishAir.disabled =
+      true;
+
+
+    ui.mapHint.textContent =
+      "Draw Air: click a source and then any bends you want. Double-click or press Finish Air when done.";
+
+
+    render();
+
+  }
+
+
+  function cancelAir(
+    switchTool =
+      true
+  ) {
+
+    state.drawing =
+      false;
+
+
+    state.draftPath =
+      [];
+
+
+    ui.finishAir.hidden =
+      true;
+
+
+    ui.cancelAir.hidden =
+      true;
+
+
+    if (
+      switchTool
+    ) {
 
       state.tool =
         "inspect";
@@ -6643,94 +5853,19 @@
           "[data-tool]"
         )
         .forEach(
-          button => {
-
-            button.classList.toggle(
+          b =>
+            b.classList.toggle(
               "active",
-              button.dataset.tool ===
+              b.dataset.tool ===
               "inspect"
-            );
-
-          }
+            )
         );
 
 
-      return;
+      ui.mapHint.textContent =
+        "Inspect: click anywhere for calculated weather.";
 
     }
-
-
-    state.drawActive =
-      true;
-
-
-    state.drawPath =
-      [];
-
-
-    ui.finishAir.classList.remove(
-      "hidden"
-    );
-
-
-    ui.cancelAir.classList.remove(
-      "hidden"
-    );
-
-
-    ui.finishAir.disabled =
-      true;
-
-
-    ui.mapHint.textContent =
-      "Draw Air: click a source, then as many bends/zig-zags as you want. Finish Air or press Enter.";
-
-  }
-
-
-  function cancelAir() {
-
-    state.drawActive =
-      false;
-
-
-    state.drawPath =
-      [];
-
-
-    ui.finishAir.classList.add(
-      "hidden"
-    );
-
-
-    ui.cancelAir.classList.add(
-      "hidden"
-    );
-
-
-    state.tool =
-      "inspect";
-
-
-    document
-      .querySelectorAll(
-        "[data-tool]"
-      )
-      .forEach(
-        button => {
-
-          button.classList.toggle(
-            "active",
-            button.dataset.tool ===
-            "inspect"
-          );
-
-        }
-      );
-
-
-    ui.mapHint.textContent =
-      "Inspect: click anywhere for local weather.";
 
 
     render();
@@ -6741,8 +5876,7 @@
   function finishAir() {
 
     if (
-      !state.drawActive ||
-      state.drawPath.length <
+      state.draftPath.length <
       2
     ) {
 
@@ -6760,10 +5894,10 @@
       Number(
         ui.airDuration.value
       ) *
-      MS_HOUR;
+      HOUR;
 
 
-    const obj = {
+    const o = {
 
       id:
         uid(
@@ -6801,13 +5935,10 @@
         ).toISOString(),
 
       path:
-        state.drawPath.map(
+        state.draftPath.map(
           p => ({
-            lat:
-              p.lat,
-
-            lon:
-              p.lon
+            lat: p.lat,
+            lon: p.lon
           })
         )
 
@@ -6815,76 +5946,32 @@
 
 
     plan.objects.push(
-      obj
+      o
     );
 
 
     state.selectedId =
-      obj.id;
+      o.id;
 
 
-    state.drawActive =
-      false;
+    saveSilent();
 
-
-    state.drawPath =
-      [];
-
-
-    ui.finishAir.classList.add(
-      "hidden"
+    cancelAir(
+      true
     );
-
-
-    ui.cancelAir.classList.add(
-      "hidden"
-    );
-
-
-    state.tool =
-      "inspect";
-
-
-    document
-      .querySelectorAll(
-        "[data-tool]"
-      )
-      .forEach(
-        button => {
-
-          button.classList.toggle(
-            "active",
-            button.dataset.tool ===
-            "inspect"
-          );
-
-        }
-      );
-
-
-    ui.mapHint.textContent =
-      "Air stream created. Scrub time and switch to Temperature, Anomaly or Precipitation to inspect the result.";
-
-
-    savePlanSilently();
 
     updateObjects();
+
+    updateInspect();
 
     render();
 
 
     msg(
-      "Air stream created. Precipitation remains a calculated output; you never paint it."
+      "Air stream created. Scrub the slider and switch to Temperature or Precipitation."
     );
 
   }
-
-
-  /*
-      ==========================================================
-      PRESSURE SYSTEMS
-      ==========================================================
-  */
 
 
   function addPressure(
@@ -6900,8 +5987,7 @@
     ) {
 
       msg(
-        "You cannot place pressure systems inside locked time.",
-        "LOCKED:"
+        "This time is locked."
       );
 
 
@@ -6914,10 +6000,10 @@
       Number(
         ui.pressureDuration.value
       ) *
-      MS_HOUR;
+      HOUR;
 
 
-    const obj = {
+    const o = {
 
       id:
         uid(
@@ -6962,44 +6048,35 @@
 
 
     plan.objects.push(
-      obj
+      o
     );
 
 
     state.selectedId =
-      obj.id;
+      o.id;
 
 
-    savePlanSilently();
-
-    updateObjects();
-
-    render();
-
+    saveSilent();
 
     setTool(
       "inspect"
     );
 
+    updateObjects();
+
+    updateInspect();
+
+    render();
+
 
     msg(
-      (
-        kind ===
-        "high"
-          ? "High"
-          : "Low"
-      ) +
-      " placed."
+      kind ===
+      "high"
+        ? "High placed."
+        : "Low placed."
     );
 
   }
-
-
-  /*
-      ==========================================================
-      MAP INTERACTION
-      ==========================================================
-  */
 
 
   function nearestPressure(
@@ -7011,24 +6088,24 @@
       null;
 
 
-    let bestD =
-      25;
+    let bd =
+      26;
 
 
     for (
-      const obj of
+      const o of
       plan.objects
     ) {
 
       if (
         (
-          obj.kind !==
+          o.kind !==
           "high" &&
-          obj.kind !==
+          o.kind !==
           "low"
         ) ||
         !active(
-          obj,
+          o,
           state.now
         )
       ) {
@@ -7040,13 +6117,12 @@
 
       const d =
         Math.hypot(
-          lonToX(
-            obj.lon
+          lonX(
+            o.lon
           ) -
           x,
-
-          latToY(
-            obj.lat
+          latY(
+            o.lat
           ) -
           y
         );
@@ -7054,15 +6130,15 @@
 
       if (
         d <
-        bestD
+        bd
       ) {
 
-        bestD =
+        bd =
           d;
 
 
         best =
-          obj;
+          o;
 
       }
 
@@ -7074,8 +6150,8 @@
   }
 
 
-  function onMapClick(
-    evt
+  function mapClick(
+    e
   ) {
 
     if (
@@ -7089,51 +6165,42 @@
 
     const p =
       canvasPoint(
-        evt
+        e
       );
 
 
     const lat =
       clamp(
-        yToLat(
+        yLat(
           p.y
         ),
-        BOUNDS.south,
-        BOUNDS.north
+        B.south,
+        B.north
       );
 
 
     const lon =
       clamp(
-        xToLon(
+        xLon(
           p.x
         ),
-        BOUNDS.west,
-        BOUNDS.east
+        B.west,
+        B.east
       );
 
 
-    /*
-        Air-path drawing.
-    */
-
     if (
-      state.drawActive
+      state.drawing
     ) {
 
-      state.drawPath.push({
-
-        lat:
-          lat,
-
-        lon:
-          lon
-
+      state.draftPath.push({
+        lat,
+        lon
       });
 
 
       ui.finishAir.disabled =
-        state.drawPath.length <
+        state.draftPath.length <
         2;
 
 
@@ -7141,15 +6208,15 @@
 
 
       msg(
-        state.drawPath.length +
+        state.draftPath.length +
         " path point" +
         (
-          state.drawPath.length ===
+          state.draftPath.length ===
           1
             ? ""
             : "s"
         ) +
-        ". Keep clicking bends or Finish Air."
+        "."
       );
 
 
@@ -7157,10 +6224,6 @@
 
     }
 
-
-    /*
-        Pressure placement.
-    */
 
     if (
       state.tool ===
@@ -7180,10 +6243,6 @@
 
     }
 
-
-    /*
-        Pressure selection.
-    */
 
     const near =
       nearestPressure(
@@ -7210,18 +6269,9 @@
     }
 
 
-    /*
-        Ordinary inspection.
-    */
-
     state.inspect = {
-
-      lat:
-        lat,
-
-      lon:
-        lon
-
+      lat,
+      lon
     };
 
 
@@ -7238,8 +6288,8 @@
   }
 
 
-  function onPointerMove(
-    evt
+  function pointerMove(
+    e
   ) {
 
     if (
@@ -7253,27 +6303,27 @@
 
     const p =
       canvasPoint(
-        evt
+        e
       );
 
 
     const lat =
       clamp(
-        yToLat(
+        yLat(
           p.y
         ),
-        BOUNDS.south,
-        BOUNDS.north
+        B.south,
+        B.north
       );
 
 
     const lon =
       clamp(
-        xToLon(
+        xLon(
           p.x
         ),
-        BOUNDS.west,
-        BOUNDS.east
+        B.west,
+        B.east
       );
 
 
@@ -7284,7 +6334,7 @@
       );
 
 
-    const elev =
+    const h =
       land
         ? Math.round(
             elevationAt(
@@ -7317,7 +6367,7 @@
       " · " +
       (
         land
-          ? elev +
+          ? h +
             " m"
           : "SEA"
       );
@@ -7326,10 +6376,45 @@
 
 
   /*
-      ==========================================================
+      =========================================================
       INSPECTION
-      ==========================================================
+      =========================================================
   */
+
+
+  function windName(
+    from
+  ) {
+
+    return [
+
+      "N",
+      "NE",
+      "E",
+      "SE",
+      "S",
+      "SW",
+      "W",
+      "NW"
+
+    ][
+
+      Math.round(
+        (
+          (
+            from %
+            360
+          ) +
+          360
+        ) %
+        360 /
+        45
+      ) %
+      8
+
+    ];
+
+  }
 
 
   function updateInspect() {
@@ -7344,8 +6429,8 @@
     }
 
 
-    const wx =
-      weatherAt(
+    const w =
+      weather(
         state.inspect.lat,
         state.inspect.lon,
         state.now,
@@ -7353,50 +6438,43 @@
       );
 
 
-    const p =
-      state.inspect;
-
-
     ui.where.textContent =
-      p.lat.toFixed(
+      state.inspect.lat.toFixed(
         2
       ) +
       "°N, " +
       (
-        p.lon >=
+        state.inspect.lon >=
         0
-          ? p.lon.toFixed(
+          ? state.inspect.lon.toFixed(
               2
             ) +
             "°E"
           : Math.abs(
-              p.lon
+              state.inspect.lon
             ).toFixed(
               2
             ) +
             "°W"
       ) +
       " · " +
-      formatUTC(
+      fmt(
         state.now
       );
 
 
     ui.wxTemp.textContent =
-      wx.temperatureC.toFixed(
+      w.temperatureC.toFixed(
         1
       ) +
       " °C";
 
 
     ui.wxAnom.textContent =
-      (
-        wx.anomalyC >=
-        0
-          ? "+"
-          : ""
+      sign1(
+        w.anomalyC
       ) +
-      wx.anomalyC.toFixed(
+      w.anomalyC.toFixed(
         1
       ) +
       " °C";
@@ -7404,27 +6482,23 @@
 
     ui.wxPressure.textContent =
       Math.round(
-        wx.pressureHpa
+        w.pressureHpa
       ) +
       " hPa";
 
 
     const toward =
-      normDeg(
-        radToDeg(
-          Math.atan2(
-            wx.uWind,
-            wx.vWind
-          )
+      deg(
+        Math.atan2(
+          w.uWind,
+          w.vWind
         )
       );
 
 
     const from =
-      normDeg(
-        toward +
-        180
-      );
+      toward +
+      180;
 
 
     ui.wxWind.textContent =
@@ -7432,7 +6506,7 @@
         from
       ) +
       " " +
-      wx.windSpeed.toFixed(
+      w.windSpeed.toFixed(
         1
       ) +
       " m/s";
@@ -7440,28 +6514,29 @@
 
     ui.wxCloud.textContent =
       Math.round(
-        wx.cloud
+        w.cloud
       ) +
       "%";
 
 
     ui.wxMoisture.textContent =
       Math.round(
-        wx.moisture *
+        w.moisture *
         100
       ) +
       "%";
 
 
     ui.wxPrecip.textContent =
-      wx.rate >
-      0
+      w.rate
 
-        ? titleCase(
-            wx.phase
+        ? w.phase.replace(
+            /^./,
+            c =>
+              c.toUpperCase()
           ) +
           " · " +
-          wx.rate.toFixed(
+          w.rate.toFixed(
             2
           ) +
           " mm/h"
@@ -7470,21 +6545,19 @@
 
 
     ui.wxSnow.textContent =
-      wx.snowDepthCm <
-      0.1
-
+      w.snowDepthCm <
+      .1
         ? "0 cm"
-
-        : wx.snowDepthCm.toFixed(
+        : w.snowDepthCm.toFixed(
             1
           ) +
           " cm";
 
 
     ui.wxElevation.textContent =
-      wx.land
+      w.land
         ? Math.round(
-            wx.elevationM
+            w.elevationM
           ) +
           " m"
         : "Sea";
@@ -7492,79 +6565,32 @@
   }
 
 
-  function titleCase(
-    s
-  ) {
-
-    return s.replace(
-      /\b\w/g,
-      c =>
-        c.toUpperCase()
-    );
-
-  }
-
-
-  function windName(
-    deg
-  ) {
-
-    const dirs = [
-      "N",
-      "NE",
-      "E",
-      "SE",
-      "S",
-      "SW",
-      "W",
-      "NW"
-    ];
-
-
-    return dirs[
-      Math.round(
-        normDeg(
-          deg
-        ) /
-        45
-      ) %
-      8
-    ];
-
-  }
-
-
   /*
-      ==========================================================
-      ACTIVE SYSTEM LIST
-      ==========================================================
+      =========================================================
+      ACTIVE OBJECTS
+      =========================================================
   */
 
 
   function objectName(
-    obj
+    o
   ) {
 
-    if (
-      obj.kind ===
-      "air"
-    ) {
-
-      return (
-        airLabel(
-          obj.airType
-        ) +
-        " air"
-      );
-
-    }
-
-
     return (
-      obj.kind ===
-      "high"
-        ? "High pressure"
-        : "Low pressure"
+      o.kind ===
+      "air"
+
+        ? airName(
+            o.airType
+          ) +
+          " air"
+
+        : o.kind ===
+          "high"
+
+          ? "High pressure"
+
+          : "Low pressure"
     );
 
   }
@@ -7576,19 +6602,18 @@
       "";
 
 
-    const activeObjects =
+    const arr =
       plan.objects.filter(
-        obj =>
+        o =>
           active(
-            obj,
+            o,
             state.now
           )
       );
 
 
     if (
-      activeObjects.length ===
-      0
+      !arr.length
     ) {
 
       const d =
@@ -7598,7 +6623,7 @@
 
 
       d.className =
-        "small";
+        "help";
 
 
       d.textContent =
@@ -7613,8 +6638,8 @@
 
 
     for (
-      const obj of
-      activeObjects
+      const o of
+      arr
     ) {
 
       const b =
@@ -7627,61 +6652,55 @@
         "obj" +
         (
           state.selectedId ===
-          obj.id
+          o.id
             ? " selected"
             : ""
         );
 
 
-      b.type =
-        "button";
-
-
-      const left =
+      const l =
         document.createElement(
           "span"
         );
 
 
-      left.textContent =
-        objectName(
-          obj
-        );
-
-
-      const right =
+      const r =
         document.createElement(
           "small"
         );
 
 
-      right.textContent =
-        obj.kind ===
+      l.textContent =
+        objectName(
+          o
+        );
+
+
+      r.textContent =
+        o.kind ===
         "air"
-          ? obj.intensity
-          : obj.strength;
+          ? o.intensity
+          : o.strength;
 
 
       b.append(
-        left,
-        right
+        l,
+        r
       );
 
 
-      b.addEventListener(
-        "click",
+      b.onclick =
         () => {
 
           state.selectedId =
-            obj.id;
+            o.id;
 
 
           updateObjects();
 
           render();
 
-        }
-      );
+        };
 
 
       ui.objects.appendChild(
@@ -7691,18 +6710,18 @@
     }
 
 
-    const selected =
+    const sel =
       plan.objects.find(
-        obj =>
-          obj.id ===
+        o =>
+          o.id ===
           state.selectedId
       );
 
 
     ui.deleteSelected.disabled =
-      !selected ||
-      objectFrozen(
-        selected
+      !sel ||
+      frozen(
+        sel
       );
 
   }
@@ -7710,15 +6729,15 @@
 
   function deleteSelected() {
 
-    const obj =
+    const o =
       plan.objects.find(
-        item =>
-          item.id ===
+        x =>
+          x.id ===
           state.selectedId
       );
 
 
-    if (!obj) {
+    if (!o) {
 
       return;
 
@@ -7726,14 +6745,13 @@
 
 
     if (
-      objectFrozen(
-        obj
+      frozen(
+        o
       )
     ) {
 
       msg(
-        "That system touches locked weather and cannot be deleted.",
-        "LOCKED:"
+        "That system begins in locked weather and cannot be deleted."
       );
 
 
@@ -7744,9 +6762,9 @@
 
     plan.objects =
       plan.objects.filter(
-        item =>
-          item.id !==
-          obj.id
+        x =>
+          x.id !==
+          o.id
       );
 
 
@@ -7754,7 +6772,7 @@
       null;
 
 
-    savePlanSilently();
+    saveSilent();
 
     updateObjects();
 
@@ -7771,9 +6789,9 @@
 
 
   /*
-      ==========================================================
-      DONE / LOCK
-      ==========================================================
+      =========================================================
+      DONE AND LOCK
+      =========================================================
   */
 
 
@@ -7788,8 +6806,7 @@
     ) {
 
       msg(
-        "Done state cannot move behind the locked boundary.",
-        "LOCKED:"
+        "DONE cannot move behind the locked boundary."
       );
 
 
@@ -7804,14 +6821,14 @@
       ).toISOString();
 
 
-    savePlanSilently();
+    saveSilent();
 
-    updateTop();
+    syncTimeline();
 
 
     msg(
-      "Weather marked Done through " +
-      formatUTC(
+      "Marked DONE through " +
+      fmt(
         state.now
       ) +
       "."
@@ -7831,7 +6848,7 @@
     ) {
 
       msg(
-        "Mark this time Done before locking it."
+        "Mark this time DONE before locking it."
       );
 
 
@@ -7864,16 +6881,16 @@
       ).toISOString();
 
 
-    savePlanSilently();
+    saveSilent();
 
-    updateTop();
+    syncTimeline();
 
     updateObjects();
 
 
     msg(
-      "Locked permanently through " +
-      formatUTC(
+      "Locked through " +
+      fmt(
         state.now
       ) +
       "."
@@ -7883,172 +6900,37 @@
 
 
   /*
-      ==========================================================
-      NEXT 3-MONTH BLOCK
-      ==========================================================
-  */
-
-
-  function nextThreeMonthBlock() {
-
-    if (
-      !plan.lockedThrough ||
-      Date.parse(
-        plan.lockedThrough
-      ) <
-      Date.parse(
-        plan.blockEnd
-      ) -
-      60000
-    ) {
-
-      const ok =
-        confirm(
-          "The current block is not locked through its end. Start the next 3-month block anyway?"
-        );
-
-
-      if (!ok) {
-
-        return;
-
-      }
-
-    }
-
-
-    const d =
-      new Date(
-        Date.parse(
-          plan.blockEnd
-        ) +
-        1000
-      );
-
-
-    const start =
-      Date.UTC(
-        d.getUTCFullYear(),
-        d.getUTCMonth(),
-        1,
-        0,
-        0,
-        0
-      );
-
-
-    const endDate =
-      new Date(
-        start
-      );
-
-
-    endDate.setUTCMonth(
-      endDate.getUTCMonth() +
-      3
-    );
-
-
-    const end =
-      endDate.getTime() -
-      1000;
-
-
-    plan.blockStart =
-      new Date(
-        start
-      ).toISOString();
-
-
-    plan.blockEnd =
-      new Date(
-        end
-      ).toISOString();
-
-
-    state.now =
-      start;
-
-
-    state.selectedId =
-      null;
-
-
-    savePlanSilently();
-
-    rebuildTimeline();
-
-    updateTop();
-
-    updateObjects();
-
-    updateInspect();
-
-    render();
-
-
-    msg(
-      "Started the next 3-month block. The final 12 locked hours remain available before it."
-    );
-
-  }
-
-
-  /*
-      ==========================================================
+      =========================================================
       EXPORT
-      ==========================================================
+      =========================================================
   */
 
 
-  function exportPlan() {
+  function exportJSON() {
 
     const payload = {
 
       format:
         "EuropaCraftWeatherPlan",
 
-      formatVersion:
-        1,
+      version:
+        3,
 
       exportedAt:
         new Date()
           .toISOString(),
 
-      deterministic:
-        true,
+      bounds:
+        B,
 
-      weatherApi:
-        false,
+      precipitation:
+        "calculated, never painted",
 
-      geography: {
+      geography:
+        "Natural Earth 1:50m",
 
-        land:
-          "Natural Earth 1:50m land",
-
-        elevation:
-          "AWS Open Data Terrain Tiles / Terrarium",
-
-        bounds:
-          BOUNDS,
-
-        terrainZoom:
-          TERRAIN_ZOOM
-
-      },
-
-      engine: {
-
-        precipitation:
-          "derived from moisture, convergence, pressure lift, orography and convection",
-
-        precipitationIsAuthored:
-          false,
-
-        temperatureAnomalyIsPainted:
-          false
-
-      },
+      terrain:
+        "AWS Terrarium static elevation tiles",
 
       plan:
         plan
@@ -8112,83 +6994,16 @@
 
 
     msg(
-      "Weather plan exported."
+      "Plan exported."
     );
 
   }
 
 
   /*
-      ==========================================================
-      RESET
-      ==========================================================
-  */
-
-
-  function resetPlan() {
-
-    if (
-      !confirm(
-        "Delete the local weather plan and start again?"
-      )
-    ) {
-
-      return;
-
-    }
-
-
-    localStorage.removeItem(
-      STORAGE_KEY
-    );
-
-
-    plan =
-      structuredCloneSafe(
-        DEFAULT_PLAN
-      );
-
-
-    state.now =
-      Date.parse(
-        plan.blockStart
-      );
-
-
-    state.selectedId =
-      null;
-
-
-    state.drawActive =
-      false;
-
-
-    state.drawPath =
-      [];
-
-
-    rebuildTimeline();
-
-    updateTop();
-
-    updateObjects();
-
-    updateInspect();
-
-    render();
-
-
-    msg(
-      "Local weather plan reset."
-    );
-
-  }
-
-
-  /*
-      ==========================================================
+      =========================================================
       EVENTS
-      ==========================================================
+      =========================================================
   */
 
 
@@ -8199,12 +7014,12 @@
         "[data-tool]"
       )
       .forEach(
-        button =>
-          button.addEventListener(
+        b =>
+          b.addEventListener(
             "click",
             () =>
               setTool(
-                button.dataset.tool
+                b.dataset.tool
               )
           )
       );
@@ -8218,7 +7033,10 @@
 
     ui.cancelAir.addEventListener(
       "click",
-      cancelAir
+      () =>
+        cancelAir(
+          true
+        )
     );
 
 
@@ -8236,40 +7054,37 @@
     );
 
 
-    canvas.addEventListener(
+    ui.canvas.addEventListener(
       "click",
-      onMapClick
+      mapClick
     );
 
 
-    canvas.addEventListener(
+    ui.canvas.addEventListener(
       "pointermove",
-      onPointerMove
+      pointerMove
     );
 
 
-    canvas.addEventListener(
+    ui.canvas.addEventListener(
       "pointerleave",
-      () => {
-
+      () =>
         ui.coords.textContent =
-          "—";
-
-      }
+          "—"
     );
 
 
-    canvas.addEventListener(
+    ui.canvas.addEventListener(
       "dblclick",
-      evt => {
+      e => {
 
         if (
-          state.drawActive &&
-          state.drawPath.length >=
+          state.drawing &&
+          state.draftPath.length >=
           2
         ) {
 
-          evt.preventDefault();
+          e.preventDefault();
 
           finishAir();
 
@@ -8283,20 +7098,31 @@
       "input",
       () => {
 
-        const f =
-          Number(
-            ui.timeSlider.value
-          ) /
-          2000;
+        const a =
+          Date.parse(
+            plan.blockStart
+          );
+
+
+        const b =
+          Date.parse(
+            plan.blockEnd
+          );
 
 
         setTime(
-          state.displayStart +
-          f *
+
+          a +
+
           (
-            state.displayEnd -
-            state.displayStart
-          )
+            b -
+            a
+          ) *
+          Number(
+            ui.timeSlider.value
+          ) /
+          2000
+
         );
 
       }
@@ -8308,7 +7134,7 @@
       () => {
 
         const t =
-          parseLocalInputAsUTC(
+          parseInput(
             ui.timeInput.value
           );
 
@@ -8326,7 +7152,7 @@
         }
         else {
 
-          syncTimeControls();
+          syncTimeline();
 
         }
 
@@ -8334,88 +7160,119 @@
     );
 
 
-    ui.m6.addEventListener(
-      "click",
+    ui.m6.onclick =
       () =>
         setTime(
           state.now -
           6 *
-          MS_HOUR
-        )
-    );
+          HOUR
+        );
 
 
-    ui.m1.addEventListener(
-      "click",
+    ui.m1.onclick =
       () =>
         setTime(
           state.now -
-          MS_HOUR
-        )
-    );
+          HOUR
+        );
 
 
-    ui.p1.addEventListener(
-      "click",
+    ui.p1.onclick =
       () =>
         setTime(
           state.now +
-          MS_HOUR
-        )
-    );
+          HOUR
+        );
 
 
-    ui.p6.addEventListener(
-      "click",
+    ui.p6.onclick =
       () =>
         setTime(
           state.now +
           6 *
-          MS_HOUR
-        )
-    );
+          HOUR
+        );
 
 
-    ui.deleteSelected.addEventListener(
-      "click",
-      deleteSelected
-    );
+    ui.deleteSelected.onclick =
+      deleteSelected;
 
 
-    ui.markDone.addEventListener(
-      "click",
-      markDone
-    );
+    ui.markDone.onclick =
+      markDone;
 
 
-    ui.lockThrough.addEventListener(
-      "click",
-      lockThrough
-    );
+    ui.lockThrough.onclick =
+      lockThrough;
 
 
-    ui.nextBlock.addEventListener(
-      "click",
-      nextThreeMonthBlock
-    );
+    ui.save.onclick =
+      () => {
+
+        saveSilent();
+
+        msg(
+          "Plan saved locally."
+        );
+
+      };
 
 
-    ui.save.addEventListener(
-      "click",
-      savePlan
-    );
+    ui.export.onclick =
+      exportJSON;
 
 
-    ui.export.addEventListener(
-      "click",
-      exportPlan
-    );
+    ui.reset.onclick =
+      () => {
+
+        if (
+          confirm(
+            "Delete the local EuropaCraft weather plan?"
+          )
+        ) {
+
+          localStorage.removeItem(
+            STORAGE
+          );
 
 
-    ui.reset.addEventListener(
-      "click",
-      resetPlan
-    );
+          plan =
+            clone(
+              defaults
+            );
+
+
+          state.now =
+            Date.parse(
+              plan.blockStart
+            );
+
+
+          state.selectedId =
+            null;
+
+
+          cancelAir(
+            true
+          );
+
+
+          syncTimeline();
+
+          updateObjects();
+
+          updateInspect();
+
+          render();
+
+
+          msg(
+            "Plan reset."
+          );
+
+        }
+
+      };
 
 
     window.addEventListener(
@@ -8426,47 +7283,28 @@
 
     window.addEventListener(
       "keydown",
-      evt => {
-
-        const tag =
-          document.activeElement &&
-          document.activeElement.tagName;
-
+      e => {
 
         if (
-          tag ===
-          "INPUT" ||
-          tag ===
-          "SELECT"
+          e.key ===
+          "Escape" &&
+          state.drawing
         ) {
 
-          return;
+          cancelAir(
+            true
+          );
 
         }
 
 
         if (
-          evt.key ===
+          e.key ===
           "Enter" &&
-          state.drawActive
+          state.drawing
         ) {
-
-          evt.preventDefault();
 
           finishAir();
-
-        }
-
-
-        if (
-          evt.key ===
-          "Escape" &&
-          state.drawActive
-        ) {
-
-          evt.preventDefault();
-
-          cancelAir();
 
         }
 
@@ -8477,29 +7315,156 @@
 
 
   /*
-      ==========================================================
-      START
-      ==========================================================
+      =========================================================
+      DATA STARTUP
+      =========================================================
   */
 
 
-  function initialise() {
+  async function startData() {
 
-    installEvents();
+    try {
 
-    rebuildTimeline();
+      ui.mapHint.textContent =
+        "Loading real European coastline…";
 
-    updateTop();
 
-    updateObjects();
+      msg(
+        "Loading Natural Earth geography…"
+      );
 
-    resize();
 
-    loadGeography();
+      const geo =
+        await fetchJSON(
+          GEO_URLS
+        );
+
+
+      buildLandMask(
+        geo
+      );
+
+
+      buildBase();
+
+      render();
+
+      updateInspect();
+
+
+      ui.mapHint.textContent =
+        "Real coastline loaded. Loading elevation terrain…";
+
+
+      msg(
+        "Coastline ready. Loading AWS terrain tiles…"
+      );
+
+
+      const count =
+        await loadTerrain();
+
+
+      buildBase();
+
+      render();
+
+      updateInspect();
+
+
+      if (
+        state.terrainReady
+      ) {
+
+        ui.mapHint.textContent =
+          "Ready. Draw air, place H/L, scrub time, inspect Temperature and Precipitation.";
+
+
+        msg(
+          "Ready. Real coastline and " +
+          count +
+          " terrain tiles loaded."
+        );
+
+      }
+      else {
+
+        ui.mapHint.textContent =
+          "Coastline loaded, but terrain tiles could not load. Check browser/network access.";
+
+
+        msg(
+          "Terrain did not load. Weather still runs, but mountain effects are disabled."
+        );
+
+      }
+
+    }
+    catch (
+      e
+    ) {
+
+      console.error(
+        e
+      );
+
+
+      ui.mapHint.textContent =
+        "REAL GEOGRAPHY FAILED TO LOAD — no fake fallback is being used.";
+
+
+      msg(
+        "Geography load failed: " +
+        e.message
+      );
+
+
+      render();
+
+    }
 
   }
 
 
-  initialise();
+  /*
+      =========================================================
+      START
+      =========================================================
+  */
+
+
+  function init() {
+
+    /*
+        These happen BEFORE any network request.
+
+        Therefore VIEWING and PLAN should appear immediately.
+        If they do not, we know the JS itself has not loaded.
+    */
+
+    syncTimeline();
+
+    installEvents();
+
+    resize();
+
+    updateObjects();
+
+
+    ui.mapHint.textContent =
+      "Starting engine…";
+
+
+    msg(
+      "Engine started. Loading real geography…"
+    );
+
+
+    startData();
+
+  }
+
+
+  init();
 
 })();
