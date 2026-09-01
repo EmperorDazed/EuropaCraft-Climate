@@ -1,474 +1,425 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>EuropaCraft Weather Studio</title>
-
-  <style>
-    :root{
-      --bg:#0d1217;
-      --panel:#151c23;
-      --panel2:#1b242d;
-      --line:#31404d;
-      --text:#eef3f6;
-      --muted:#9aabb8;
-      --accent:#d9b45f;
-      --good:#76c38e;
-      --danger:#d66f6f;
-      --input:#0f151b;
-    }
-
-    *{
-      box-sizing:border-box;
-    }
-
-    html,
-    body{
-      margin:0;
-      min-height:100%;
-      background:var(--bg);
-      color:var(--text);
-      font-family:
-        Inter,
-        system-ui,
-        -apple-system,
-        "Segoe UI",
-        sans-serif;
-    }
-
-    button,
-    input,
-    select{
-      font:inherit;
-    }
-
-    button{
-      cursor:pointer;
-    }
-
-    .app{
-      min-height:100vh;
-      display:flex;
-      flex-direction:column;
-    }
-
-    header{
-      display:flex;
-      justify-content:space-between;
-      gap:20px;
-      align-items:center;
-      padding:11px 15px;
-      background:#111820;
-      border-bottom:1px solid var(--line);
-    }
-
-    h1{
-      font-size:18px;
-      margin:0;
-    }
-
-    .sub{
-      font-size:12px;
-      color:var(--muted);
-      margin-top:2px;
-    }
-
-    .statusTop{
-      display:flex;
-      gap:18px;
-      flex-wrap:wrap;
-      justify-content:flex-end;
-    }
-
-    .stat{
-      display:flex;
-      flex-direction:column;
-      gap:2px;
-    }
-
-    .stat b{
-      font-size:12px;
-    }
-
-    .stat span{
-      font-size:10px;
-      color:var(--muted);
-      text-transform:uppercase;
-      letter-spacing:.08em;
-    }
-
-    .main{
-      display:grid;
-      grid-template-columns:minmax(0,1fr) 320px;
-      flex:1;
-      min-height:0;
-    }
-
-    .work{
-      display:flex;
-      flex-direction:column;
-      min-width:0;
-      border-right:1px solid var(--line);
-    }
-
-    .toolbar{
-      display:flex;
-      gap:6px;
-      flex-wrap:wrap;
-      padding:8px 10px;
-      background:var(--panel);
-      border-bottom:1px solid var(--line);
-      align-items:center;
-    }
-
-    .btn,
-    .select{
-      min-height:34px;
-      border:1px solid var(--line);
-      border-radius:6px;
-      background:var(--panel2);
-      color:var(--text);
-      padding:6px 10px;
-    }
-
-    .btn:hover{
-      border-color:#53697b;
-    }
-
-    .btn.active{
-      background:var(--accent);
-      color:#16120a;
-      border-color:#f1cb77;
-      font-weight:700;
-    }
-
-    .btn.good{
-      border-color:#4e8c62;
-    }
-
-    .btn.danger{
-      border-color:#854848;
-    }
-
-    .btn:disabled{
-      opacity:.45;
-      cursor:not-allowed;
-    }
-
-    .sep{
-      height:25px;
-      width:1px;
-      background:var(--line);
-      margin:0 2px;
-    }
-
-    .mapWrap{
-      position:relative;
-      flex:1;
-      min-height:500px;
-      overflow:hidden;
-      background:#122b39;
-    }
-
-    canvas{
-      display:block;
-      width:100%;
-      height:100%;
-      min-height:500px;
-      touch-action:none;
-      cursor:crosshair;
-    }
-
-    .mapHint,
-    .coords{
-      position:absolute;
-      bottom:9px;
-      padding:6px 8px;
-      border:1px solid rgba(220,230,238,.2);
-      background:rgba(10,15,20,.82);
-      font-size:11px;
-      border-radius:6px;
-      pointer-events:none;
-    }
-
-    .mapHint{
-      left:9px;
-      max-width:65%;
-    }
-
-    .coords{
-      right:9px;
-      font-variant-numeric:tabular-nums;
-    }
-
-    .timeline{
-      padding:9px 11px 11px;
-      background:var(--panel);
-      border-top:1px solid var(--line);
-    }
-
-    .timeRow{
-      display:grid;
-      grid-template-columns:auto minmax(180px,1fr) 190px;
-      gap:8px;
-      align-items:center;
-    }
-
-    .jump{
-      display:flex;
-      gap:5px;
-    }
-
-    .jump .btn{
-      min-height:30px;
-      padding:4px 7px;
-      font-size:12px;
-    }
-
-    .timeRow input[type=range]{
-      width:100%;
-    }
-
-    .dt{
-      width:100%;
-      min-height:34px;
-      padding:5px 7px;
-      border-radius:6px;
-      border:1px solid var(--line);
-      background:var(--input);
-      color:var(--text);
-    }
-
-    .scale{
-      display:flex;
-      justify-content:space-between;
-      color:var(--muted);
-      font-size:10px;
-      margin-top:5px;
-    }
-
-    .side{
-      background:var(--panel);
-      overflow:auto;
-    }
-
-    .panel{
-      padding:12px;
-      border-bottom:1px solid var(--line);
-    }
-
-    .panel h2{
-      font-size:13px;
-      margin:0 0 9px;
-    }
-
-    .small{
-      font-size:11px;
-      line-height:1.45;
-      color:var(--muted);
-    }
-
-    label{
-      display:block;
-      color:var(--muted);
-      font-size:11px;
-      margin-bottom:4px;
-    }
-
-    .field{
-      margin-bottom:9px;
-    }
-
-    .field:last-child{
-      margin-bottom:0;
-    }
-
-    .field select,
-    .field input{
-      width:100%;
-      min-height:34px;
-      border:1px solid var(--line);
-      border-radius:6px;
-      background:var(--input);
-      color:var(--text);
-      padding:5px 7px;
-    }
-
-    .grid2{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:7px;
-    }
-
-    .weather{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:6px;
-    }
-
-    .wcell{
-      background:var(--panel2);
-      border:1px solid #293743;
-      border-radius:6px;
-      padding:7px;
-      min-width:0;
-    }
-
-    .wcell.wide{
-      grid-column:1/-1;
-    }
-
-    .wname{
-      font-size:9px;
-      color:var(--muted);
-      text-transform:uppercase;
-      letter-spacing:.07em;
-    }
-
-    .wval{
-      font-size:13px;
-      font-weight:700;
-      margin-top:2px;
-      word-break:break-word;
-    }
-
-    .objects{
-      display:flex;
-      flex-direction:column;
-      gap:5px;
-      max-height:190px;
-      overflow:auto;
-    }
-
-    .obj{
-      width:100%;
-      display:flex;
-      justify-content:space-between;
-      gap:8px;
-      text-align:left;
-      min-height:32px;
-      align-items:center;
-      border:1px solid #293743;
-      background:var(--panel2);
-      color:var(--text);
-      border-radius:5px;
-      padding:5px 7px;
-    }
-
-    .obj.selected{
-      border-color:var(--accent);
-    }
-
-    .obj small{
-      color:var(--muted);
-    }
-
-    .actions{
-      display:flex;
-      gap:6px;
-      flex-wrap:wrap;
-    }
-
-    .note{
-      padding:7px 8px;
-      border:1px solid #3c4d5b;
-      border-radius:6px;
-      background:#131b22;
-      font-size:11px;
-      color:#b8c7d1;
-      line-height:1.45;
-    }
-
-    .hidden{
-      display:none!important;
-    }
-
-    footer{
-      padding:8px 11px;
-      border-top:1px solid var(--line);
-      background:#10161c;
-      color:var(--muted);
-      font-size:11px;
-      min-height:34px;
-    }
-
-    @media(max-width:930px){
-      .main{
-        grid-template-columns:1fr;
-      }
-
-      .work{
-        border-right:0;
-      }
-
-      .side{
-        border-top:1px solid var(--line);
-      }
-
-      .timeRow{
-        grid-template-columns:1fr;
-      }
-
-      .mapWrap,
-      canvas{
-        min-height:430px;
-      }
-    }
-
-    @media(max-width:600px){
-      header{
-        align-items:flex-start;
-        flex-direction:column;
-      }
-
-      .statusTop{
-        justify-content:flex-start;
-      }
-
-      .weather,
-      .grid2{
-        grid-template-columns:1fr;
-      }
-
-      .wcell.wide{
-        grid-column:auto;
-      }
-
-      .mapHint{
-        max-width:75%;
-      }
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EuropaCraft Weather Studio</title>
+
+<style>
+:root{
+  --bg:#0c1217;
+  --panel:#121a21;
+  --panel2:#17222b;
+  --line:#2d3d49;
+  --text:#eef4f7;
+  --muted:#98aab6;
+  --accent:#e2b951;
+  --danger:#b95f5f;
+}
+
+*{
+  box-sizing:border-box;
+}
+
+html,
+body{
+  margin:0;
+  height:100%;
+  background:var(--bg);
+  color:var(--text);
+  font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+
+button,
+select,
+input{
+  font:inherit;
+}
+
+body{
+  overflow:hidden;
+}
+
+.app{
+  height:100%;
+  display:flex;
+  flex-direction:column;
+}
+
+.top{
+  height:70px;
+  padding:10px 14px;
+  background:#0f171e;
+  border-bottom:1px solid var(--line);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+}
+
+.title{
+  font-size:18px;
+  font-weight:800;
+}
+
+.subtitle{
+  font-size:11px;
+  color:var(--muted);
+  margin-top:3px;
+}
+
+.topstats{
+  display:flex;
+  gap:24px;
+}
+
+.stat small{
+  display:block;
+  color:var(--muted);
+  font-size:9px;
+  text-transform:uppercase;
+  letter-spacing:.12em;
+}
+
+.stat b{
+  font-size:12px;
+}
+
+.layout{
+  flex:1;
+  min-height:0;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 330px;
+}
+
+.left{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  border-right:1px solid var(--line);
+}
+
+.toolbar{
+  padding:8px;
+  background:var(--panel);
+  border-bottom:1px solid var(--line);
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex-wrap:wrap;
+}
+
+.btn,
+.select,
+.field input,
+.field select{
+  border:1px solid var(--line);
+  background:#0f171d;
+  color:var(--text);
+  border-radius:6px;
+  min-height:34px;
+  padding:6px 10px;
+}
+
+.btn{
+  cursor:pointer;
+}
+
+.btn:hover{
+  border-color:#547085;
+}
+
+.btn.active{
+  background:var(--accent);
+  border-color:#f3cf75;
+  color:#171207;
+  font-weight:800;
+}
+
+.btn.danger{
+  border-color:#794545;
+}
+
+.btn:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+}
+
+.mapWrap{
+  position:relative;
+  flex:1;
+  min-height:0;
+  background:#12303e;
+}
+
+.mapWrap canvas{
+  width:100%;
+  height:100%;
+  display:block;
+  cursor:crosshair;
+  touch-action:none;
+}
+
+.hint,
+.coords{
+  position:absolute;
+  bottom:8px;
+  background:rgba(6,11,15,.82);
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:5px;
+  padding:5px 7px;
+  font-size:10px;
+  pointer-events:none;
+}
+
+.hint{
+  left:8px;
+  max-width:70%;
+}
+
+.coords{
+  right:8px;
+}
+
+.timeline{
+  padding:8px 10px 10px;
+  background:var(--panel);
+  border-top:1px solid var(--line);
+}
+
+.timeRow{
+  display:grid;
+  grid-template-columns:auto minmax(180px,1fr) 185px;
+  gap:8px;
+  align-items:center;
+}
+
+.jumps{
+  display:flex;
+  gap:4px;
+}
+
+.jumps .btn{
+  min-height:30px;
+  padding:4px 7px;
+  font-size:11px;
+}
+
+.timeRow input[type=range]{
+  width:100%;
+}
+
+.dt{
+  width:100%;
+  border:1px solid var(--line);
+  background:#0f171d;
+  color:var(--text);
+  border-radius:6px;
+  min-height:34px;
+  padding:5px 7px;
+}
+
+.scale{
+  margin-top:4px;
+  display:flex;
+  justify-content:space-between;
+  color:var(--muted);
+  font-size:9px;
+}
+
+.side{
+  overflow:auto;
+  background:var(--panel);
+}
+
+.panel{
+  padding:11px;
+  border-bottom:1px solid var(--line);
+}
+
+.panel h2{
+  font-size:13px;
+  margin:0 0 8px;
+}
+
+.help{
+  font-size:10px;
+  line-height:1.45;
+  color:var(--muted);
+}
+
+.field{
+  margin-top:8px;
+}
+
+.field label{
+  display:block;
+  font-size:10px;
+  color:var(--muted);
+  margin-bottom:3px;
+}
+
+.field select,
+.field input{
+  width:100%;
+}
+
+.grid2{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:7px;
+}
+
+.wxgrid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:6px;
+  margin-top:7px;
+}
+
+.wx{
+  border:1px solid #293944;
+  background:var(--panel2);
+  border-radius:6px;
+  padding:7px;
+}
+
+.wx.wide{
+  grid-column:1/-1;
+}
+
+.wx small{
+  display:block;
+  color:var(--muted);
+  font-size:8px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+
+.wx b{
+  display:block;
+  font-size:12px;
+  margin-top:2px;
+}
+
+.objects{
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  max-height:160px;
+  overflow:auto;
+}
+
+.obj{
+  display:flex;
+  justify-content:space-between;
+  width:100%;
+  gap:8px;
+  align-items:center;
+  text-align:left;
+  border:1px solid #293944;
+  background:var(--panel2);
+  color:var(--text);
+  border-radius:5px;
+  padding:6px 7px;
+  cursor:pointer;
+}
+
+.obj.selected{
+  border-color:var(--accent);
+}
+
+.obj small{
+  color:var(--muted);
+}
+
+.row{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+}
+
+.statusBox{
+  font-size:10px;
+  line-height:1.4;
+  padding:7px;
+  background:#0f171d;
+  border:1px solid #30434f;
+  border-radius:6px;
+}
+
+.footer{
+  min-height:34px;
+  padding:8px 11px;
+  background:#0e151b;
+  border-top:1px solid var(--line);
+  color:var(--muted);
+  font-size:10px;
+}
+
+@media(max-width:900px){
+  body{
+    overflow:auto;
+  }
+
+  .app{
+    height:auto;
+    min-height:100%;
+  }
+
+  .layout{
+    grid-template-columns:1fr;
+  }
+
+  .left{
+    min-height:760px;
+  }
+
+  .side{
+    border-top:1px solid var(--line);
+  }
+
+  .timeRow{
+    grid-template-columns:1fr;
+  }
+
+  .mapWrap{
+    min-height:520px;
+  }
+}
+</style>
 </head>
 
 <body>
 
 <div class="app">
 
-  <header>
+  <header class="top">
 
     <div>
-      <h1>EuropaCraft Weather Studio</h1>
-      <div class="sub">
-        Draw causes. Inspect the weather they produce.
+      <div class="title">
+        EuropaCraft Weather Studio
+      </div>
+
+      <div class="subtitle">
+        Draw the atmospheric setup. Temperature and precipitation are calculated.
       </div>
     </div>
 
-    <div class="statusTop">
+    <div class="topstats">
 
       <div class="stat">
-        <span>Viewing</span>
-        <b id="currentTime">—</b>
+        <small>Viewing</small>
+        <b id="currentTime">Starting…</b>
       </div>
 
       <div class="stat">
-        <span>Plan</span>
-        <b id="planRange">—</b>
+        <small>Plan</small>
+        <b id="planRange">Starting…</b>
       </div>
 
       <div class="stat">
-        <span>State</span>
+        <small>State</small>
         <b id="planState">NOT DONE</b>
       </div>
 
@@ -477,9 +428,9 @@
   </header>
 
 
-  <div class="main">
+  <div class="layout">
 
-    <section class="work">
+    <main class="left">
 
       <div class="toolbar">
 
@@ -512,25 +463,26 @@
         </button>
 
         <button
-          class="btn good hidden"
+          class="btn active"
           id="finishAir"
+          hidden
         >
           Finish Air
         </button>
 
         <button
-          class="btn danger hidden"
+          class="btn danger"
           id="cancelAir"
+          hidden
         >
           Cancel
         </button>
-
-        <span class="sep"></span>
 
         <select
           class="select"
           id="layer"
         >
+
           <option value="synoptic">
             Synoptic
           </option>
@@ -554,6 +506,7 @@
           <option value="elevation">
             Elevation
           </option>
+
         </select>
 
       </div>
@@ -564,10 +517,10 @@
         <canvas id="map"></canvas>
 
         <div
-          class="mapHint"
+          class="hint"
           id="mapHint"
         >
-          Loading real European geography and terrain…
+          Starting weather engine…
         </div>
 
         <div
@@ -584,7 +537,7 @@
 
         <div class="timeRow">
 
-          <div class="jump">
+          <div class="jumps">
 
             <button
               class="btn"
@@ -616,7 +569,6 @@
 
           </div>
 
-
           <input
             id="timeSlider"
             type="range"
@@ -626,7 +578,6 @@
             value="0"
           >
 
-
           <input
             id="timeInput"
             class="dt"
@@ -635,7 +586,6 @@
           >
 
         </div>
-
 
         <div class="scale">
 
@@ -655,28 +605,23 @@
 
       </div>
 
-    </section>
+    </main>
 
 
     <aside class="side">
 
       <section class="panel">
 
-        <h2>Air you are drawing</h2>
+        <h2>Air stream</h2>
 
-        <div class="small">
-          No anomaly painting. Choose the source air; the engine
-          derives its temperature character and lets sea crossings
-          add moisture.
+        <div class="help">
+          Choose the source air and draw its route.
+          You do not paint temperature anomalies or precipitation.
         </div>
 
+        <div class="field">
 
-        <div
-          class="field"
-          style="margin-top:9px"
-        >
-
-          <label for="airType">
+          <label>
             Air source
           </label>
 
@@ -715,7 +660,7 @@
 
           <div class="field">
 
-            <label for="airIntensity">
+            <label>
               Intensity
             </label>
 
@@ -747,7 +692,7 @@
 
           <div class="field">
 
-            <label for="airWidth">
+            <label>
               Width
             </label>
 
@@ -781,7 +726,7 @@
 
         <div class="field">
 
-          <label for="airDuration">
+          <label>
             Travel time
           </label>
 
@@ -823,13 +768,13 @@
 
       <section class="panel">
 
-        <h2>Pressure tool</h2>
+        <h2>Pressure</h2>
 
         <div class="grid2">
 
           <div class="field">
 
-            <label for="pressureStrength">
+            <label>
               Strength
             </label>
 
@@ -861,7 +806,7 @@
 
           <div class="field">
 
-            <label for="pressureDuration">
+            <label>
               Duration
             </label>
 
@@ -897,64 +842,60 @@
 
       <section class="panel">
 
-        <h2>Weather at inspected point</h2>
+        <h2>Inspected weather</h2>
 
         <div
-          class="small"
+          class="help"
           id="where"
         >
           Click the map.
         </div>
 
+        <div class="wxgrid">
 
-        <div
-          class="weather"
-          style="margin-top:8px"
-        >
-
-          <div class="wcell">
-            <div class="wname">Temperature</div>
-            <div class="wval" id="wxTemp">—</div>
+          <div class="wx">
+            <small>Temperature</small>
+            <b id="wxTemp">—</b>
           </div>
 
-          <div class="wcell">
-            <div class="wname">Anomaly</div>
-            <div class="wval" id="wxAnom">—</div>
+          <div class="wx">
+            <small>Anomaly</small>
+            <b id="wxAnom">—</b>
           </div>
 
-          <div class="wcell">
-            <div class="wname">Pressure</div>
-            <div class="wval" id="wxPressure">—</div>
+          <div class="wx">
+            <small>Pressure</small>
+            <b id="wxPressure">—</b>
           </div>
 
-          <div class="wcell">
-            <div class="wname">Wind</div>
-            <div class="wval" id="wxWind">—</div>
+          <div class="wx">
+            <small>Wind</small>
+            <b id="wxWind">—</b>
           </div>
 
-          <div class="wcell">
-            <div class="wname">Cloud</div>
-            <div class="wval" id="wxCloud">—</div>
+          <div class="wx">
+            <small>Cloud</small>
+            <b id="wxCloud">—</b>
           </div>
 
-          <div class="wcell">
-            <div class="wname">Moisture</div>
-            <div class="wval" id="wxMoisture">—</div>
+          <div class="wx">
+            <small>Moisture</small>
+            <b id="wxMoisture">—</b>
           </div>
 
-          <div class="wcell wide">
-            <div class="wname">Precipitation</div>
-            <div class="wval" id="wxPrecip">—</div>
+          <div class="wx wide">
+            <small>Precipitation</small>
+            <b id="wxPrecip">—</b>
           </div>
 
-          <div class="wcell">
-            <div class="wname">Snow depth</div>
-            <div class="wval" id="wxSnow">—</div>
+          <div class="wx">
+            <small>Snow depth</small>
+            <b id="wxSnow">—</b>
           </div>
 
-          <div class="wcell">
-            <div class="wname">Elevation</div>
-            <div class="wval" id="wxElevation">—</div>
+          <div class="wx">
+            <small>Elevation</small>
+            <b id="wxElevation">—</b>
           </div>
 
         </div>
@@ -970,14 +911,14 @@
           class="objects"
           id="objects"
         >
-          <div class="small">
+          <div class="help">
             None.
           </div>
         </div>
 
         <div
-          class="actions"
-          style="margin-top:8px"
+          class="row"
+          style="margin-top:7px"
         >
 
           <button
@@ -995,20 +936,20 @@
 
       <section class="panel">
 
-        <h2>Planning state</h2>
+        <h2>Plan state</h2>
 
-        <div class="note">
-          Locked weather remains viewable but cannot be altered.
-          Continue the next block with the final 12 locked hours visible.
+        <div class="statusBox">
+          DONE means reviewed but still editable.
+          LOCKED means the period is read-only.
         </div>
 
         <div
-          class="actions"
-          style="margin-top:8px"
+          class="row"
+          style="margin-top:7px"
         >
 
           <button
-            class="btn good"
+            class="btn"
             id="markDone"
           >
             Mark through here Done
@@ -1021,13 +962,6 @@
             Lock through here
           </button>
 
-          <button
-            class="btn"
-            id="nextBlock"
-          >
-            Next 3-month block
-          </button>
-
         </div>
 
       </section>
@@ -1035,9 +969,9 @@
 
       <section class="panel">
 
-        <h2>Save and export</h2>
+        <h2>Save</h2>
 
-        <div class="actions">
+        <div class="row">
 
           <button
             class="btn"
@@ -1047,10 +981,10 @@
           </button>
 
           <button
-            class="btn active"
+            class="btn"
             id="export"
           >
-            Export plan JSON
+            Export JSON
           </button>
 
           <button
@@ -1069,14 +1003,16 @@
   </div>
 
 
-  <footer id="message">
-    Starting EuropaCraft Weather Studio…
+  <footer
+    class="footer"
+    id="message"
+  >
+    Starting…
   </footer>
 
 </div>
 
-
-<script src="europacraft-weather.js"></script>
+<script src="europacraft-weather.js?v=4"></script>
 
 </body>
 </html>
